@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Brawlhalla Stance Tracker — Champ Select Edition</title>
+  <title>Brawlhalla Stance Tracker</title>
+  <meta name="description" content="Track your Brawlhalla legend levels and which stances you've unlocked." />
+  <meta name="theme-color" content="#0b101d" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2360a5fa'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 4 56 14v18c0 14-10 24-24 28C18 56 8 46 8 32V14z' fill='url(%23g)'/%3E%3Cpath d='m22 33 7 7 14-16' stroke='%230b101d' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <style>
     :root {
       --bg-dark: #0b101d;
@@ -544,6 +547,69 @@
     .toast { background:#111827; color:#f9fafb; border:1px solid #22c55e; border-left-width:5px; border-radius:10px; padding:12px 14px;
       box-shadow:0 10px 30px rgba(0,0,0,0.45); font-size:0.88rem; animation: toastIn 0.25s ease-out; }
     .toast strong { display:block; font-size:0.95rem; margin-bottom:2px; }
+
+    /* Player card */
+    .player-card { display:flex; align-items:center; gap:12px; margin-top:10px; padding:10px 12px; background:var(--bg-card);
+      border:1px solid var(--border-color); border-radius:10px; max-width:560px; }
+    .player-card[hidden] { display:none; }
+    .player-avatar { width:42px; height:42px; flex:none; border-radius:10px; display:grid; place-items:center; font-weight:900; font-size:1.1rem;
+      background:linear-gradient(135deg, #3b82f6, #a78bfa); color:#fff; }
+    .player-name { font-weight:800; font-size:1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .player-meta { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
+    .player-meta b { color:var(--text-main); font-weight:700; }
+
+    /* Progress bars */
+    .bar { height:6px; border-radius:99px; background:rgba(148,163,184,0.18); overflow:hidden; }
+    .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); transition:width 0.4s ease; }
+    .bar.v > span { background:var(--v-green); }
+    .bar.bang > span { background:var(--bang-yellow); }
+    .bar.x > span { background:var(--x-red); }
+    .tile-bar { margin-top:8px; height:4px; }
+    .completion-box { flex-direction:column; align-items:stretch !important; gap:8px; }
+    .completion-box .bar { height:8px; }
+
+    /* Spotlight stats */
+    .stat-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:14px; }
+    .mini-stat { background:var(--bg-dark); border:1px solid var(--border-color); border-radius:8px; padding:8px 10px; }
+    .mini-stat .k { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700; }
+    .mini-stat .v { font-size:1rem; font-weight:800; margin-top:2px; }
+    .weapon-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+    .chip { font-size:0.75rem; font-weight:700; padding:4px 10px; border-radius:99px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.4); color:#bfdbfe; }
+    .xp-row { margin-bottom:14px; }
+    .xp-row .xp-label { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:5px; }
+
+    /* Closest to unlock */
+    .next-box { margin-bottom:16px; }
+    .next-item { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; cursor:pointer;
+      background:var(--bg-card); border:1px solid var(--border-color); margin-bottom:6px; font-size:0.82rem; }
+    .next-item:hover, .next-item:focus-visible { border-color:var(--accent-cyan); outline:none; }
+    .next-item .need { font-weight:800; color:var(--accent-cyan); white-space:nowrap; }
+    .next-item .sub { font-size:0.72rem; color:var(--text-muted); }
+    .section-title { font-size:0.75rem; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); font-weight:800; margin-bottom:8px; }
+
+    kbd { font-size:0.7rem; padding:1px 5px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-dark); color:var(--text-muted); }
+    .champ-tile:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--accent-cyan); outline-offset:2px; }
+    .tile-games { font-size:0.7rem; color:var(--text-muted); }
+
+    @media (min-width: 861px) {
+      .spotlight-panel { position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; }
+    }
+    @media (max-width: 640px) {
+      body { padding:10px; }
+      .top-bar { padding:12px 14px; }
+      .api-controls { width:100%; }
+      .api-controls #brawlhallaIdInput { flex:1 1 100%; width:auto !important; }
+      .api-controls button { flex:1 1 auto; }
+      .stats-strip { grid-template-columns:repeat(2, 1fr); gap:8px; }
+      .completion-box { grid-column:1 / -1; }
+      .stat-box { padding:10px 12px; }
+      .toolbar .filter-group { width:100%; }
+      #searchInput { flex:1 1 100%; }
+      .champ-grid { grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation:none !important; transition:none !important; }
+    }
     @keyframes toastIn { from { transform:translateY(12px); opacity:0; } }
   </style>
 </head>
@@ -553,7 +619,8 @@
   <div class="top-bar">
     <div class="brand">
       <h1>Brawlhalla Stance Tracker</h1>
-      <p>Interactive Champ Select Roster (#1–#70) • Brawlhalla API v1.0 • Stance Unlock Engine</p>
+      <p>All 70 legends in champ select order · see which stances you've unlocked</p>
+      <div class="player-card" id="playerCard" hidden></div>
       <div id="syncStatus" class="sync-msg"></div>
       <div class="live-row">
         <span id="activityStatus"><span class="live-dot"></span>Live tracking off</span>
@@ -562,6 +629,7 @@
     <div class="api-controls">
       <input type="text" id="brawlhallaIdInput" placeholder="Your Brawlhalla ID" style="width:175px" />
       <button id="syncBtn" onclick="syncFromApi()">Sync API</button>
+      <button class="secondary" onclick="copyShareLink()" title="Copy a link that opens this tracker for your ID">🔗 Share</button>
       <button class="secondary" id="liveBtn" onclick="toggleLive()" title="Auto-check every minute and notify on new unlocks">● Live</button>
       <button class="secondary" onclick="exportBackup()">Export JSON</button>
       <button class="secondary" onclick="document.getElementById('importFile').click()">Import JSON</button>
@@ -571,12 +639,12 @@
 
   <!-- Summary Progress Counters -->
   <div class="stats-strip">
-    <div class="stat-box">
-      <div>
-        <div class="label">Total Legends</div>
-        <div class="val" id="countTotal">70</div>
+    <div class="stat-box completion-box">
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <div class="label">Target stances unlocked</div>
+        <div style="font-weight:900" id="completionText">0 / 70</div>
       </div>
-      <div style="font-size:0.8rem;color:var(--text-muted)">In-Game Order</div>
+      <div class="bar v"><span id="completionBar" style="width:0%"></span></div>
     </div>
     <div class="stat-box" style="border-color: rgba(34,197,94,0.4)">
       <div>
@@ -604,7 +672,7 @@
   <!-- Filter, Sort, & View Mode Toolbar -->
   <div class="toolbar">
     <div class="filter-group">
-      <input type="text" id="searchInput" placeholder="Search Legend or Stance..." oninput="renderAll()" />
+      <input type="text" id="searchInput" placeholder="Search legend, stance or weapon…  ( / )" oninput="scheduleRender()" />
       <button class="secondary active" id="filterAll" onclick="setStatusFilter('ALL')">All</button>
       <button class="secondary" id="filterV" onclick="setStatusFilter('v')">v Ready</button>
       <button class="secondary" id="filterBang" onclick="setStatusFilter('!')">! Standard</button>
@@ -650,6 +718,10 @@
     </div>
 
     <div class="log-panel">
+      <div class="next-box">
+        <div class="section-title">Closest to next unlock</div>
+        <div id="nextList"></div>
+      </div>
       <div class="log-header">
         <h3>Improvements Log</h3>
         <div style="display:flex;gap:6px">
@@ -753,6 +825,39 @@
     let playerLevels = JSON.parse(localStorage.getItem('bh_levels_v1') || '{}');
     let improvementsLog = JSON.parse(localStorage.getItem('bh_improvements_v1') || '[]');
     let savedBhId = localStorage.getItem('bh_player_id_v1') || '';
+    let legendStats = JSON.parse(localStorage.getItem('bh_legend_stats_v1') || '{}');
+    let playerProfile = JSON.parse(localStorage.getItem('bh_profile_v1') || 'null');
+
+    function esc(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function fmtHours(seconds) {
+      if (!seconds) return '0h';
+      const h = seconds / 3600;
+      return h >= 10 ? `${Math.round(h)}h` : `${h.toFixed(1)}h`;
+    }
+    function winRate(wins, games) {
+      return games ? `${Math.round((wins / games) * 100)}%` : '–';
+    }
+    function timeAgo(ts) {
+      const m = Math.round((Date.now() - ts) / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return `${m} min ago`;
+      const h = Math.round(m / 60);
+      return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
+    }
+    // Next level that changes the status (x -> ! -> v); null once v is reached
+    function nextTarget(legend, lvl) {
+      if (lvl < legend.bangLvl) return { lvl: legend.bangLvl, status: '!', what: legend.alt };
+      if (lvl < legend.vLvl) return { lvl: legend.vLvl, status: 'v', what: legend.target };
+      return null;
+    }
+    function progressToNext(legend, lvl) {
+      const next = nextTarget(legend, lvl);
+      if (!next) return 1;
+      const xpPct = (legendStats[legend.name] && legendStats[legend.name].xpPct) || 0;
+      return Math.min(1, Math.max(0, (lvl - 1 + xpPct) / Math.max(1, next.lvl - 1)));
+    }
     let selectedOrder = 1;
     let statusFilter = 'ALL';
     let viewMode = 'grid';
@@ -894,6 +999,8 @@
           <div class="stance-name">${legend.alt}</div>
         </div>
 
+        ${renderLegendStats(legend, lvl)}
+
         <div class="track-title">Stance Progression (Lvls 3–17)</div>
         <div class="track-grid">${stanceTrackHtml}</div>
 
@@ -911,6 +1018,73 @@
       `;
     }
 
+    function renderLegendStats(legend, lvl) {
+      const st = legendStats[legend.name];
+      if (!st) return '';
+      const xpPct = Math.round((st.xpPct || 0) * 100);
+      const weapons = (st.weapons || []).filter(Boolean);
+      return `
+        <div class="track-title">Your Stats</div>
+        <div class="stat-grid">
+          <div class="mini-stat"><div class="k">Games</div><div class="v">${(st.games || 0).toLocaleString()}</div></div>
+          <div class="mini-stat"><div class="k">Win rate</div><div class="v">${winRate(st.wins, st.games)}</div></div>
+          <div class="mini-stat"><div class="k">Time played</div><div class="v">${fmtHours(st.time)}</div></div>
+          <div class="mini-stat"><div class="k">KOs</div><div class="v">${st.kos != null ? st.kos.toLocaleString() : '–'}</div></div>
+        </div>
+        ${st.xpPct != null && lvl < 100 ? `
+        <div class="xp-row">
+          <div class="xp-label"><span>XP to level ${lvl + 1}</span><span>${xpPct}%</span></div>
+          <div class="bar"><span style="width:${xpPct}%"></span></div>
+        </div>` : ''}
+        ${weapons.length ? `<div class="weapon-chips">${weapons.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>` : ''}
+      `;
+    }
+
+    function renderPlayerCard() {
+      const card = document.getElementById('playerCard');
+      if (!playerProfile) { card.hidden = true; return; }
+      const p = playerProfile;
+      card.hidden = false;
+      card.innerHTML = `
+        <div class="player-avatar">${esc((p.name || '?').replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase() || '?')}</div>
+        <div style="min-width:0">
+          <div class="player-name">${esc(p.name)} <span style="color:var(--text-muted);font-weight:600;font-size:0.8rem">#${esc(p.id)}</span></div>
+          <div class="player-meta">
+            ${p.level ? `<span>Level <b>${p.level}</b></span>` : ''}
+            ${p.games != null ? `<span><b>${p.games.toLocaleString()}</b> games</span>` : ''}
+            ${p.games ? `<span><b>${winRate(p.wins, p.games)}</b> wins</span>` : ''}
+            ${p.time ? `<span><b>${fmtHours(p.time)}</b> played</span>` : ''}
+            <span>synced ${timeAgo(p.syncedAt)}</span>
+          </div>
+        </div>`;
+    }
+
+    function renderNextList() {
+      const items = LEGENDS_DB
+        .map(l => ({ l, lvl: getLegendLevel(l.name) }))
+        .map(o => ({ ...o, next: nextTarget(o.l, o.lvl) }))
+        .filter(o => o.next)
+        .sort((a, b) => (a.next.lvl - a.lvl) - (b.next.lvl - b.lvl) || progressToNext(b.l, b.lvl) - progressToNext(a.l, a.lvl))
+        .slice(0, 5);
+      document.getElementById('nextList').innerHTML = items.length ? items.map(o => {
+        const need = o.next.lvl - o.lvl;
+        return `
+          <div class="next-item" tabindex="0" role="button" data-order="${o.l.order}">
+            <div>
+              <strong>${esc(o.l.name)}</strong>
+              <div class="sub">Lv.${o.lvl} → ${o.next.lvl} · ${esc(o.next.what)} (${o.next.status})</div>
+            </div>
+            <span class="need">${need} lvl${need === 1 ? '' : 's'}</span>
+          </div>`;
+      }).join('') : `<div style="color:var(--v-green);font-size:0.82rem;font-weight:700">Every target stance unlocked! 🎉</div>`;
+    }
+
+    let renderTimer = null;
+    function scheduleRender() {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(renderAll, 120);
+    }
+
     function renderAll() {
       let vCount = 0, bangCount = 0, xCount = 0;
       LEGENDS_DB.forEach(l => {
@@ -922,6 +1096,8 @@
       document.getElementById('countV').textContent = vCount;
       document.getElementById('countBang').textContent = bangCount;
       document.getElementById('countX').textContent = xCount;
+      document.getElementById('completionText').textContent = `${vCount} / ${LEGENDS_DB.length}`;
+      document.getElementById('completionBar').style.width = `${(vCount / LEGENDS_DB.length) * 100}%`;
 
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const sortBy = document.getElementById('sortSelect').value;
@@ -931,12 +1107,15 @@
         const st = computeStatus(l, lvl);
         if (statusFilter !== 'ALL' && st !== statusFilter) return false;
         if (query) {
-          const hay = `${l.name} ${l.target} ${l.alt} ${l.title}`.toLowerCase();
+          const weapons = ((legendStats[l.name] && legendStats[l.name].weapons) || []).join(' ');
+          const hay = `${l.name} ${l.target} ${l.alt} ${l.title} ${weapons}`.toLowerCase();
           if (!hay.includes(query)) return false;
         }
         return true;
       });
 
+      const latestTs = {};
+      improvementsLog.forEach(e => { if (!latestTs[e.legend] || e.ts > latestTs[e.legend]) latestTs[e.legend] = e.ts; });
       filtered.sort((a, b) => {
         const lvlA = getLegendLevel(a.name);
         const lvlB = getLegendLevel(b.name);
@@ -945,7 +1124,7 @@
         if (sortBy === 'level_desc') return lvlB - lvlA || a.order - b.order;
         if (sortBy === 'level_asc') return lvlA - lvlB || a.order - b.order;
         if (sortBy === 'recent') {
-          return getLatestImprovementTimestamp(b.name) - getLatestImprovementTimestamp(a.name) || a.order - b.order;
+          return (latestTs[b.name] || 0) - (latestTs[a.name] || 0) || a.order - b.order;
         }
         if (sortBy === 'needed') {
           const remA = lvlA >= a.vLvl ? 999 : (lvlA >= a.bangLvl ? a.vLvl - lvlA : a.bangLvl - lvlA);
@@ -961,7 +1140,7 @@
         const st = computeStatus(l, lvl);
         return `
           <div class="champ-tile ${getTileStatusClass(st)} ${l.order === selectedOrder ? 'selected' : ''}"
-               onclick="selectLegend(${l.order})">
+               data-order="${l.order}" tabindex="0" role="button" aria-label="${esc(l.name)}, level ${lvl}, status ${st}">
             <div class="tile-top">
               <span class="tile-order">#${l.order}</span>
               <span class="tile-badge ${getStatusClass(st)}">${st}</span>
@@ -972,6 +1151,7 @@
               <span>Lv.${lvl}</span>
               <span style="color:var(--text-muted)">v@${l.vLvl}</span>
             </div>
+            <div class="bar tile-bar ${st === '!' ? 'bang' : st}"><span style="width:${Math.round(progressToNext(l, lvl) * 100)}%"></span></div>
           </div>
         `;
       }).join('');
@@ -982,7 +1162,7 @@
         const st = computeStatus(l, lvl);
         const stOrder = `3:${l.stances[3]} | 4:${l.stances[4]} | 6:${l.stances[6]} | 8:${l.stances[8]} • 11:${l.stances[11]} | 13:${l.stances[13]} | 15:${l.stances[15]} | 17:${l.stances[17]}`;
         return `
-          <tr onclick="selectLegend(${l.order})">
+          <tr data-order="${l.order}" style="cursor:pointer">
             <td>#${l.order}</td>
             <td style="font-weight:800">${l.name}</td>
             <td>Lv.${lvl}</td>
@@ -996,6 +1176,8 @@
 
       renderSpotlight();
       renderImprovementsLog();
+      renderNextList();
+      renderPlayerCard();
     }
 
     function renderImprovementsLog() {
@@ -1028,7 +1210,48 @@
 
     function selectLegend(order) {
       selectedOrder = order;
-      renderAll();
+      document.querySelectorAll('.champ-tile.selected').forEach(t => t.classList.remove('selected'));
+      const tile = document.querySelector(`.champ-tile[data-order="${order}"]`);
+      if (tile) tile.classList.add('selected');
+      renderSpotlight();
+      if (window.matchMedia('(max-width: 860px)').matches) {
+        document.getElementById('spotlightPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // One click/keyboard handler for tiles, table rows and the "closest to unlock" list
+    function handlePick(e) {
+      const el = e.target.closest('[data-order]');
+      if (!el) return;
+      if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.type === 'keydown') e.preventDefault();
+      selectLegend(Number(el.dataset.order));
+    }
+    ['champGrid', 'sheetBody', 'nextList'].forEach(id => {
+      document.getElementById(id).addEventListener('click', handlePick);
+      document.getElementById(id).addEventListener('keydown', handlePick);
+    });
+
+    document.addEventListener('keydown', e => {
+      const search = document.getElementById('searchInput');
+      if (e.key === '/' && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+        e.preventDefault();
+        search.focus();
+      } else if (e.key === 'Escape' && document.activeElement === search) {
+        search.value = '';
+        search.blur();
+        renderAll();
+      }
+    });
+
+    function copyShareLink() {
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      const statusEl = document.getElementById('syncStatus');
+      if (!/^\d+$/.test(bhId)) { statusEl.textContent = 'Enter a Brawlhalla ID first to create a share link.'; return; }
+      const url = `${location.origin}${location.pathname}?id=${bhId}`;
+      const done = () => showToast('🔗 Link copied', url);
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done, () => prompt('Copy this link:', url));
+      else prompt('Copy this link:', url);
     }
 
     function setStatusFilter(filter) {
@@ -1087,6 +1310,12 @@
         return;
       }
 
+      if (playerProfile && playerProfile.id !== bhId) {
+        // Different player: start fresh so levels and stats don't mix between accounts
+        playerLevels = {};
+        legendStats = {};
+        improvementsLog = [];
+      }
       savedBhId = bhId;
       localStorage.setItem('bh_player_id_v1', bhId);
       if (!/^\d+$/.test(bhId)) {
@@ -1105,7 +1334,18 @@
         if (!d || !Array.isArray(d.legends)) return null;
         return {
           name: d.name,
-          legends: d.legends.map(l => ({ legend_id: l.id, legend_name_key: l.name, level: l.stats && l.stats.level }))
+          level: d.stats && d.stats.level,
+          games: d.stats && d.stats.games,
+          wins: d.stats && d.stats.wins,
+          time: d.stats && d.stats.matchtime,
+          legends: d.legends.map(l => {
+            const st = l.stats || {};
+            return {
+              legend_id: l.id, legend_name_key: l.name, level: st.level,
+              games: st.games, wins: st.wins, match_time: st.matchtime, kos: st.kos, xp_percentage: st.xp_percentage,
+              weapons: [l.weapon_one && l.weapon_one.name, l.weapon_two && l.weapon_two.name]
+            };
+          })
         };
       };
       const relay = relayBase();
@@ -1167,6 +1407,15 @@
 
         if (!matchedName || !LEGENDS_DB.some(l => l.name === matchedName)) return;
 
+        legendStats[matchedName] = {
+          games: apiLeg.games || 0,
+          wins: apiLeg.wins || 0,
+          time: apiLeg.match_time || 0,
+          kos: apiLeg.kos != null ? apiLeg.kos : null,
+          xpPct: apiLeg.xp_percentage != null ? apiLeg.xp_percentage : null,
+          weapons: apiLeg.weapons || (legendStats[matchedName] && legendStats[matchedName].weapons) || []
+        };
+
         // Directly parse level from the schema's "level" property
         // The API omits "level" for some accounts; keep the manually entered level in that case
         let parsedLvl = parseInt(apiLeg.level, 10);
@@ -1204,8 +1453,14 @@
 
       localStorage.setItem('bh_levels_v1', JSON.stringify(playerLevels));
       localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+      localStorage.setItem('bh_legend_stats_v1', JSON.stringify(legendStats));
 
       const playerName = data.name || (data.data && data.data.name) || 'Player';
+      playerProfile = {
+        id: bhId, name: playerName, level: data.level || null, games: data.games, wins: data.wins,
+        time: data.time || legendsList.reduce((sum, l) => sum + (l.match_time || 0), 0), syncedAt: Date.now()
+      };
+      localStorage.setItem('bh_profile_v1', JSON.stringify(playerProfile));
       statusEl.textContent = updatedCount
         ? `✓ Synced ${playerName} (#${bhId})! ${updatedCount} Legends updated.`
         : `Found ${playerName} (#${bhId}), but no legend levels came back (dair.gg may be down). Set levels manually with + / −, or try again later.`;
@@ -1214,7 +1469,6 @@
 
       // Immediately render changes across the UI
       renderAll();
-      selectLegend(selectedOrder);
       return { unlocks, games: data.games };
     }
 
@@ -1359,7 +1613,7 @@
     }
 
     function exportBackup() {
-      const payload = { playerLevels, improvementsLog, savedBhId };
+      const payload = { playerLevels, improvementsLog, savedBhId, legendStats, playerProfile };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1376,6 +1630,8 @@
           const parsed = JSON.parse(ev.target.result);
           if (parsed.playerLevels) playerLevels = parsed.playerLevels;
           if (parsed.improvementsLog) improvementsLog = parsed.improvementsLog;
+          if (parsed.legendStats) { legendStats = parsed.legendStats; localStorage.setItem('bh_legend_stats_v1', JSON.stringify(legendStats)); }
+          if (parsed.playerProfile) { playerProfile = parsed.playerProfile; localStorage.setItem('bh_profile_v1', JSON.stringify(playerProfile)); }
           if (parsed.savedBhId) {
             savedBhId = parsed.savedBhId;
             localStorage.setItem('bh_player_id_v1', savedBhId);
@@ -1392,9 +1648,21 @@
     }
 
     renderAll();
-    try {
-      if (localStorage.getItem('bh_live_v1') === '1' && savedBhId) toggleLive();
-    } catch (err) { /* storage unavailable */ }
+    (function startup() {
+      const linkId = new URLSearchParams(location.search).get('id');
+      if (linkId && /^\d+$/.test(linkId)) {
+        document.getElementById('brawlhallaIdInput').value = linkId;
+        history.replaceState(null, '', location.pathname);
+        syncFromApi();
+        return;
+      }
+      let live = false;
+      try { live = localStorage.getItem('bh_live_v1') === '1'; } catch (err) { /* storage unavailable */ }
+      if (live && savedBhId) { toggleLive(); return; }
+      // Refresh automatically when the last sync is older than 10 minutes
+      if (savedBhId && (!playerProfile || Date.now() - playerProfile.syncedAt > 10 * 60 * 1000)) syncFromApi();
+    })();
+    setInterval(renderPlayerCard, 60 * 1000);
   </script>
 </body>
 </html>
