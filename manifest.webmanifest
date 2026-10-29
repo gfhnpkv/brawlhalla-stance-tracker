@@ -1,0 +1,13 @@
+{
+  "name": "Brawlhalla Stance Tracker",
+  "short_name": "Stances",
+  "description": "Track your Brawlhalla legend levels and which stances you've unlocked.",
+  "start_url": "app.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b101d",
+  "theme_color": "#0b101d",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
