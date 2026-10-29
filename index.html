@@ -6,6 +6,7 @@
   <title>Brawlhalla Stance Tracker</title>
   <meta name="description" content="Track your Brawlhalla legend levels and which stances you've unlocked." />
   <meta name="theme-color" content="#0b101d" />
+  <script src="theme-boot.js" data-page="desktop"></script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2360a5fa'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 4 56 14v18c0 14-10 24-24 28C18 56 8 46 8 32V14z' fill='url(%23g)'/%3E%3Cpath d='m22 33 7 7 14-16' stroke='%230b101d' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <style>
     :root {
@@ -24,6 +25,52 @@
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
       --border-color: #2a395c;
+      --page-glow: #172544;
+      --title-grad: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
+      --avatar-grad: linear-gradient(135deg, #3b82f6, #a78bfa);
+      --on-accent: #fff;
+      --toast-bg: #111827;
+      --toast-text: #f9fafb;
+      --chip-bg: rgba(59,130,246,0.15);
+      --chip-border: rgba(59,130,246,0.4);
+      --chip-text: #bfdbfe;
+      --soft: rgba(255, 255, 255, 0.03);
+      --hairline: rgba(255, 255, 255, 0.06);
+      --track: rgba(148,163,184,0.18);
+      --active-bg: rgba(6, 182, 212, 0.2);
+      --shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+
+    /* Themes: Valhalla (purple and gold) and Daylight (light) */
+    :root[data-theme="valhalla"] {
+      --bg-dark: #120c1f; --bg-panel: #1d1430; --bg-card: #2a1d45; --bg-card-hover: #36265a;
+      --accent-blue: #d99a1e; --accent-cyan: #f5c542;
+      --text-main: #fdf6e3; --text-muted: #b8a9d4; --border-color: #4a3470;
+      --page-glow: #3a2064;
+      --title-grad: linear-gradient(90deg, #ffe08a, #f5c542, #ff9f43);
+      --avatar-grad: linear-gradient(135deg, #f5c542, #c2410c);
+      --on-accent: #1a1027;
+      --toast-bg: #1d1430; --toast-text: #fdf6e3;
+      --chip-bg: rgba(245,197,66,0.14); --chip-border: rgba(245,197,66,0.45); --chip-text: #ffe8a3;
+      --active-bg: rgba(245,197,66,0.2);
+    }
+    :root[data-theme="daylight"] {
+      --bg-dark: #f4f6fb; --bg-panel: #ffffff; --bg-card: #eef2f8; --bg-card-hover: #e2e8f3;
+      --accent-blue: #2563eb; --accent-cyan: #0e7490;
+      --v-green: #15803d; --v-bg: rgba(21,128,61,0.12);
+      --bang-yellow: #b45309; --bang-bg: rgba(180,83,9,0.12);
+      --x-red: #b91c1c; --x-bg: rgba(185,28,28,0.1);
+      --text-main: #0f172a; --text-muted: #5b6678; --border-color: #d5dce8;
+      --page-glow: #dfe7fb;
+      --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
+      --toast-bg: #ffffff; --toast-text: #0f172a;
+      --chip-bg: rgba(37,99,235,0.1); --chip-border: rgba(37,99,235,0.35); --chip-text: #1e40af;
+      --soft: rgba(15,23,42,0.03); --hairline: rgba(15,23,42,0.08);
+      --track: rgba(15,23,42,0.1);
+      --active-bg: rgba(14,116,144,0.12);
+      --shadow: rgba(15,23,42,0.12);
+      color-scheme: light;
     }
 
     * {
@@ -34,7 +81,8 @@
     }
 
     body {
-      background: radial-gradient(circle at top, #172544 0%, var(--bg-dark) 70%);
+      background: radial-gradient(circle at top, var(--page-glow) 0%, var(--bg-dark) 70%);
+      background-color: var(--bg-dark);
       color: var(--text-main);
       min-height: 100vh;
       padding: 16px;
@@ -52,7 +100,7 @@
       border-radius: 12px;
       padding: 14px 20px;
       margin-bottom: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 8px 24px var(--shadow);
     }
 
     .brand h1 {
@@ -60,7 +108,7 @@
       font-weight: 800;
       letter-spacing: 0.5px;
       text-transform: uppercase;
-      background: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
+      background: var(--title-grad);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -94,7 +142,7 @@
 
     button {
       background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-      color: #fff;
+      color: var(--on-accent);
       font-weight: 700;
       border: none;
       border-radius: 8px;
@@ -117,7 +165,7 @@
 
     button.secondary.active {
       border-color: var(--accent-cyan);
-      background: rgba(6, 182, 212, 0.2);
+      background: var(--active-bg);
     }
 
     /* Summary Stats Strip */
@@ -438,7 +486,7 @@
       align-items: center;
       margin-top: 8px;
       padding-top: 5px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top: 1px solid var(--hairline);
       font-size: 0.74rem;
       font-weight: 700;
     }
@@ -473,7 +521,7 @@
     }
 
     tr:hover {
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--soft);
       cursor: pointer;
     }
 
@@ -544,22 +592,23 @@
     @keyframes livePulse { 50% { opacity:0.45; } }
     #liveBtn.active { background:#22c55e; color:#04130a; border-color:#22c55e; }
     .toast-stack { position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:1000; max-width:min(360px, calc(100vw - 32px)); }
-    .toast { background:#111827; color:#f9fafb; border:1px solid #22c55e; border-left-width:5px; border-radius:10px; padding:12px 14px;
+    .toast { background:var(--toast-bg); color:var(--toast-text); border:1px solid #22c55e; border-left-width:5px; border-radius:10px; padding:12px 14px;
       box-shadow:0 10px 30px rgba(0,0,0,0.45); font-size:0.88rem; animation: toastIn 0.25s ease-out; }
     .toast strong { display:block; font-size:0.95rem; margin-bottom:2px; }
+    .theme-select { padding:7px 10px; }
 
     /* Player card */
     .player-card { display:flex; align-items:center; gap:12px; margin-top:10px; padding:10px 12px; background:var(--bg-card);
       border:1px solid var(--border-color); border-radius:10px; max-width:560px; }
     .player-card[hidden] { display:none; }
     .player-avatar { width:42px; height:42px; flex:none; border-radius:10px; display:grid; place-items:center; font-weight:900; font-size:1.1rem;
-      background:linear-gradient(135deg, #3b82f6, #a78bfa); color:#fff; }
+      background:var(--avatar-grad); color:#fff; }
     .player-name { font-weight:800; font-size:1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .player-meta { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
     .player-meta b { color:var(--text-main); font-weight:700; }
 
     /* Progress bars */
-    .bar { height:6px; border-radius:99px; background:rgba(148,163,184,0.18); overflow:hidden; }
+    .bar { height:6px; border-radius:99px; background:var(--track); overflow:hidden; }
     .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); transition:width 0.4s ease; }
     .bar.v > span { background:var(--v-green); }
     .bar.bang > span { background:var(--bang-yellow); }
@@ -574,7 +623,7 @@
     .mini-stat .k { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700; }
     .mini-stat .v { font-size:1rem; font-weight:800; margin-top:2px; }
     .weapon-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
-    .chip { font-size:0.75rem; font-weight:700; padding:4px 10px; border-radius:99px; background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.4); color:#bfdbfe; }
+    .chip { font-size:0.75rem; font-weight:700; padding:4px 10px; border-radius:99px; background:var(--chip-bg); border:1px solid var(--chip-border); color:var(--chip-text); }
     .xp-row { margin-bottom:14px; }
     .xp-row .xp-label { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:5px; }
 
@@ -619,7 +668,7 @@
   <div class="top-bar">
     <div class="brand">
       <h1>Brawlhalla Stance Tracker</h1>
-      <p>All 70 legends in champ select order · see which stances you've unlocked · <a href="app.html" style="color:var(--accent-cyan);font-weight:700;text-decoration:none">📱 Mobile view</a></p>
+      <p>All 70 legends in champ select order · see which stances you've unlocked · <a href="app.html?view=mobile" style="color:var(--accent-cyan);font-weight:700;text-decoration:none">📱 Mobile view</a></p>
       <div class="player-card" id="playerCard" hidden></div>
       <div id="syncStatus" class="sync-msg"></div>
       <div class="live-row">
@@ -629,6 +678,11 @@
     <div class="api-controls">
       <input type="text" id="brawlhallaIdInput" placeholder="Your Brawlhalla ID" style="width:175px" />
       <button id="syncBtn" onclick="syncFromApi()">Sync API</button>
+      <select id="themeSelect" class="theme-select" aria-label="Theme" onchange="setTheme(this.value)">
+        <option value="midnight">🌙 Midnight</option>
+        <option value="valhalla">⚔️ Valhalla</option>
+        <option value="daylight">☀️ Daylight</option>
+      </select>
       <button class="secondary" onclick="copyShareLink()" title="Copy a link that opens this tracker for your ID">🔗 Share</button>
       <button class="secondary" id="liveBtn" onclick="toggleLive()" title="Auto-check every minute and notify on new unlocks">● Live</button>
       <button class="secondary" onclick="exportBackup()">Export JSON</button>
@@ -1158,6 +1212,16 @@
         renderAll();
       }
     });
+
+    const THEME_COLORS = { midnight: '#0b101d', valhalla: '#120c1f', daylight: '#f4f6fb' };
+    function setTheme(name) {
+      if (!THEME_COLORS[name]) name = 'midnight';
+      if (name === 'midnight') document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme', name);
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', THEME_COLORS[name]);
+      try { localStorage.setItem('bh_theme_v1', name); } catch (err) { /* storage unavailable */ }
+    }
+    document.getElementById('themeSelect').value = document.documentElement.getAttribute('data-theme') || 'midnight';
 
     function copyShareLink() {
       const bhId = document.getElementById('brawlhallaIdInput').value.trim();
