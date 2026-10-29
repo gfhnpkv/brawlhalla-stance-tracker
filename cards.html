@@ -499,5 +499,11 @@
     }
     setInterval(render, 5 * 60 * 1000);
   </script>
+  <script>
+    // Offline support (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
 </body>
 </html>

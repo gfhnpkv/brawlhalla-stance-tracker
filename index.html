@@ -892,15 +892,6 @@
       renderAll();
     }
 
-    function getLatestImprovementTimestamp(name) {
-      let maxTs = 0;
-      for (const entry of improvementsLog) {
-        if (entry.legend === name && entry.ts > maxTs) {
-          maxTs = entry.ts;
-        }
-      }
-      return maxTs;
-    }
 
     function renderSpotlight() {
       const legend = LEGENDS_DB.find(l => l.order === selectedOrder) || LEGENDS_DB[0];
@@ -1642,6 +1633,12 @@
       if (savedBhId && (!playerProfile || Date.now() - playerProfile.syncedAt > 10 * 60 * 1000)) syncFromApi();
     })();
     setInterval(renderPlayerCard, 60 * 1000);
+  </script>
+  <script>
+    // Offline support (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
   </script>
 </body>
 </html>
