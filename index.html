@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brawlhalla Stance Tracker — Champ Select Edition</title>
+  <style>
+    :root {
+      --bg-dark: #0b101d;
+      --bg-panel: #131b2e;
+      --bg-card: #1a2540;
+      --bg-card-hover: #233256;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --v-green: #22c55e;
+      --v-bg: rgba(34, 197, 94, 0.16);
+      --bang-yellow: #f59e0b;
+      --bang-bg: rgba(245, 158, 11, 0.16);
+      --x-red: #ef4444;
+      --x-bg: rgba(239, 68, 68, 0.16);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border-color: #2a395c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #172544 0%, var(--bg-dark) 70%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    /* Header & API Bar */
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .brand h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .api-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    input[type="text"], input[type="number"], select {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus, select:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      color: #fff;
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: transform 0.12s, opacity 0.15s;
+    }
+
+    button:hover {
+      opacity: 0.93;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    button.secondary.active {
+      border-color: var(--accent-cyan);
+      background: rgba(6, 182, 212, 0.2);
+    }
+
+    /* Summary Stats Strip */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-box .label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .stat-box .val {
+      font-size: 1.45rem;
+      font-weight: 800;
+    }
+
+    /* Filter Bar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Main Workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: 360px 1fr 300px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 1280px) {
+      .workspace {
+        grid-template-columns: 340px 1fr;
+      }
+      .log-panel {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Spotlight Panel */
+    .spotlight-panel {
+      background: var(--bg-panel);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      padding: 18px;
+      position: sticky;
+      top: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .spotlight-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .spotlight-title .order-tag {
+      font-size: 0.78rem;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .spotlight-title h2 {
+      font-size: 1.65rem;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .spotlight-title .sub-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 2px;
+    }
+
+    .status-pill-lg {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+      border: 2px solid transparent;
+    }
+
+    .status-v {
+      background: var(--v-bg);
+      color: var(--v-green);
+      border-color: var(--v-green);
+    }
+
+    .status-bang {
+      background: var(--bang-bg);
+      color: var(--bang-yellow);
+      border-color: var(--bang-yellow);
+    }
+
+    .status-x {
+      background: var(--x-bg);
+      color: var(--x-red);
+      border-color: var(--x-red);
+    }
+
+    .level-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+    }
+
+    .level-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .level-btns button {
+      padding: 6px 12px;
+      font-size: 1rem;
+    }
+
+    .stance-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 11px 14px;
+      margin-bottom: 10px;
+    }
+
+    .stance-box .stance-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stance-box .stance-name {
+      font-size: 1.02rem;
+      font-weight: 800;
+    }
+
+    /* Progression Track */
+    .track-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 14px 0 8px;
+    }
+
+    .track-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .track-item {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 7px;
+      padding: 6px 9px;
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .track-item.unlocked {
+      border-color: rgba(34, 197, 94, 0.55);
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .track-item .lvl-num {
+      font-weight: 800;
+      color: var(--accent-cyan);
+      margin-right: 6px;
+    }
+
+    /* Champ Select Grid */
+    .champ-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+      gap: 10px;
+    }
+
+    .champ-tile {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 11px;
+      padding: 10px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s, border-color 0.12s, background 0.12s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 112px;
+      user-select: none;
+    }
+
+    .champ-tile:hover {
+      transform: translateY(-3px);
+      background: var(--bg-card-hover);
+    }
+
+    .champ-tile.selected {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.35);
+    }
+
+    .champ-tile.tile-v {
+      border-bottom: 4px solid var(--v-green);
+    }
+
+    .champ-tile.tile-bang {
+      border-bottom: 4px solid var(--bang-yellow);
+    }
+
+    .champ-tile.tile-x {
+      border-bottom: 4px solid var(--x-red);
+    }
+
+    .tile-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tile-order {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .tile-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.95rem;
+    }
+
+    .tile-name {
+      font-size: 0.98rem;
+      font-weight: 800;
+      margin: 6px 0 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tile-stance {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .tile-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 5px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+
+    /* Full Sheet Table View */
+    .sheet-wrapper {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow-x: auto;
+      display: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background: var(--bg-dark);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.4px;
+    }
+
+    tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+    }
+
+    /* Improvements Log Panel */
+    .log-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px;
+      position: sticky;
+      top: 16px;
+      max-height: 84vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .log-header h3 {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .log-list {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .log-entry {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-cyan);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .log-entry.log-v {
+      border-left-color: var(--v-green);
+    }
+
+    .log-entry.log-bang {
+      border-left-color: var(--bang-yellow);
+    }
+
+    .sync-msg {
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      margin-top: 4px;
+    }
+    .live-row { display:flex; align-items:center; gap:10px; margin-top:6px; font-size:0.82rem; flex-wrap:wrap; }
+    .live-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#6b7280; margin-right:6px; vertical-align:middle; }
+    .live-dot.on { background:#22c55e; box-shadow:0 0 8px #22c55e; animation: livePulse 1.6s infinite; }
+    @keyframes livePulse { 50% { opacity:0.45; } }
+    #liveBtn.active { background:#22c55e; color:#04130a; border-color:#22c55e; }
+    .toast-stack { position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:1000; max-width:min(360px, calc(100vw - 32px)); }
+    .toast { background:#111827; color:#f9fafb; border:1px solid #22c55e; border-left-width:5px; border-radius:10px; padding:12px 14px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.45); font-size:0.88rem; animation: toastIn 0.25s ease-out; }
+    .toast strong { display:block; font-size:0.95rem; margin-bottom:2px; }
+    @keyframes toastIn { from { transform:translateY(12px); opacity:0; } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header & Brawlhalla API Sync -->
+  <div class="top-bar">
+    <div class="brand">
+      <h1>Brawlhalla Stance Tracker</h1>
+      <p>Interactive Champ Select Roster (#1–#70) • Brawlhalla API v1.0 • Stance Unlock Engine</p>
+      <div id="syncStatus" class="sync-msg"></div>
+      <div class="live-row">
+        <span id="activityStatus"><span class="live-dot"></span>Live tracking off</span>
+      </div>
+    </div>
+    <div class="api-controls">
+      <input type="text" id="brawlhallaIdInput" placeholder="Your Brawlhalla ID" style="width:175px" />
+      <button id="syncBtn" onclick="syncFromApi()">Sync API</button>
+      <button class="secondary" id="liveBtn" onclick="toggleLive()" title="Auto-check every minute and notify on new unlocks">● Live</button>
+      <button class="secondary" onclick="exportBackup()">Export JSON</button>
+      <button class="secondary" onclick="document.getElementById('importFile').click()">Import JSON</button>
+      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importBackup(event)" />
+    </div>
+  </div>
+
+  <!-- Summary Progress Counters -->
+  <div class="stats-strip">
+    <div class="stat-box">
+      <div>
+        <div class="label">Total Legends</div>
+        <div class="val" id="countTotal">70</div>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-muted)">In-Game Order</div>
+    </div>
+    <div class="stat-box" style="border-color: rgba(34,197,94,0.4)">
+      <div>
+        <div class="label" style="color:var(--v-green)">v • Target Unlocked</div>
+        <div class="val" id="countV" style="color:var(--v-green)">0</div>
+      </div>
+      <div class="status-pill-lg status-v" style="width:38px;height:38px;font-size:1.2rem">v</div>
+    </div>
+    <div class="stat-box" style="border-color: rgba(245,158,11,0.4)">
+      <div>
+        <div class="label" style="color:var(--bang-yellow)">! • Standard Unlocked</div>
+        <div class="val" id="countBang" style="color:var(--bang-yellow)">0</div>
+      </div>
+      <div class="status-pill-lg status-bang" style="width:38px;height:38px;font-size:1.2rem">!</div>
+    </div>
+    <div class="stat-box" style="border-color: rgba(239,68,68,0.4)">
+      <div>
+        <div class="label" style="color:var(--x-red)">x • Locked</div>
+        <div class="val" id="countX" style="color:var(--x-red)">0</div>
+      </div>
+      <div class="status-pill-lg status-x" style="width:38px;height:38px;font-size:1.2rem">x</div>
+    </div>
+  </div>
+
+  <!-- Filter, Sort, & View Mode Toolbar -->
+  <div class="toolbar">
+    <div class="filter-group">
+      <input type="text" id="searchInput" placeholder="Search Legend or Stance..." oninput="renderAll()" />
+      <button class="secondary active" id="filterAll" onclick="setStatusFilter('ALL')">All</button>
+      <button class="secondary" id="filterV" onclick="setStatusFilter('v')">v Ready</button>
+      <button class="secondary" id="filterBang" onclick="setStatusFilter('!')">! Standard</button>
+      <button class="secondary" id="filterX" onclick="setStatusFilter('x')">x Locked</button>
+    </div>
+    <div class="filter-group">
+      <label style="font-size:0.82rem;color:var(--text-muted)">Sort:</label>
+      <select id="sortSelect" onchange="renderAll()">
+        <option value="order">Champ Select Order (#1–#70)</option>
+        <option value="recent">Recent Improvements (By Date)</option>
+        <option value="level_desc">My Level (High ➔ Low)</option>
+        <option value="level_asc">My Level (Low ➔ High)</option>
+        <option value="needed">Closest to Next Unlock</option>
+        <option value="alpha">Alphabetical (A–Z)</option>
+      </select>
+      <button class="secondary active" id="viewGridBtn" onclick="setViewMode('grid')">Champ Select Grid</button>
+      <button class="secondary" id="viewSheetBtn" onclick="setViewMode('sheet')">Full Sheet Table</button>
+    </div>
+  </div>
+
+  <!-- Main Workspace -->
+  <div class="workspace">
+    <div class="spotlight-panel" id="spotlightPanel"></div>
+
+    <div>
+      <div class="champ-grid" id="champGrid"></div>
+      <div class="sheet-wrapper" id="sheetWrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Legend</th>
+              <th>Lvl</th>
+              <th>Status</th>
+              <th>Target Best Stance (v)</th>
+              <th>Standard Alternative (!)</th>
+              <th>Stance Order (3 / 4 / 6 / 8 • 11 / 13 / 15 / 17)</th>
+            </tr>
+          </thead>
+          <tbody id="sheetBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="log-header">
+        <h3>Improvements Log</h3>
+        <div style="display:flex;gap:6px">
+          <button class="secondary" id="logSortBtn" style="padding:4px 8px;font-size:0.75rem" onclick="toggleLogSort()">Newest First</button>
+          <button class="secondary" style="padding:4px 8px;font-size:0.75rem" onclick="clearImprovementsLog()">Clear</button>
+        </div>
+      </div>
+      <div class="log-list" id="improvementsList"></div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script>
+    const LEGENDS_DB = [
+      {"order": 1, "name": "Bödvar", "title": "The Unconquered Viking", "target": "Strength or Super Speed", "alt": "Speed or Strength", "vLvl": 8, "bangLvl": 3, "stances": {"3": "Speed", "4": "Defense", "6": "Dexterity", "8": "Strength", "11": "Super Speed", "13": "Super Defense", "15": "Super Dexterity", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Green", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 2, "name": "Cassidy", "title": "Marshal of the Old West", "target": "Super Defense or Dexterity", "alt": "Defense (or Dex)", "vLvl": 8, "bangLvl": 3, "stances": {"3": "Defense", "4": "Speed", "6": "Strength", "8": "Dexterity", "11": "Super Defense", "13": "Super Speed", "15": "Super Strength", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 3, "name": "Orion", "title": "The Mysterious Stranger", "target": "Strength", "alt": "Strength", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Dexterity", "8": "Defense", "11": "Super Strength", "13": "Super Speed", "15": "Super Dexterity", "17": "Super Defense"}, "colors": {"1": "Blue, Green, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Yellow", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 4, "name": "Lord Vraxx", "title": "The Despotic", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Defense", "6": "Speed", "8": "Dexterity", "11": "Super Strength", "13": "Super Defense", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 5, "name": "Gnash", "title": "The First Real Man", "target": "Strength", "alt": "Strength", "vLvl": 8, "bangLvl": 8, "stances": {"3": "Dexterity", "4": "Defense", "6": "Speed", "8": "Strength", "11": "Super Dexterity", "13": "Super Defense", "15": "Super Speed", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Green", "5": "Purple", "10": "Cyan", "12": "Orange", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 6, "name": "Queen Nai", "title": "The Jaguar Queen", "target": "Super Speed", "alt": "Speed", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Speed", "4": "Dexterity", "6": "Strength", "8": "Defense", "11": "Super Speed", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Defense"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 7, "name": "Hattori", "title": "Demon Bride", "target": "Defense", "alt": "Defense", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Dexterity", "8": "Speed", "11": "Super Defense", "13": "Super Strength", "15": "Super Dexterity", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 8, "name": "Sir Roland", "title": "The Scarlet Lion", "target": "Super Speed", "alt": "Speed", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Speed", "4": "Strength", "6": "Dexterity", "8": "Defense", "11": "Super Speed", "13": "Super Strength", "15": "Super Dexterity", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 9, "name": "Scarlet", "title": "The daVinci of Steam", "target": "Speed", "alt": "Speed", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Speed", "4": "Dexterity", "6": "Defense", "8": "Strength", "11": "Super Speed", "13": "Super Dexterity", "15": "Super Defense", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 10, "name": "Thatch", "title": "The Madman of Barbados", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Dexterity", "6": "Strength", "8": "Speed", "11": "Super Defense", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 11, "name": "Ada", "title": "The Ghost in the Machine", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Speed", "8": "Dexterity", "11": "Super Defense", "13": "Super Strength", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 12, "name": "Sentinel", "title": "The Hammer of Justice", "target": "Super Strength", "alt": "Strength", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Strength", "6": "Speed", "8": "Defense", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Speed", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 13, "name": "Lucien", "title": "The Highwayman", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Dexterity", "6": "Defense", "8": "Speed", "11": "Super Strength", "13": "Super Dexterity", "15": "Super Defense", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 14, "name": "Teros", "title": "The Minotaur", "target": "Super Speed or Super Strength", "alt": "Speed or Strength", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Speed", "6": "Defense", "8": "Strength", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Defense", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Brown", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 15, "name": "Brynn", "title": "Slayer of the Chosen", "target": "Super Strength (2v2) / Dex (1v1)", "alt": "Strength (2s) / Dexterity (1s)", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Dexterity", "4": "Strength", "6": "Defense", "8": "Speed", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Defense", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 16, "name": "Asuri", "title": "The Night Stalker", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Defense", "6": "Speed", "8": "Dexterity", "11": "Super Strength", "13": "Super Defense", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 17, "name": "Barraza", "title": "Diesel Heart", "target": "Super Strength or Speed", "alt": "Strength or Speed", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Speed", "4": "Dexterity", "6": "Strength", "8": "Defense", "11": "Super Speed", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 18, "name": "Ember", "title": "The Fangwild's Daughter", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Dexterity", "8": "Speed", "11": "Super Defense", "13": "Super Strength", "15": "Super Dexterity", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 19, "name": "Azoth", "title": "The One-Man Dynasty", "target": "Super Speed or Super Strength", "alt": "Speed or Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Speed", "4": "Dexterity", "6": "Defense", "8": "Strength", "11": "Super Speed", "13": "Super Dexterity", "15": "Super Defense", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 20, "name": "Koji", "title": "The Wanderer", "target": "Defense", "alt": "Defense", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Speed", "8": "Dexterity", "11": "Super Defense", "13": "Super Strength", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 21, "name": "Ulgrim", "title": "The Unyielding Anvil", "target": "Strength", "alt": "Strength", "vLvl": 6, "bangLvl": 6, "stances": {"3": "Dexterity", "4": "Speed", "6": "Strength", "8": "Defense", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Strength", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 22, "name": "Diana", "title": "The Monster Hunter", "target": "Super Strength or Speed", "alt": "Strength or Speed", "vLvl": 8, "bangLvl": 3, "stances": {"3": "Strength", "4": "Defense", "6": "Dexterity", "8": "Speed", "11": "Super Strength", "13": "Super Defense", "15": "Super Dexterity", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Brown", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 23, "name": "Jhala", "title": "The Unbroken", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Speed", "6": "Strength", "8": "Dexterity", "11": "Super Defense", "13": "Super Speed", "15": "Super Strength", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Brown", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 24, "name": "Kor", "title": "The Boulder", "target": "Strength or Speed", "alt": "Strength (takes Dex) or Speed", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Speed", "4": "Dexterity", "6": "Strength", "8": "Defense", "11": "Super Speed", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 25, "name": "Wu Shang", "title": "The Traveler", "target": "Strength", "alt": "Strength", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Defense", "8": "Dexterity", "11": "Super Strength", "13": "Super Speed", "15": "Super Defense", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Purple", "10": "Cyan", "12": "Orange", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 26, "name": "Val", "title": "The Weapon", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Dexterity", "6": "Defense", "8": "Speed", "11": "Super Strength", "13": "Super Dexterity", "15": "Super Defense", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 27, "name": "Ragnir", "title": "The Dragon", "target": "Super Strength", "alt": "Strength (takes Dex) or Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Dexterity", "8": "Defense", "11": "Super Strength", "13": "Super Speed", "15": "Super Dexterity", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 28, "name": "Cross", "title": "The Dealmaker", "target": "Base", "alt": "Base (or Defense)", "vLvl": 1, "bangLvl": 1, "stances": {"3": "Dexterity", "4": "Speed", "6": "Defense", "8": "Strength", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Defense", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 29, "name": "Mirage", "title": "The Dune Weaver", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Speed", "6": "Dexterity", "8": "Strength", "11": "Super Defense", "13": "Super Speed", "15": "Super Dexterity", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 30, "name": "Nix", "title": "Freelance Reaper", "target": "Super Strength or Super Defense", "alt": "Strength or Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Dexterity", "6": "Speed", "8": "Defense", "11": "Super Strength", "13": "Super Dexterity", "15": "Super Speed", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 31, "name": "Mordex", "title": "The Ravenous", "target": "Super Strength", "alt": "Strength", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Strength", "6": "Defense", "8": "Speed", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Defense", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Purple", "10": "Cyan", "12": "Orange", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 32, "name": "Yumiko", "title": "The Kitsune", "target": "Super Strength", "alt": "Strength (takes Dex)", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Defense", "6": "Speed", "8": "Dexterity", "11": "Super Strength", "13": "Super Defense", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 33, "name": "Artemis", "title": "The Answer", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Dexterity", "8": "Speed", "11": "Super Defense", "13": "Super Strength", "15": "Super Dexterity", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 34, "name": "Caspian", "title": "The Master Thief", "target": "Defense", "alt": "Defense", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Defense", "4": "Dexterity", "6": "Speed", "8": "Strength", "11": "Super Defense", "13": "Super Dexterity", "15": "Super Speed", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 35, "name": "Sidra", "title": "The Corsair Queen", "target": "Base or Super Strength", "alt": "Base (or Strength)", "vLvl": 1, "bangLvl": 1, "stances": {"3": "Dexterity", "4": "Defense", "6": "Speed", "8": "Strength", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Speed", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 36, "name": "Xull", "title": "The Iron Commander", "target": "Speed or Super Defense", "alt": "Speed or Defense", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Speed", "4": "Dexterity", "6": "Defense", "8": "Strength", "11": "Super Dexterity", "13": "Super Defense", "15": "Super Speed", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Green", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 37, "name": "Kaya", "title": "The Natural", "target": "Super Strength", "alt": "Strength", "vLvl": 17, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Strength", "6": "Speed", "8": "Defense", "11": "Super Speed", "13": "Super Dexterity", "15": "Super Defense", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 38, "name": "Isaiah", "title": "The Specialist", "target": "Super Strength or Super Speed", "alt": "Strength (takes Dex) or Speed", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Strength", "6": "Speed", "8": "Defense", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Speed", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Green", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 39, "name": "Jiro", "title": "The Shogun's Shadow", "target": "Super Defense", "alt": "Defense", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Strength", "4": "Defense", "6": "Speed", "8": "Dexterity", "11": "Super Strength", "13": "Super Defense", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 40, "name": "Lin Fei", "title": "The Teacher", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 6, "stances": {"3": "Speed", "4": "Defense", "6": "Strength", "8": "Dexterity", "11": "Super Strength", "13": "Super Defense", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Green", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 41, "name": "Zariel", "title": "The Celestial", "target": "Speed", "alt": "Speed", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Speed", "4": "Dexterity", "6": "Defense", "8": "Strength", "11": "Super Strength", "13": "Super Speed", "15": "Super Dexterity", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 42, "name": "Rayman", "title": "Glade of Dreams Champion", "target": "Strength", "alt": "Strength", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Strength", "4": "Dexterity", "6": "Speed", "8": "Defense", "11": "Super Strength", "13": "Super Dexterity", "15": "Super Speed", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 43, "name": "Dusk", "title": "The Renegade Sorcerer", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Speed", "6": "Dexterity", "8": "Strength", "11": "Super Defense", "13": "Super Speed", "15": "Super Dexterity", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 44, "name": "Fait", "title": "The Star Speaker", "target": "Super Strength (1v1) / Super Defense (2v2)", "alt": "Strength (1s) / Defense (2s)", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Dexterity", "6": "Speed", "8": "Strength", "11": "Super Defense", "13": "Super Dexterity", "15": "Super Speed", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 45, "name": "Thor", "title": "The God of Thunder", "target": "Speed", "alt": "Speed (takes Dex)", "vLvl": 4, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Speed", "6": "Strength", "8": "Defense", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Strength", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 46, "name": "Petra", "title": "The Darkheart", "target": "Super Defense or Defense", "alt": "Defense", "vLvl": 6, "bangLvl": 6, "stances": {"3": "Dexterity", "4": "Speed", "6": "Defense", "8": "Strength", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Defense", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 47, "name": "Vector", "title": "The Superbot", "target": "Super Strength or Speed", "alt": "Strength or Speed", "vLvl": 8, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Strength", "6": "Defense", "8": "Speed", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Defense", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 48, "name": "Volkov", "title": "The Vampire King", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Defense", "8": "Dexterity", "11": "Super Strength", "13": "Super Speed", "15": "Super Defense", "17": "Super Dexterity"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 49, "name": "Onyx", "title": "The Gargoyle", "target": "Super Strength", "alt": "Strength", "vLvl": 15, "bangLvl": 3, "stances": {"3": "Strength", "4": "Defense", "6": "Speed", "8": "Dexterity", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Strength", "17": "Super Defense"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 50, "name": "Jaeyun", "title": "The Sellsword", "target": "Super Strength or Super Defense", "alt": "Strength or Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Dexterity", "6": "Strength", "8": "Speed", "11": "Super Defense", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Speed"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 51, "name": "Mako", "title": "The Shark", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Dexterity", "8": "Speed", "11": "Super Defense", "13": "Super Strength", "15": "Super Dexterity", "17": "Super Speed"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 52, "name": "Magyar", "title": "The Spectral Guardian", "target": "Super Strength or Speed", "alt": "Strength (takes Dex) or Speed (takes Def)", "vLvl": 4, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Defense", "8": "Dexterity", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Speed", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 53, "name": "Reno", "title": "The Bounty Hunter", "target": "Super Defense", "alt": "Defense (or Strength)", "vLvl": 15, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Defense", "8": "Dexterity", "11": "Super Strength", "13": "Super Speed", "15": "Super Defense", "17": "Super Dexterity"}, "colors": {"1": "Blue, Green, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Yellow", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 54, "name": "Munin", "title": "The Raven", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Dexterity", "8": "Speed", "11": "Super Defense", "13": "Super Strength", "15": "Super Dexterity", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 55, "name": "Arcadia", "title": "The Faerie Queen", "target": "Super Defense", "alt": "Defense", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Defense", "6": "Strength", "8": "Speed", "11": "Super Speed", "13": "Super Defense", "15": "Super Strength", "17": "Super Dexterity"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 56, "name": "Ezio", "title": "The Master Assassin", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Strength", "6": "Speed", "8": "Dexterity", "11": "Super Defense", "13": "Super Strength", "15": "Super Speed", "17": "Super Dexterity"}, "colors": {"1": "Blue, Green, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Yellow", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 57, "name": "Tezca", "title": "The Luchador", "target": "Super Strength", "alt": "Strength", "vLvl": 17, "bangLvl": 8, "stances": {"3": "Speed", "4": "Defense", "6": "Dexterity", "8": "Strength", "11": "Super Speed", "13": "Super Defense", "15": "Super Dexterity", "17": "Super Strength"}, "colors": {"1": "Blue, Green, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Sunset", "14": "Yellow", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 58, "name": "Thea", "title": "The Speedster", "target": "Super Defense, Super Speed, or Base", "alt": "Base (or Strength)", "vLvl": 1, "bangLvl": 1, "stances": {"3": "Strength", "4": "Defense", "6": "Speed", "8": "Dexterity", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Defense", "17": "Super Speed"}, "colors": {"1": "Blue, Green, Brown", "2": "Yellow", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 59, "name": "Red Raptor", "title": "The Last Sentai", "target": "Super Defense", "alt": "Defense (or Strength)", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Dexterity", "6": "Strength", "8": "Speed", "11": "Super Defense", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 60, "name": "Loki", "title": "The Mastermind", "target": "Strength", "alt": "Strength (takes Dex)", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Defense", "8": "Dexterity", "11": "Super Strength", "13": "Super Speed", "15": "Super Defense", "17": "Super Dexterity"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 61, "name": "Seven", "title": "The Free Heart Engineer", "target": "Super Strength or Super Speed", "alt": "Strength or Speed", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Speed", "6": "Strength", "8": "Defense", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Defense", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Orange", "5": "Purple", "10": "Brown", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 62, "name": "Vivi", "title": "The Deadly Dancer", "target": "Strength or Defense", "alt": "Strength or Defense", "vLvl": 3, "bangLvl": 3, "stances": {"3": "Defense", "4": "Dexterity", "6": "Strength", "8": "Speed", "11": "Super Defense", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 63, "name": "Imugi", "title": "The Warrior Chef", "target": "Super Speed", "alt": "Speed", "vLvl": 15, "bangLvl": 6, "stances": {"3": "Dexterity", "4": "Strength", "6": "Speed", "8": "Defense", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Speed", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Orange", "5": "Purple", "10": "Green", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 64, "name": "King Zuva", "title": "The Stampede", "target": "Super Speed", "alt": "Speed", "vLvl": 13, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Speed", "6": "Defense", "8": "Strength", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Defense", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 65, "name": "Priya", "title": "The Radiant Blade", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Defense", "6": "Dexterity", "8": "Speed", "11": "Super Strength", "13": "Super Defense", "15": "Super Dexterity", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 66, "name": "Ransom", "title": "The Virus", "target": "Super Defense", "alt": "Defense", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Defense", "4": "Dexterity", "6": "Strength", "8": "Speed", "11": "Super Defense", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Speed"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Green", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 67, "name": "Lady Vera", "title": "The Luminary", "target": "Super Strength", "alt": "Strength", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Strength", "4": "Speed", "6": "Dexterity", "8": "Defense", "11": "Super Strength", "13": "Super Speed", "15": "Super Dexterity", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 68, "name": "Rupture", "title": "The Nemesis", "target": "Super Defense", "alt": "Strength (takes Dex) or Speed", "vLvl": 15, "bangLvl": 4, "stances": {"3": "Dexterity", "4": "Speed", "6": "Defense", "8": "Strength", "11": "Super Dexterity", "13": "Super Speed", "15": "Super Defense", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Green", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 69, "name": "Aurus", "title": "The Gladiator", "target": "Super Speed or Super Strength", "alt": "Speed or Strength", "vLvl": 11, "bangLvl": 6, "stances": {"3": "Defense", "4": "Dexterity", "6": "Strength", "8": "Speed", "11": "Super Speed", "13": "Super Dexterity", "15": "Super Strength", "17": "Super Defense"}, "colors": {"1": "Blue, Yellow, Green", "2": "Brown", "5": "Orange", "10": "Purple", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},
+      {"order": 70, "name": "Qinghua & Baobao", "title": "The Voyager / The Void", "target": "Super Dexterity or Super Defense", "alt": "Dexterity (or Defense)", "vLvl": 11, "bangLvl": 3, "stances": {"3": "Dexterity", "4": "Strength", "6": "Defense", "8": "Speed", "11": "Super Dexterity", "13": "Super Strength", "15": "Super Defense", "17": "Super Speed"}, "colors": {"1": "Yellow, Green, Brown", "2": "Orange", "5": "Purple", "10": "Blue", "12": "Cyan", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}}
+    ];
+
+    // Official Brawlhalla API legend_id mapping (verified against /v1/static/legends, Oct 2026)
+    const BRAWLHALLA_ID_MAP = {
+      3: "Bödvar", 4: "Cassidy", 5: "Orion", 6: "Lord Vraxx", 7: "Gnash", 8: "Queen Nai", 9: "Lucien", 10: "Hattori",
+      11: "Sir Roland", 12: "Scarlet", 13: "Thatch", 14: "Ada", 15: "Sentinel", 16: "Teros", 17: "Red Raptor", 18: "Ember",
+      19: "Brynn", 20: "Asuri", 21: "Barraza", 22: "Ulgrim", 23: "Azoth", 24: "Koji", 25: "Diana", 26: "Jhala",
+      27: "Loki", 28: "Kor", 29: "Wu Shang", 30: "Val", 31: "Ragnir", 32: "Cross", 33: "Mirage", 34: "Nix",
+      35: "Mordex", 36: "Yumiko", 37: "Artemis", 38: "Caspian", 39: "Sidra", 40: "Xull", 41: "Isaiah", 42: "Kaya",
+      43: "Jiro", 44: "Lin Fei", 45: "Zariel", 46: "Rayman", 47: "Dusk", 48: "Fait", 49: "Thor", 50: "Petra",
+      51: "Vector", 52: "Volkov", 53: "Onyx", 54: "Jaeyun", 55: "Mako", 56: "Magyar", 57: "Reno", 58: "Munin",
+      59: "Arcadia", 60: "Ezio", 61: "Seven", 62: "Thea", 63: "Tezca", 64: "Vivi", 65: "Imugi", 66: "King Zuva",
+      67: "Priya", 68: "Ransom", 69: "Lady Vera", 70: "Rupture", 71: "Aurus", 72: "Qinghua & Baobao"
+    };
+
+    let playerLevels = JSON.parse(localStorage.getItem('bh_levels_v1') || '{}');
+    let improvementsLog = JSON.parse(localStorage.getItem('bh_improvements_v1') || '[]');
+    let savedBhId = localStorage.getItem('bh_player_id_v1') || '';
+    let selectedOrder = 1;
+    let statusFilter = 'ALL';
+    let viewMode = 'grid';
+    let logSortNewest = true;
+
+    document.getElementById('brawlhallaIdInput').value = savedBhId;
+
+    function normalizeName(str) {
+      return (str || '')
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function getLegendLevel(name) {
+      return playerLevels[name] || 1;
+    }
+
+    function computeStatus(legend, level) {
+      if (level >= legend.vLvl) return 'v';
+      if (level >= legend.bangLvl) return '!';
+      return 'x';
+    }
+
+    function getStatusClass(status) {
+      if (status === 'v') return 'status-v';
+      if (status === '!') return 'status-bang';
+      return 'status-x';
+    }
+
+    function getTileStatusClass(status) {
+      if (status === 'v') return 'tile-v';
+      if (status === '!') return 'tile-bang';
+      return 'tile-x';
+    }
+
+    function updateLegendLevel(name, newLvl) {
+      const legend = LEGENDS_DB.find(l => l.name === name);
+      if (!legend) return;
+
+      const parsed = Math.max(1, Math.min(100, parseInt(newLvl, 10) || 1));
+      const oldLvl = getLegendLevel(name);
+      const oldStatus = computeStatus(legend, oldLvl);
+      const newStatus = computeStatus(legend, parsed);
+
+      playerLevels[name] = parsed;
+      localStorage.setItem('bh_levels_v1', JSON.stringify(playerLevels));
+
+      if (parsed > oldLvl || (oldStatus !== newStatus && (newStatus === 'v' || newStatus === '!'))) {
+        improvementsLog.push({
+          legend: name,
+          oldLvl,
+          newLvl: parsed,
+          oldStatus,
+          newStatus,
+          stanceUnlocked: newStatus === 'v' ? legend.target : (newStatus === '!' ? legend.alt : 'Level Up'),
+          ts: Date.now()
+        });
+        localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+      }
+
+      renderAll();
+    }
+
+    function getLatestImprovementTimestamp(name) {
+      let maxTs = 0;
+      for (const entry of improvementsLog) {
+        if (entry.legend === name && entry.ts > maxTs) {
+          maxTs = entry.ts;
+        }
+      }
+      return maxTs;
+    }
+
+    function renderSpotlight() {
+      const legend = LEGENDS_DB.find(l => l.order === selectedOrder) || LEGENDS_DB[0];
+      const lvl = getLegendLevel(legend.name);
+      const status = computeStatus(legend, lvl);
+
+      let nextNeededText = 'Max Target Stance Unlocked (v)';
+      if (status === 'x') {
+        nextNeededText = `Need Lvl ${legend.bangLvl} for ! (${legend.bangLvl - lvl} lvls) • Lvl ${legend.vLvl} for v`;
+      } else if (status === '!') {
+        nextNeededText = `Need Lvl ${legend.vLvl} for v (${legend.vLvl - lvl} more lvls)`;
+      }
+
+      const stanceLevels = [3, 4, 6, 8, 11, 13, 15, 17];
+      const stanceTrackHtml = stanceLevels.map(sLvl => {
+        const unlocked = lvl >= sLvl;
+        return `
+          <div class="track-item ${unlocked ? 'unlocked' : ''}">
+            <span><span class="lvl-num">Lv.${sLvl}</span>${legend.stances[sLvl]}</span>
+            <span>${unlocked ? '✓' : '🔒'}</span>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('spotlightPanel').innerHTML = `
+        <div class="spotlight-header">
+          <div class="spotlight-title">
+            <div class="order-tag">Legend #${legend.order}</div>
+            <h2>${legend.name}</h2>
+            <div class="sub-title">${legend.title} (Lvl 50 Title)</div>
+          </div>
+          <div class="status-pill-lg ${getStatusClass(status)}">${status}</div>
+        </div>
+
+        <div class="level-control">
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700">Current Level</div>
+            <div style="font-size:1.35rem;font-weight:900">Level ${lvl}</div>
+          </div>
+          <div class="level-btns">
+            <button class="secondary" onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl - 1})">-</button>
+            <input type="number" min="1" max="100" value="${lvl}" style="width:64px;text-align:center"
+              onchange="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', this.value)" />
+            <button onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl + 1})">+</button>
+          </div>
+        </div>
+
+        <div style="font-size:0.8rem;color:var(--accent-cyan);margin-bottom:12px;font-weight:600">
+          ${nextNeededText}
+        </div>
+
+        <div class="stance-box" style="border-left: 4px solid var(--v-green)">
+          <div class="stance-header">
+            <span>Target Best Stance (v)</span>
+            <span style="color:var(--v-green)">Unlocks @ Lvl ${legend.vLvl}</span>
+          </div>
+          <div class="stance-name">${legend.target}</div>
+        </div>
+
+        <div class="stance-box" style="border-left: 4px solid var(--bang-yellow)">
+          <div class="stance-header">
+            <span>Standard Alternative (!)</span>
+            <span style="color:var(--bang-yellow)">Unlocks @ Lvl ${legend.bangLvl}</span>
+          </div>
+          <div class="stance-name">${legend.alt}</div>
+        </div>
+
+        <div class="track-title">Stance Progression (Lvls 3–17)</div>
+        <div class="track-grid">${stanceTrackHtml}</div>
+
+        <div class="track-title">Special Milestones</div>
+        <div class="track-grid">
+          <div class="track-item ${lvl >= 40 ? 'unlocked' : ''}">
+            <span><span class="lvl-num">Lv.40</span>Challenge Stance</span>
+            <span>${lvl >= 40 ? '✓' : '🔒'}</span>
+          </div>
+          <div class="track-item ${lvl >= 100 ? 'unlocked' : ''}">
+            <span><span class="lvl-num">Lv.100</span>Gold Name</span>
+            <span>${lvl >= 100 ? '✓' : '🔒'}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAll() {
+      let vCount = 0, bangCount = 0, xCount = 0;
+      LEGENDS_DB.forEach(l => {
+        const st = computeStatus(l, getLegendLevel(l.name));
+        if (st === 'v') vCount++;
+        else if (st === '!') bangCount++;
+        else xCount++;
+      });
+      document.getElementById('countV').textContent = vCount;
+      document.getElementById('countBang').textContent = bangCount;
+      document.getElementById('countX').textContent = xCount;
+
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const sortBy = document.getElementById('sortSelect').value;
+
+      let filtered = LEGENDS_DB.filter(l => {
+        const lvl = getLegendLevel(l.name);
+        const st = computeStatus(l, lvl);
+        if (statusFilter !== 'ALL' && st !== statusFilter) return false;
+        if (query) {
+          const hay = `${l.name} ${l.target} ${l.alt} ${l.title}`.toLowerCase();
+          if (!hay.includes(query)) return false;
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        const lvlA = getLegendLevel(a.name);
+        const lvlB = getLegendLevel(b.name);
+        if (sortBy === 'order') return a.order - b.order;
+        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
+        if (sortBy === 'level_desc') return lvlB - lvlA || a.order - b.order;
+        if (sortBy === 'level_asc') return lvlA - lvlB || a.order - b.order;
+        if (sortBy === 'recent') {
+          return getLatestImprovementTimestamp(b.name) - getLatestImprovementTimestamp(a.name) || a.order - b.order;
+        }
+        if (sortBy === 'needed') {
+          const remA = lvlA >= a.vLvl ? 999 : (lvlA >= a.bangLvl ? a.vLvl - lvlA : a.bangLvl - lvlA);
+          const remB = lvlB >= b.vLvl ? 999 : (lvlB >= b.bangLvl ? b.vLvl - lvlB : b.bangLvl - lvlB);
+          return remA - remB || a.order - b.order;
+        }
+        return a.order - b.order;
+      });
+
+      const gridEl = document.getElementById('champGrid');
+      gridEl.innerHTML = filtered.map(l => {
+        const lvl = getLegendLevel(l.name);
+        const st = computeStatus(l, lvl);
+        return `
+          <div class="champ-tile ${getTileStatusClass(st)} ${l.order === selectedOrder ? 'selected' : ''}"
+               onclick="selectLegend(${l.order})">
+            <div class="tile-top">
+              <span class="tile-order">#${l.order}</span>
+              <span class="tile-badge ${getStatusClass(st)}">${st}</span>
+            </div>
+            <div class="tile-name" title="${l.name}">${l.name}</div>
+            <div class="tile-stance">${l.target}</div>
+            <div class="tile-footer">
+              <span>Lv.${lvl}</span>
+              <span style="color:var(--text-muted)">v@${l.vLvl}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const sheetBody = document.getElementById('sheetBody');
+      sheetBody.innerHTML = filtered.map(l => {
+        const lvl = getLegendLevel(l.name);
+        const st = computeStatus(l, lvl);
+        const stOrder = `3:${l.stances[3]} | 4:${l.stances[4]} | 6:${l.stances[6]} | 8:${l.stances[8]} • 11:${l.stances[11]} | 13:${l.stances[13]} | 15:${l.stances[15]} | 17:${l.stances[17]}`;
+        return `
+          <tr onclick="selectLegend(${l.order})">
+            <td>#${l.order}</td>
+            <td style="font-weight:800">${l.name}</td>
+            <td>Lv.${lvl}</td>
+            <td><span class="tile-badge ${getStatusClass(st)}" style="display:inline-flex">${st}</span></td>
+            <td><strong>${l.target}</strong> <span style="color:var(--text-muted)">(Lv.${l.vLvl})</span></td>
+            <td>${l.alt} <span style="color:var(--text-muted)">(Lv.${l.bangLvl})</span></td>
+            <td style="font-size:0.76rem;color:var(--text-muted)">${stOrder}</td>
+          </tr>
+        `;
+      }).join('');
+
+      renderSpotlight();
+      renderImprovementsLog();
+    }
+
+    function renderImprovementsLog() {
+      const listEl = document.getElementById('improvementsList');
+      if (!improvementsLog.length) {
+        listEl.innerHTML = `<div style="color:var(--text-muted);font-size:0.82rem">No improvements logged yet. Sync your Brawlhalla ID or level up a Legend to track improvements!</div>`;
+        return;
+      }
+
+      const sorted = [...improvementsLog].sort((a, b) => logSortNewest ? (b.ts - a.ts) : (a.ts - b.ts));
+
+      listEl.innerHTML = sorted.map(item => {
+        const cls = item.newStatus === 'v' ? 'log-v' : (item.newStatus === '!' ? 'log-bang' : '');
+        const statusChanged = item.oldStatus !== item.newStatus;
+        return `
+          <div class="log-entry ${cls}">
+            <div>
+              <strong>${item.legend}</strong>
+              <div style="font-size:0.75rem;color:var(--text-muted)">
+                Lv.${item.oldLvl} ➔ Lv.${item.newLvl} • ${item.stanceUnlocked}
+              </div>
+            </div>
+            <div class="tile-badge ${getStatusClass(item.newStatus)}">
+              ${statusChanged ? `${item.oldStatus}➔${item.newStatus}` : item.newStatus}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectLegend(order) {
+      selectedOrder = order;
+      renderAll();
+    }
+
+    function setStatusFilter(filter) {
+      statusFilter = filter;
+      ['All', 'V', 'Bang', 'X'].forEach(id => document.getElementById('filter' + id).classList.remove('active'));
+      if (filter === 'ALL') document.getElementById('filterAll').classList.add('active');
+      if (filter === 'v') document.getElementById('filterV').classList.add('active');
+      if (filter === '!') document.getElementById('filterBang').classList.add('active');
+      if (filter === 'x') document.getElementById('filterX').classList.add('active');
+      renderAll();
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.getElementById('viewGridBtn').classList.toggle('active', mode === 'grid');
+      document.getElementById('viewSheetBtn').classList.toggle('active', mode === 'sheet');
+      document.getElementById('champGrid').style.display = mode === 'grid' ? 'grid' : 'none';
+      document.getElementById('sheetWrapper').style.display = mode === 'sheet' ? 'block' : 'none';
+    }
+
+    function toggleLogSort() {
+      logSortNewest = !logSortNewest;
+      document.getElementById('logSortBtn').textContent = logSortNewest ? 'Newest First' : 'Oldest First';
+      renderImprovementsLog();
+    }
+
+    function clearImprovementsLog() {
+      improvementsLog = [];
+      localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+      renderImprovementsLog();
+    }
+
+    // Direct Local Server Relay Sync (Brawlhalla API v1.0)
+    // Every level that unlocks something on a legend
+    const MILESTONES = [3, 4, 6, 8, 11, 13, 15, 17, 40, 100];
+    function milestoneName(legend, lvl) {
+      if (lvl === 40) return 'Challenge Stance';
+      if (lvl === 100) return 'Gold Name';
+      return `${legend.stances[lvl]} stance`;
+    }
+
+    async function syncFromApi(opts = {}) {
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      const statusEl = document.getElementById('syncStatus');
+
+      if (!bhId) {
+        statusEl.textContent = 'Please enter your numerical Brawlhalla ID first.';
+        return;
+      }
+
+      savedBhId = bhId;
+      localStorage.setItem('bh_player_id_v1', bhId);
+      if (!/^\d+$/.test(bhId)) {
+        statusEl.textContent = 'Brawlhalla ID must be a number (find it in-game under your profile).';
+        return;
+      }
+      statusEl.textContent = 'Syncing player stats from the Brawlhalla API (v1.0, no key needed)...';
+
+      let data = null;
+      let lastErrMsg = '';
+
+      // dair.gg (community API) returns per-legend levels for every account; the official
+      // v1.0 API omits them for some accounts, so it is the fallback. dair.gg doesn't reliably
+      // allow direct browser requests, so it's fetched through the local server (python3 server.py).
+      const fromDair = json => {
+        const d = json && json.data;
+        if (!d || !Array.isArray(d.legends)) return null;
+        return {
+          name: d.name,
+          legends: d.legends.map(l => ({ legend_id: l.id, legend_name_key: l.name, level: l.stats && l.stats.level }))
+        };
+      };
+      const viaServer = location.protocol.startsWith('http');
+      const sources = [
+        viaServer ? { url: `/api/dair/${bhId}`, transform: fromDair } : null,
+        { url: `https://api.dair.gg/v1/brawlhalla/players/${bhId}`, transform: fromDair },
+        { url: `https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all` },
+        viaServer ? { url: `/api/player/${bhId}` } : null
+      ].filter(Boolean);
+
+      for (const { url, transform } of sources) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const json = await res.json();
+            data = transform ? transform(json) : json;
+            if (data && Array.isArray(data.legends) && data.legends.length) break;
+            data = null;
+            continue;
+          }
+          const errJson = await res.json().catch(() => null);
+          if (errJson && errJson.error) {
+            lastErrMsg = typeof errJson.error === 'object' ? (errJson.error.message || JSON.stringify(errJson.error)) : errJson.error;
+          } else {
+            lastErrMsg = res.status === 429 ? 'Rate limited, try again in a minute.'
+              : res.status >= 500 ? `Brawlhalla API is temporarily down (HTTP ${res.status}), try again later.`
+              : `API returned HTTP ${res.status}`;
+          }
+        } catch (err) {
+          lastErrMsg = 'Could not reach the Brawlhalla API. Check your internet connection.';
+        }
+      }
+
+      const legendsList = data && (
+        Array.isArray(data.legends) ? data.legends :
+        (data.data && Array.isArray(data.data.legends) ? data.data.legends :
+        (data.data && Array.isArray(data.data) ? data.data : null))
+      );
+
+      if (!data || !legendsList || !legendsList.length) {
+        statusEl.textContent = `Sync failed: ${lastErrMsg || 'No player found with that ID (or the player has no legend stats).'}`;
+        return;
+      }
+
+      let updatedCount = 0;
+      let missingLevelCount = 0;
+      const unlocks = [];
+      legendsList.forEach(apiLeg => {
+        // Resolve Legend Name via the API's name key first (most reliable), then numeric ID
+        let matchedName = null;
+        const rawName = apiLeg.legend_name_key || apiLeg.bio_name || apiLeg.legend_name || apiLeg.name;
+        if (rawName) {
+          const clean = normalizeName(rawName);
+          const found = LEGENDS_DB.find(l => normalizeName(l.name) === clean ||
+            normalizeName(l.name.split(' ')[0]) === clean);
+          if (found) matchedName = found.name;
+        }
+        if (!matchedName) matchedName = BRAWLHALLA_ID_MAP[apiLeg.legend_id];
+
+        if (!matchedName || !LEGENDS_DB.some(l => l.name === matchedName)) return;
+
+        // Directly parse level from the schema's "level" property
+        // The API omits "level" for some accounts; keep the manually entered level in that case
+        let parsedLvl = parseInt(apiLeg.level, 10);
+        if (!Number.isFinite(parsedLvl) || parsedLvl < 1) {
+          missingLevelCount++;
+          return;
+        }
+        parsedLvl = Math.min(100, parsedLvl);
+
+        const legend = LEGENDS_DB.find(l => l.name === matchedName);
+        const oldLvl = getLegendLevel(matchedName);
+        const oldStatus = computeStatus(legend, oldLvl);
+        const newStatus = computeStatus(legend, parsedLvl);
+
+        playerLevels[matchedName] = parsedLvl;
+
+        MILESTONES.filter(m => oldLvl < m && parsedLvl >= m).forEach(m => {
+          unlocks.push({ legend: matchedName, lvl: m, what: milestoneName(legend, m),
+            statusUp: m === legend.vLvl ? 'v' : (m === legend.bangLvl ? '!' : null) });
+        });
+
+        if (parsedLvl > oldLvl || (oldStatus !== newStatus && (newStatus === 'v' || newStatus === '!'))) {
+          improvementsLog.push({
+            legend: matchedName,
+            oldLvl,
+            newLvl: parsedLvl,
+            oldStatus,
+            newStatus,
+            stanceUnlocked: newStatus === 'v' ? legend.target : (newStatus === '!' ? legend.alt : 'Level Up'),
+            ts: Date.now()
+          });
+        }
+        updatedCount++;
+      });
+
+      localStorage.setItem('bh_levels_v1', JSON.stringify(playerLevels));
+      localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+
+      const playerName = data.name || (data.data && data.data.name) || 'Player';
+      statusEl.textContent = updatedCount
+        ? `✓ Synced ${playerName} (#${bhId})! ${updatedCount} Legends updated.`
+        : `Found ${playerName} (#${bhId}), but no legend levels came back.` + (location.protocol.startsWith('http')
+            ? ' Set levels manually with + / −.'
+            : ' Start "python3 server.py" and open http://localhost:8000 to get levels from dair.gg.');
+      if (updatedCount && missingLevelCount) statusEl.textContent += ` (${missingLevelCount} had no level data.)`;
+      if (opts.live) statusEl.textContent += ` Last checked ${new Date().toLocaleTimeString()}.`;
+
+      // Immediately render changes across the UI
+      renderAll();
+      selectLegend(selectedOrder);
+      return { unlocks, games: data.games };
+    }
+
+    // ---------- Live mode: activity detection + unlock notifications ----------
+    // Neither API exposes "online". We poll the official API (data is seconds old) for the total
+    // games count: when it goes up, the player just finished a match. Levels come from dair.gg,
+    // which caches for a few minutes, so levels are re-synced less often and right after new games.
+    const ACTIVITY_POLL_MS = 60 * 1000;
+    const LEVEL_POLL_MS = 5 * 60 * 1000;
+    const PLAYING_WINDOW_MS = 15 * 60 * 1000;
+    let liveTimer = null;
+    let liveState = null;
+
+    async function fetchTotalGames(bhId) {
+      const urls = [`https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all`];
+      if (location.protocol.startsWith('http')) urls.push(`/api/player/${bhId}`);
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) continue;
+          const json = await res.json();
+          if (Number.isFinite(json.games)) return json.games;
+        } catch (err) { /* try next source */ }
+      }
+      return null;
+    }
+
+    function renderActivity() {
+      const el = document.getElementById('activityStatus');
+      if (!liveState) {
+        el.innerHTML = '<span class="live-dot"></span>Live tracking off';
+        return;
+      }
+      const now = Date.now();
+      const checked = liveState.lastCheck ? new Date(liveState.lastCheck).toLocaleTimeString() : '…';
+      if (liveState.lastGameTs && now - liveState.lastGameTs < PLAYING_WINDOW_MS) {
+        const mins = Math.max(0, Math.round((now - liveState.lastGameTs) / 60000));
+        el.innerHTML = `<span class="live-dot on"></span><strong>Playing now</strong> · ${liveState.sessionGames} game(s) this session · last match ${mins ? mins + ' min ago' : 'just now'} · checked ${checked}`;
+      } else {
+        const since = liveState.lastGameTs ? `last match ${new Date(liveState.lastGameTs).toLocaleTimeString()}` : 'no matches since Live started';
+        el.innerHTML = `<span class="live-dot"></span>Not playing (${since}) · checked ${checked}`;
+      }
+    }
+
+    function showToast(title, body) {
+      const stack = document.getElementById('toastStack');
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = `<strong></strong><span></span>`;
+      t.querySelector('strong').textContent = title;
+      t.querySelector('span').textContent = body;
+      stack.appendChild(t);
+      setTimeout(() => t.remove(), 12000);
+    }
+
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [660, 880, 1320].forEach((f, i) => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+          const t0 = ctx.currentTime + i * 0.14;
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
+          o.start(t0); o.stop(t0 + 0.32);
+        });
+      } catch (err) { /* audio not available */ }
+    }
+
+    function notify(title, body) {
+      showToast(title, body);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(title, { body }); } catch (err) { /* ignore */ }
+      }
+    }
+
+    function announceUnlocks(unlocks) {
+      if (!unlocks.length) return;
+      playChime();
+      unlocks.forEach(u => {
+        const badge = u.statusUp ? ` (now ${u.statusUp})` : '';
+        notify(`🔓 ${u.legend} unlocked ${u.what}!`, `Reached level ${u.lvl}${badge}.`);
+      });
+    }
+
+    async function liveTick() {
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      if (!liveState || !/^\d+$/.test(bhId)) return;
+      const now = Date.now();
+
+      const games = await fetchTotalGames(bhId);
+      liveState.lastCheck = now;
+      let newGames = 0;
+      if (games !== null) {
+        if (liveState.games !== null && games > liveState.games) {
+          newGames = games - liveState.games;
+          liveState.sessionGames += newGames;
+          liveState.lastGameTs = now;
+          // Re-check levels soon after a match (dair.gg may need a few minutes to update)
+          liveState.nextLevelSync = Math.min(liveState.nextLevelSync, now + 2 * 60 * 1000);
+        }
+        liveState.games = games;
+      }
+
+      if (now >= liveState.nextLevelSync) {
+        liveState.nextLevelSync = now + LEVEL_POLL_MS;
+        const result = await syncFromApi({ live: true });
+        if (result) announceUnlocks(result.unlocks);
+      }
+      renderActivity();
+    }
+
+    async function toggleLive() {
+      const btn = document.getElementById('liveBtn');
+      if (liveTimer) {
+        clearInterval(liveTimer);
+        liveTimer = null;
+        liveState = null;
+        btn.classList.remove('active');
+        localStorage.setItem('bh_live_v1', '0');
+        renderActivity();
+        return;
+      }
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      if (!/^\d+$/.test(bhId)) {
+        document.getElementById('syncStatus').textContent = 'Enter your numeric Brawlhalla ID before turning on Live.';
+        return;
+      }
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+      btn.classList.add('active');
+      localStorage.setItem('bh_live_v1', '1');
+      liveState = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() };
+      renderActivity();
+      // First sync sets the baseline; unlocks found here are already logged, not announced
+      liveState.nextLevelSync = Date.now() + LEVEL_POLL_MS;
+      await syncFromApi({ live: true });
+      await liveTick();
+      liveTimer = setInterval(liveTick, ACTIVITY_POLL_MS);
+    }
+
+    function exportBackup() {
+      const payload = { playerLevels, improvementsLog, savedBhId };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'brawlhalla_stance_tracker_backup.json';
+      a.click();
+    }
+
+    function importBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (parsed.playerLevels) playerLevels = parsed.playerLevels;
+          if (parsed.improvementsLog) improvementsLog = parsed.improvementsLog;
+          if (parsed.savedBhId) {
+            savedBhId = parsed.savedBhId;
+            localStorage.setItem('bh_player_id_v1', savedBhId);
+            document.getElementById('brawlhallaIdInput').value = savedBhId;
+          }
+          localStorage.setItem('bh_levels_v1', JSON.stringify(playerLevels));
+          localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+          renderAll();
+        } catch (err) {
+          alert('Invalid backup JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    renderAll();
+    try {
+      if (localStorage.getItem('bh_live_v1') === '1' && savedBhId) toggleLive();
+    } catch (err) { /* storage unavailable */ }
+  </script>
+</body>
+</html>
