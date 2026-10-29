@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stance Matrix</title>
+  <meta name="description" content="Every Brawlhalla legend against every stance level, in one grid." />
+  <meta name="theme-color" content="#0b101d" />
+  <script src="theme-boot.js" data-page="matrix"></script>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #0b101d; --panel: #131b2e; --card: #1a2540; --line: #2a395c; --text: #f1f5f9; --muted: #94a3b8;
+      --accent: #06b6d4; --hover: rgba(255,255,255,0.05);
+      /* stance colors */
+      --str: #ef4444; --dex: #a855f7; --def: #3b82f6; --spd: #f59e0b;
+      --locked-fill: rgba(148,163,184,0.06); --locked-text: #5b6678;
+      --sticky-bg: #131b2e;
+      color-scheme: dark;
+    }
+    :root[data-theme="valhalla"] {
+      --bg: #120c1f; --panel: #1d1430; --card: #2a1d45; --line: #4a3470; --text: #fdf6e3; --muted: #b8a9d4;
+      --accent: #f5c542; --sticky-bg: #1d1430; --locked-text: #6e6290;
+    }
+    :root[data-theme="daylight"] {
+      --bg: #f4f6fb; --panel: #ffffff; --card: #eef2f8; --line: #d5dce8; --text: #0f172a; --muted: #5b6678;
+      --accent: #0e7490; --hover: rgba(15,23,42,0.04);
+      --str: #dc2626; --dex: #9333ea; --def: #2563eb; --spd: #d97706;
+      --locked-fill: rgba(15,23,42,0.04); --locked-text: #9aa3b2;
+      --sticky-bg: #ffffff;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 16px; min-height: 100vh; }
+    button, input, select { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+
+    header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: flex-end; justify-content: space-between; margin-bottom: 14px; }
+    h1 { font-size: 1.5rem; font-weight: 900; letter-spacing: 0.3px; }
+    .sub { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+    .sub b { color: var(--text); }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .input, .select { padding: 8px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); outline: none; font-size: 0.9rem; }
+    .input { width: 170px; }
+    .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 700; font-size: 0.88rem; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #04141a; }
+    :root[data-theme="daylight"] .btn.primary { color: #fff; }
+    .btn[disabled] { opacity: 0.6; cursor: progress; }
+    .status { font-size: 0.82rem; color: var(--muted); min-height: 1.2em; margin-bottom: 10px; }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .keys { display: flex; flex-wrap: wrap; gap: 6px; }
+    .key { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 99px; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-size: 0.82rem; font-weight: 700; }
+    .key i { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+    .key[aria-pressed="true"] { border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
+    .key.target i { background: none; border: 2px solid var(--accent); }
+    .tools { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 760px; font-size: 0.8rem; }
+    th, td { padding: 0; text-align: center; border-bottom: 1px solid var(--line); }
+    thead th { position: sticky; top: 0; background: var(--sticky-bg); z-index: 2; padding: 9px 4px; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    thead th.lv b { display: block; color: var(--text); font-size: 0.9rem; letter-spacing: 0; }
+    th.name, td.name { position: sticky; left: 0; z-index: 1; background: var(--sticky-bg); text-align: left; padding: 6px 12px; min-width: 150px; border-right: 1px solid var(--line); }
+    thead th.name { z-index: 3; }
+    td.name { cursor: pointer; }
+    td.name .n { font-weight: 800; white-space: nowrap; }
+    td.name .m { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+    td.lvl { font-weight: 900; font-size: 0.95rem; padding: 0 10px; white-space: nowrap; }
+    tr:hover td { background-color: var(--hover); }
+    tr:hover td.name { background: var(--sticky-bg); box-shadow: inset 3px 0 0 var(--accent); }
+    tbody tr:last-child td { border-bottom: none; }
+    .st { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-width: 50px; height: 36px; position: relative; }
+    .cell {
+      display: inline-grid; place-items: center; width: 44px; height: 26px; border-radius: 6px; font-weight: 800; font-size: 0.7rem;
+      background: var(--locked-fill); color: var(--locked-text); border: 1px dashed var(--line);
+    }
+    .cell.on { background: var(--c); color: #fff; border: 1px solid transparent; text-shadow: 0 1px 2px rgba(0,0,0,0.35); }
+    .cell.sup.on { box-shadow: inset 0 0 0 2px rgba(255,255,255,0.45); }
+    .cell.target { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .cell.dim { opacity: 0.18; }
+    .ms { font-size: 0.95rem; }
+    .ms.off { opacity: 0.25; filter: grayscale(1); }
+    tfoot td { position: sticky; bottom: 0; background: var(--sticky-bg); font-weight: 800; padding: 8px 4px; font-size: 0.78rem; border-top: 1px solid var(--line); border-bottom: none; }
+    tfoot td.name { z-index: 3; }
+    tfoot .pct { display: block; font-size: 0.66rem; color: var(--muted); font-weight: 700; }
+    .badge { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; font-weight: 900; font-size: 0.78rem; margin-left: 6px; vertical-align: middle; }
+    .b-v { background: rgba(34,197,94,0.18); color: #22c55e; }
+    .b-bang { background: rgba(245,158,11,0.18); color: #f59e0b; }
+    .b-x { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .empty { padding: 40px; color: var(--muted); text-align: center; }
+    footer { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; font-size: 0.8rem; color: var(--muted); }
+    footer a { color: var(--accent); text-decoration: none; font-weight: 700; }
+
+    @media (max-width: 640px) {
+      body { padding: 10px; }
+      .input { flex: 1; width: auto; }
+      .actions, .tools { width: 100%; }
+      .tools .select, .tools .input { flex: 1; }
+      th.name, td.name { min-width: 118px; padding: 6px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>▦ Stance Matrix</h1>
+        <div class="sub" id="summary">Every legend against every stance level.</div>
+      </div>
+      <div class="actions">
+        <input class="input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" autocomplete="off" aria-label="Brawlhalla ID" />
+        <button class="btn primary" id="syncBtn">Sync</button>
+      </div>
+    </header>
+    <div class="status" id="status"></div>
+
+    <div class="controls">
+      <div class="keys" id="keys" aria-label="Highlight a stance type">
+        <button class="key" data-type="Strength" style="--c:var(--str)" aria-pressed="false"><i></i>Strength</button>
+        <button class="key" data-type="Dexterity" style="--c:var(--dex)" aria-pressed="false"><i></i>Dexterity</button>
+        <button class="key" data-type="Defense" style="--c:var(--def)" aria-pressed="false"><i></i>Defense</button>
+        <button class="key" data-type="Speed" style="--c:var(--spd)" aria-pressed="false"><i></i>Speed</button>
+        <button class="key target" data-type="target" style="--c:var(--accent)" aria-pressed="false"><i></i>Target only</button>
+      </div>
+      <div class="tools">
+        <input class="input" id="search" type="search" placeholder="Search legend" autocomplete="off" />
+        <select class="select" id="sort" aria-label="Sort">
+          <option value="order">Champ select order</option>
+          <option value="level">Level (high → low)</option>
+          <option value="unlocked">Most stances unlocked</option>
+          <option value="needed">Closest to target</option>
+          <option value="alpha">A–Z</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
+      </table>
+    </div>
+
+    <footer>
+      <span>Filled = unlocked · dashed = locked · outlined = target stance · ⚔️ Lv 40 Challenge · 👑 Lv 100 Gold Name</span>
+      <a href="index.html?view=desktop">Desktop view</a>
+      <a href="app.html?view=mobile">Mobile view</a>
+      <a href="cards.html">Card collection</a>
+    </footer>
+  </div>
+
+  <script src="legends.js"></script>
+  <script src="core.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const { state } = Tracker;
+    const LEVELS = [3, 4, 6, 8, 11, 13, 15, 17];
+    const SHORT = { Strength: 'STR', Dexterity: 'DEX', Defense: 'DEF', Speed: 'SPD' };
+    const COLOR = { Strength: 'var(--str)', Dexterity: 'var(--dex)', Defense: 'var(--def)', Speed: 'var(--spd)' };
+    let highlight = null;
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const baseType = stance => stance.replace(/^Super\s+/, '');
+    const targetStances = l => l.target.replace(/[()]/g, '').split(/\s+or\s+/i).map(s => s.trim());
+    const statusCls = st => (st === 'v' ? 'b-v' : st === '!' ? 'b-bang' : 'b-x');
+    const unlockedCount = l => LEVELS.filter(lv => Tracker.getLevel(l.name) >= lv).length;
+
+    function renderHead() {
+      $('thead').innerHTML = `<tr>
+        <th class="name">Legend</th><th>Lv</th>
+        ${LEVELS.map(lv => `<th class="lv">Lv<b>${lv}</b></th>`).join('')}
+        <th class="lv">Lv<b>40</b></th><th class="lv">Lv<b>100</b></th>
+      </tr>`;
+    }
+
+    function rowHtml(l) {
+      const lvl = Tracker.getLevel(l.name);
+      const st = Tracker.statusOf(l, lvl);
+      const targets = targetStances(l);
+      const s = state.stats[l.name];
+      const cells = LEVELS.map(lv => {
+        const stance = l.stances[lv];
+        const type = baseType(stance);
+        const isTarget = targets.includes(stance);
+        const dim = highlight && (highlight === 'target' ? !isTarget : type !== highlight);
+        const label = `${stance.startsWith('Super') ? 'S-' : ''}${SHORT[type]}`;
+        return `<td><span class="st"><span class="cell${lvl >= lv ? ' on' : ''}${stance.startsWith('Super') ? ' sup' : ''}${isTarget ? ' target' : ''}${dim ? ' dim' : ''}"
+          style="--c:${COLOR[type]}" title="Lv ${lv}: ${esc(stance)}${isTarget ? ' (target)' : ''} – ${lvl >= lv ? 'unlocked' : 'locked'}">${label}</span></span></td>`;
+      }).join('');
+      return `<tr data-order="${l.order}">
+        <td class="name" title="Open in desktop view"><div class="n">${esc(l.name)}<span class="badge ${statusCls(st)}">${st}</span></div>
+          <div class="m">${s ? `${(s.games || 0).toLocaleString()} games · ` : ''}target: ${esc(l.target)}</div></td>
+        <td class="lvl">${lvl}</td>
+        ${cells}
+        <td><span class="ms${lvl >= 40 ? '' : ' off'}" title="Challenge stance (Lv 40)">⚔️</span></td>
+        <td><span class="ms${lvl >= 100 ? '' : ' off'}" title="Gold name (Lv 100)">👑</span></td>
+      </tr>`;
+    }
+
+    function render() {
+      const q = $('search').value.trim().toLowerCase();
+      const sortBy = $('sort').value;
+      const need = l => { const lvl = Tracker.getLevel(l.name); return lvl >= l.vLvl ? 999 : l.vLvl - lvl; };
+      const list = LEGENDS_DB.filter(l => !q || `${l.name} ${l.title}`.toLowerCase().includes(q)).sort((a, b) => {
+        if (sortBy === 'level') return Tracker.getLevel(b.name) - Tracker.getLevel(a.name) || a.order - b.order;
+        if (sortBy === 'unlocked') return unlockedCount(b) - unlockedCount(a) || a.order - b.order;
+        if (sortBy === 'needed') return need(a) - need(b) || a.order - b.order;
+        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
+        return a.order - b.order;
+      });
+      $('tbody').innerHTML = list.length ? list.map(rowHtml).join('') : `<tr><td colspan="12" class="empty">No legends match.</td></tr>`;
+
+      // Column totals across all legends (not only the filtered ones)
+      const total = LEGENDS_DB.length;
+      const col = lv => LEGENDS_DB.filter(l => Tracker.getLevel(l.name) >= lv).length;
+      $('tfoot').innerHTML = `<tr>
+        <td class="name">Unlocked</td><td></td>
+        ${[...LEVELS, 40, 100].map(lv => { const n = col(lv); return `<td>${n}<span class="pct">${Math.round((n / total) * 100)}%</span></td>`; }).join('')}
+      </tr>`;
+
+      const allStances = LEGENDS_DB.length * LEVELS.length;
+      const got = LEGENDS_DB.reduce((sum, l) => sum + unlockedCount(l), 0);
+      const targetsDone = LEGENDS_DB.filter(l => Tracker.getLevel(l.name) >= l.vLvl).length;
+      const p = state.profile;
+      $('summary').innerHTML = `${p ? `<b>${esc(p.name)}</b> · ` : ''}<b>${got}</b> of ${allStances} stances unlocked · <b>${targetsDone}</b>/${total} target stances`;
+    }
+
+    async function doSync() {
+      const id = $('idInput').value.trim();
+      if (!/^\d+$/.test(id)) { $('status').textContent = 'Enter your numeric Brawlhalla ID.'; $('idInput').focus(); return; }
+      Tracker.setId(id);
+      $('syncBtn').disabled = true;
+      $('status').textContent = 'Syncing…';
+      const r = await Tracker.sync();
+      $('syncBtn').disabled = false;
+      if (r.error) { $('status').textContent = `Sync failed: ${r.error}`; return; }
+      $('status').textContent = r.updated
+        ? `✓ ${r.updated} legends updated${r.missing ? ` · ${r.missing} never played` : ''} · ${new Date().toLocaleTimeString()}`
+        : 'Synced, but no levels came back (dair.gg may be down).';
+      render();
+    }
+
+    $('keys').addEventListener('click', e => {
+      const key = e.target.closest('[data-type]');
+      if (!key) return;
+      highlight = highlight === key.dataset.type ? null : key.dataset.type;
+      document.querySelectorAll('#keys .key').forEach(k => k.setAttribute('aria-pressed', String(k.dataset.type === highlight)));
+      render();
+    });
+    $('tbody').addEventListener('click', e => {
+      const name = e.target.closest('td.name');
+      const row = e.target.closest('tr[data-order]');
+      if (name && row) location.href = `index.html?view=desktop#legend-${row.dataset.order}`;
+    });
+    let searchTimer;
+    $('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(render, 120); });
+    $('sort').addEventListener('change', render);
+    $('syncBtn').addEventListener('click', doSync);
+    $('idInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSync(); });
+
+    const linkId = new URLSearchParams(location.search).get('id');
+    $('idInput').value = linkId && /^\d+$/.test(linkId) ? linkId : state.id;
+    renderHead();
+    render();
+    if (linkId && /^\d+$/.test(linkId)) { history.replaceState(null, '', location.pathname); doSync(); }
+    else if (state.id && (!state.profile || Date.now() - state.profile.syncedAt > 10 * 60 * 1000)) doSync();
+  </script>
+  <script>
+    // Offline support (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>

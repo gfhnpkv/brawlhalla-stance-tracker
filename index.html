@@ -668,7 +668,7 @@
   <div class="top-bar">
     <div class="brand">
       <h1>Brawlhalla Stance Tracker</h1>
-      <p>All 70 legends in champ select order · see which stances you've unlocked · <a href="app.html?view=mobile" style="color:var(--accent-cyan);font-weight:700;text-decoration:none">📱 Mobile view</a> · <a href="cards.html" style="color:var(--accent-cyan);font-weight:700;text-decoration:none">🃏 Card collection</a></p>
+      <p>All 70 legends in champ select order · see which stances you've unlocked · <a href="app.html?view=mobile" style="color:var(--accent-cyan);font-weight:700;text-decoration:none">📱 Mobile view</a> · <a href="cards.html" style="color:var(--accent-cyan);font-weight:700;text-decoration:none">🃏 Card collection</a> · <a href="matrix.html" style="color:var(--accent-cyan);font-weight:700;text-decoration:none">▦ Stance matrix</a></p>
       <div class="player-card" id="playerCard" hidden></div>
       <div id="syncStatus" class="sync-msg"></div>
       <div class="live-row">
@@ -1618,6 +1618,14 @@
     }
 
     renderAll();
+    // Links like index.html#legend-12 (from the stance matrix) open that legend
+    function openLegendFromHash() {
+      const m = location.hash.match(/^#legend-(\d+)$/);
+      if (m && LEGENDS_DB.some(l => l.order === Number(m[1]))) selectLegend(Number(m[1]));
+    }
+    window.addEventListener('hashchange', openLegendFromHash);
+    openLegendFromHash();
+
     (function startup() {
       const linkId = new URLSearchParams(location.search).get('id');
       if (linkId && /^\d+$/.test(linkId)) {
