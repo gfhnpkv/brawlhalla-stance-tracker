@@ -106,27 +106,25 @@ const Tracker = (() => {
     for (const { url, transform } of sources) {
       try {
         const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) { error = res.status === 429 ? 'Rate limited, try again in a minute.' : `API returned HTTP ${res.status}`; continue; }
+        if (!res.ok) {
+          error = res.status === 429 ? 'Rate limited, try again in a minute.'
+            : res.status === 404 ? 'No player found with that ID.'
+            : `API returned HTTP ${res.status}`;
+          continue;
+        }
         const json = await res.json();
         const data = transform ? transform(json) : json;
         if (data && Array.isArray(data.legends) && data.legends.length) return { data };
+        // The official API answers unknown IDs with an empty result
+        error = 'No player found with that ID.';
       } catch (err) { /* try next source */ }
     }
     return { error };
   }
 
-  async function sync() {
-    const bhId = state.id;
-    if (!/^\d+$/.test(bhId)) return { error: 'Enter your Brawlhalla ID first.' };
-    const { data, error } = await fetchPlayer(bhId);
-    if (!data) return { error };
-
-    if (state.profile && state.profile.id !== bhId) {
-      // Different player: start fresh so data doesn't mix between accounts
-      state.levels = {}; state.stats = {}; state.log = [];
-    }
-    let updated = 0, missing = 0;
-    const unlocks = [];
+  // Turn an API response into { profile fields, legends: [{ name, legend, level (or null), stats }] }
+  function parsePlayer(bhId, data) {
+    const legends = [];
     data.legends.forEach(apiLeg => {
       let name = null;
       if (apiLeg.legend_name_key) {
@@ -136,28 +134,58 @@ const Tracker = (() => {
       if (!name) name = BRAWLHALLA_ID_MAP[apiLeg.legend_id];
       const legend = LEGENDS_DB.find(l => l.name === name);
       if (!legend) return;
-
-      state.stats[name] = {
-        games: apiLeg.games || 0, wins: apiLeg.wins || 0, time: apiLeg.match_time || 0,
-        kos: apiLeg.kos != null ? apiLeg.kos : null,
-        xpPct: apiLeg.xp_percentage != null ? apiLeg.xp_percentage : null,
-        weapons: apiLeg.weapons || (state.stats[name] && state.stats[name].weapons) || []
-      };
-
       const lvl = parseInt(apiLeg.level, 10);
-      if (!Number.isFinite(lvl) || lvl < 1) { missing++; return; }
-      const newLvl = Math.min(100, lvl);
+      legends.push({
+        name, legend,
+        level: Number.isFinite(lvl) && lvl >= 1 ? Math.min(100, lvl) : null,
+        stats: {
+          games: apiLeg.games || 0, wins: apiLeg.wins || 0, time: apiLeg.match_time || 0,
+          kos: apiLeg.kos != null ? apiLeg.kos : null,
+          xpPct: apiLeg.xp_percentage != null ? apiLeg.xp_percentage : null,
+          weapons: apiLeg.weapons || null
+        }
+      });
+    });
+    return {
+      id: bhId, name: data.name || 'Player', level: data.level || null, games: data.games, wins: data.wins,
+      time: data.time || data.legends.reduce((sum, l) => sum + (l.match_time || 0), 0),
+      legends
+    };
+  }
+
+  // Load any player without touching saved data (used by compare.html)
+  async function lookup(bhId) {
+    if (!/^\d+$/.test(bhId || '')) return { error: 'Brawlhalla ID must be a number.' };
+    const { data, error } = await fetchPlayer(bhId);
+    if (!data) return { error };
+    return { player: parsePlayer(bhId, data) };
+  }
+
+  async function sync() {
+    const bhId = state.id;
+    if (!/^\d+$/.test(bhId)) return { error: 'Enter your Brawlhalla ID first.' };
+    const { data, error } = await fetchPlayer(bhId);
+    if (!data) return { error };
+    const player = parsePlayer(bhId, data);
+
+    if (state.profile && state.profile.id !== bhId) {
+      // Different player: start fresh so data doesn't mix between accounts
+      state.levels = {}; state.stats = {}; state.log = [];
+    }
+    let updated = 0, missing = 0;
+    const unlocks = [];
+    player.legends.forEach(({ name, legend, level, stats }) => {
+      state.stats[name] = { ...stats, weapons: stats.weapons || (state.stats[name] && state.stats[name].weapons) || [] };
+      if (level === null) { missing++; return; }
       const oldLvl = getLevel(name);
-      state.levels[name] = newLvl;
-      MILESTONES.filter(m => oldLvl < m && newLvl >= m).forEach(m => unlocks.push({ legend: name, lvl: m, what: milestoneName(legend, m) }));
-      if (newLvl > oldLvl) state.log.push(logEntry(legend, oldLvl, newLvl));
+      state.levels[name] = level;
+      MILESTONES.filter(m => oldLvl < m && level >= m).forEach(m => unlocks.push({ legend: name, lvl: m, what: milestoneName(legend, m) }));
+      if (level > oldLvl) state.log.push(logEntry(legend, oldLvl, level));
       updated++;
     });
 
-    state.profile = {
-      id: bhId, name: data.name || 'Player', level: data.level || null, games: data.games, wins: data.wins,
-      time: data.time || data.legends.reduce((sum, l) => sum + (l.match_time || 0), 0), syncedAt: Date.now()
-    };
+    const { legends, ...profile } = player;
+    state.profile = { ...profile, syncedAt: Date.now() };
     save(KEYS.levels, state.levels);
     save(KEYS.log, state.log);
     save(KEYS.stats, state.stats);
@@ -165,5 +193,5 @@ const Tracker = (() => {
     return { updated, missing, unlocks };
   }
 
-  return { state, getLevel, statusOf, nextTarget, progressToNext, setLevel, setId, sync };
+  return { state, getLevel, statusOf, nextTarget, progressToNext, setLevel, setId, sync, lookup };
 })();
