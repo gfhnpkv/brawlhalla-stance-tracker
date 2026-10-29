@@ -1070,6 +1070,14 @@
       return `${legend.stances[lvl]} stance`;
     }
 
+    // dair.gg doesn't reliably allow direct browser requests, so it goes through a relay:
+    // the local server (python3 server.py) when running locally, otherwise the Cloudflare Worker in worker/.
+    const RELAY_URL = 'https://brawlhalla-tracker-relay.gfhnpkv.workers.dev';
+    function relayBase() {
+      if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return '/api';
+      return RELAY_URL.includes('WORKERS_SUBDOMAIN') ? null : RELAY_URL;
+    }
+
     async function syncFromApi(opts = {}) {
       const bhId = document.getElementById('brawlhallaIdInput').value.trim();
       const statusEl = document.getElementById('syncStatus');
@@ -1091,8 +1099,7 @@
       let lastErrMsg = '';
 
       // dair.gg (community API) returns per-legend levels for every account; the official
-      // v1.0 API omits them for some accounts, so it is the fallback. dair.gg doesn't reliably
-      // allow direct browser requests, so it's fetched through the local server (python3 server.py).
+      // v1.0 API omits them for some accounts, so it is the fallback.
       const fromDair = json => {
         const d = json && json.data;
         if (!d || !Array.isArray(d.legends)) return null;
@@ -1101,12 +1108,12 @@
           legends: d.legends.map(l => ({ legend_id: l.id, legend_name_key: l.name, level: l.stats && l.stats.level }))
         };
       };
-      const viaServer = location.protocol.startsWith('http');
+      const relay = relayBase();
       const sources = [
-        viaServer ? { url: `/api/dair/${bhId}`, transform: fromDair } : null,
+        relay ? { url: `${relay}/dair/${bhId}`, transform: fromDair } : null,
         { url: `https://api.dair.gg/v1/brawlhalla/players/${bhId}`, transform: fromDair },
         { url: `https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all` },
-        viaServer ? { url: `/api/player/${bhId}` } : null
+        relay ? { url: `${relay}/player/${bhId}` } : null
       ].filter(Boolean);
 
       for (const { url, transform } of sources) {
@@ -1201,9 +1208,7 @@
       const playerName = data.name || (data.data && data.data.name) || 'Player';
       statusEl.textContent = updatedCount
         ? `✓ Synced ${playerName} (#${bhId})! ${updatedCount} Legends updated.`
-        : `Found ${playerName} (#${bhId}), but no legend levels came back.` + (location.protocol.startsWith('http')
-            ? ' Set levels manually with + / −.'
-            : ' Start "python3 server.py" and open http://localhost:8000 to get levels from dair.gg.');
+        : `Found ${playerName} (#${bhId}), but no legend levels came back (dair.gg may be down). Set levels manually with + / −, or try again later.`;
       if (updatedCount && missingLevelCount) statusEl.textContent += ` (${missingLevelCount} had no level data.)`;
       if (opts.live) statusEl.textContent += ` Last checked ${new Date().toLocaleTimeString()}.`;
 
@@ -1225,7 +1230,7 @@
 
     async function fetchTotalGames(bhId) {
       const urls = [`https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all`];
-      if (location.protocol.startsWith('http')) urls.push(`/api/player/${bhId}`);
+      if (relayBase()) urls.push(`${relayBase()}/player/${bhId}`);
       for (const url of urls) {
         try {
           const res = await fetch(url, { cache: 'no-store' });

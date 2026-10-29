@@ -5,10 +5,17 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **!**: standard alternative stance unlocked
 - **x**: still locked
 
-## Run
-Just double-click `index.html`. No server or API key needed.
+## Use it
+- **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (works from any computer or phone)
+- **Locally:** `python3 server.py`, then open http://localhost:8000
 
-(Optional) `python3 server.py` serves it at http://localhost:8000 and adds a fallback API relay.
+## How data is fetched
+dair.gg doesn't reliably allow direct browser requests, so it goes through a relay:
+- locally, `server.py` (`/api/dair/{id}`, `/api/player/{id}`)
+- online, the Cloudflare Worker in `worker/` (https://brawlhalla-tracker-relay.gfhnpkv.workers.dev). It only relays
+  numeric player IDs and only allows requests from the GitHub Pages site and localhost.
+
+To redeploy the Worker after changing it: `cd worker && npx wrangler@4 deploy`
 
 ## Sync
 Enter your numeric Brawlhalla ID and click **Sync API**. No API key needed. Sources, in order:
