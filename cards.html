@@ -228,6 +228,7 @@
       <h1 id="playerName">Your Collection</h1>
       <div class="stars" id="stars" aria-label="Collection rank"></div>
       <div class="sub" id="playerSub">Sync your Brawlhalla ID to fill your collection.</div>
+      <div class="sub" id="progressLine"></div>
     </div>
     <div class="actions">
       <input class="id-input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" autocomplete="off" aria-label="Brawlhalla ID" />
@@ -268,6 +269,7 @@
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
+  <script src="summary.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const { state } = Tracker;
@@ -375,6 +377,11 @@
         $('playerSub').innerHTML = [p.level ? `Level <b>${p.level}</b>` : '', p.games != null ? `<b>${p.games.toLocaleString()}</b> games` : '',
           p.games ? `<b>${winRate(p.wins, p.games)}</b> wins` : '', `synced ${timeAgo(p.syncedAt)}`].filter(Boolean).join(' · ');
       }
+
+      const today = ProgressSummary.today(state.log), week = ProgressSummary.week(state.log);
+      $('progressLine').innerHTML = week.levels
+        ? `Today <b>${esc(ProgressSummary.describe(today))}</b> · this week <b>+${week.levels}</b> levels`
+        : '';
 
       const q = $('search').value.trim().toLowerCase();
       const sortBy = $('sort').value;

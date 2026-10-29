@@ -634,6 +634,11 @@
     .next-item:hover, .next-item:focus-visible { border-color:var(--accent-cyan); outline:none; }
     .next-item .need { font-weight:800; color:var(--accent-cyan); white-space:nowrap; }
     .next-item .sub { font-size:0.72rem; color:var(--text-muted); }
+    .sum-row { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:8px; background:var(--bg-card); border:1px solid var(--border-color); margin-bottom:6px; font-size:0.8rem; }
+    .sum-row span { color:var(--text-muted); white-space:nowrap; }
+    .sum-row b { text-align:right; }
+    .sum-top { font-size:0.75rem; color:var(--text-muted); padding:2px 2px 0; }
+    .sum-top b { color:var(--accent-cyan); }
     .section-title { font-size:0.75rem; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); font-weight:800; margin-bottom:8px; }
 
     kbd { font-size:0.7rem; padding:1px 5px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-dark); color:var(--text-muted); }
@@ -773,6 +778,12 @@
 
     <div class="log-panel">
       <div class="next-box">
+        <div class="section-title">Your progress</div>
+        <div class="sum-row"><span>Today</span><b id="sumToday">–</b></div>
+        <div class="sum-row"><span>Last 7 days</span><b id="sumWeek">–</b></div>
+        <div class="sum-top" id="sumTop"></div>
+      </div>
+      <div class="next-box">
         <div class="section-title">Closest to next unlock</div>
         <div id="nextList"></div>
       </div>
@@ -790,6 +801,7 @@
   <div class="toast-stack" id="toastStack"></div>
 
   <script src="legends.js"></script>
+  <script src="summary.js"></script>
   <script>
     let playerLevels = JSON.parse(localStorage.getItem('bh_levels_v1') || '{}');
     let improvementsLog = JSON.parse(localStorage.getItem('bh_improvements_v1') || '[]');
@@ -1138,6 +1150,18 @@
       renderImprovementsLog();
       renderNextList();
       renderPlayerCard();
+      renderSummary();
+    }
+
+    function renderSummary() {
+      const today = ProgressSummary.today(improvementsLog);
+      const week = ProgressSummary.week(improvementsLog);
+      document.getElementById('sumToday').textContent = ProgressSummary.describe(today);
+      document.getElementById('sumWeek').textContent = ProgressSummary.describe(week);
+      const top = week.top;
+      document.getElementById('sumTop').innerHTML = top
+        ? `Most improved this week: <b>${esc(top.legend)}</b> (+${top.levels})`
+        : 'Play some matches and sync to see your progress here.';
     }
 
     function renderImprovementsLog() {

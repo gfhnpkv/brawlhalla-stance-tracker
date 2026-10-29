@@ -322,6 +322,14 @@
     </section>
 
     <section class="view" id="view-log" hidden>
+      <div class="card" id="summaryCard">
+        <h3>Your progress</h3>
+        <div class="stat-grid" style="margin-top:10px">
+          <div class="mini"><div class="k">Today</div><div class="val" id="sumTodayLv">+0</div><div class="row-sub" style="margin:2px 0 0" id="sumToday"></div></div>
+          <div class="mini"><div class="k">Last 7 days</div><div class="val" id="sumWeekLv">+0</div><div class="row-sub" style="margin:2px 0 0" id="sumWeek"></div></div>
+        </div>
+        <p style="margin:10px 0 0" id="sumTop"></p>
+      </div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="section-title">Improvements</div>
         <button class="chip" id="clearLog">Clear</button>
@@ -396,6 +404,7 @@
   <div class="toasts" id="toasts"></div>
 
   <script src="legends.js"></script>
+  <script src="summary.js"></script>
   <script>
     // Mobile view of the tracker. Uses the same localStorage keys as index.html,
     // so both pages show the same levels, stats and log.
@@ -554,7 +563,19 @@
       }).join('') : `<div class="empty">Every target stance unlocked! 🎉</div>`;
     }
 
+    function renderSummary() {
+      const today = ProgressSummary.today(improvementsLog);
+      const week = ProgressSummary.week(improvementsLog);
+      const detail = s => (s.levels ? `${s.legends} legend${s.legends === 1 ? '' : 's'} · ${s.unlocks} unlock${s.unlocks === 1 ? '' : 's'}` : 'no new levels');
+      $('sumTodayLv').textContent = `+${today.levels} lvl`;
+      $('sumWeekLv').textContent = `+${week.levels} lvl`;
+      $('sumToday').textContent = detail(today);
+      $('sumWeek').textContent = detail(week);
+      $('sumTop').textContent = week.top ? `Most improved this week: ${week.top.legend} (+${week.top.levels})` : 'Play some matches and sync to see your progress here.';
+    }
+
     function renderLog() {
+      renderSummary();
       const sorted = [...improvementsLog].sort((a, b) => b.ts - a.ts).slice(0, 200);
       $('logList').innerHTML = sorted.length ? sorted.map(e => {
         const changed = e.oldStatus !== e.newStatus;
