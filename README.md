@@ -10,6 +10,7 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **Phone:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/app.html (mobile view; add it to your home screen)
 - **Card collection:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/cards.html (legends as collectible cards)
 - **Stance matrix:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/matrix.html (every legend × every stance level)
+- **Terminal:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/terminal.html (retro arcade terminal, type `help`)
 - **Locally:** `python3 server.py`, then open http://localhost:8000
 
 ## How data is fetched

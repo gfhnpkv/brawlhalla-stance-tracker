@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stance Terminal</title>
+  <meta name="description" content="The Brawlhalla Stance Tracker as a retro arcade terminal." />
+  <meta name="theme-color" content="#020c04" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #020c04;
+      --fg: #39ff6a;
+      --dim: #1e9a42;
+      --hi: #b6ffc9;
+      --warn: #ffd23f;
+      --bad: #ff5a5a;
+      --glow: rgba(57,255,106,0.55);
+      color-scheme: dark;
+    }
+    :root[data-crt="amber"] { --bg: #0e0800; --fg: #ffb000; --dim: #a06c00; --hi: #ffe2a0; --glow: rgba(255,176,0,0.5); }
+    :root[data-crt="white"] { --bg: #0a0a0c; --fg: #e8e8f0; --dim: #8a8a99; --hi: #ffffff; --glow: rgba(232,232,240,0.35); }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); }
+    body {
+      color: var(--fg);
+      font-family: VT323, 'Courier New', ui-monospace, monospace;
+      font-size: 21px; line-height: 1.18;
+      text-shadow: 0 0 6px var(--glow);
+      overflow: hidden;
+    }
+    /* CRT: scanlines, vignette, gentle flicker */
+    .crt::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.28) 0 1px, transparent 1px 3px);
+    }
+    .crt::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 6;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.75) 100%);
+      animation: flicker 4s infinite steps(1);
+    }
+    @keyframes flicker { 0%, 100% { opacity: 1; } 47% { opacity: 0.93; } 48% { opacity: 1; } 82% { opacity: 0.96; } }
+
+    .screen { position: relative; height: 100%; display: flex; flex-direction: column; padding: 18px 22px 12px; max-width: 1100px; margin: 0 auto; }
+    #out { flex: 1; overflow-y: auto; white-space: pre-wrap; word-break: break-word; scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
+    #out .dim { color: var(--dim); }
+    #out .hi { color: var(--hi); }
+    #out .warn { color: var(--warn); }
+    #out .bad { color: var(--bad); }
+    #out .cmd { color: var(--hi); }
+    #out a { color: var(--hi); }
+    .prompt-row { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px dashed var(--dim); margin-top: 6px; }
+    .prompt-row label { color: var(--hi); white-space: nowrap; }
+    #cmd {
+      flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--fg);
+      font: inherit; text-shadow: inherit; caret-color: var(--fg);
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 8px; }
+    .chips button {
+      font: inherit; font-size: 18px; color: var(--fg); background: transparent; border: 1px solid var(--dim); padding: 1px 10px; cursor: pointer;
+      text-shadow: inherit;
+    }
+    .chips button:hover, .chips button:focus-visible { background: var(--fg); color: var(--bg); outline: none; text-shadow: none; }
+
+    @media (max-width: 640px) {
+      body { font-size: 17px; }
+      .screen { padding: 12px 12px 10px; }
+      .chips button { font-size: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .crt::after { animation: none; }
+    }
+  </style>
+</head>
+<body class="crt">
+  <div class="screen">
+    <div id="out" role="log" aria-live="polite"></div>
+    <div class="prompt-row">
+      <label for="cmd">STANCE&gt;</label>
+      <input id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Command" />
+    </div>
+    <div class="chips" id="chips" aria-label="Quick commands">
+      <button data-cmd="help">HELP</button>
+      <button data-cmd="sync">SYNC</button>
+      <button data-cmd="list">LIST</button>
+      <button data-cmd="next">NEXT</button>
+      <button data-cmd="today">TODAY</button>
+      <button data-cmd="log">LOG</button>
+      <button data-cmd="color">COLOR</button>
+      <button data-cmd="views">VIEWS</button>
+    </div>
+  </div>
+
+  <script src="legends.js"></script>
+  <script src="core.js"></script>
+  <script src="summary.js"></script>
+  <script>
+    const out = document.getElementById('out');
+    const input = document.getElementById('cmd');
+    const { state } = Tracker;
+    const cmdHistory = [];
+    let histPos = 0;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ---------- output helpers (text only, never HTML from data) ----------
+    function line(text = '', cls = '') {
+      const div = document.createElement('div');
+      if (cls) div.className = cls;
+      div.textContent = text;
+      out.appendChild(div);
+      out.scrollTop = out.scrollHeight;
+      return div;
+    }
+    function link(text, href) {
+      const div = document.createElement('div');
+      const a = document.createElement('a');
+      a.href = href; a.textContent = text;
+      div.append('  ', a);
+      out.appendChild(div);
+    }
+    const pad = (s, n) => (String(s).length >= n ? String(s).slice(0, n - 1) + '…' : String(s).padEnd(n));
+    const padL = (s, n) => String(s).padStart(n);
+    const bar = (p, w = 10) => '[' + '#'.repeat(Math.round(p * w)) + '-'.repeat(w - Math.round(p * w)) + ']';
+    const normalize = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+    const sleep = ms => new Promise(r => setTimeout(r, reduceMotion ? 0 : ms));
+
+    function findLegend(query) {
+      const q = normalize(query);
+      if (!q) return { error: 'Which legend? Try: show orion' };
+      const exact = LEGENDS_DB.find(l => normalize(l.name) === q);
+      if (exact) return { legend: exact };
+      // Names starting with the text win over names that only contain it ("ori" -> Orion, not Hattori)
+      const starts = LEGENDS_DB.filter(l => normalize(l.name).startsWith(q));
+      const matches = starts.length ? starts : LEGENDS_DB.filter(l => normalize(l.name).includes(q));
+      if (matches.length === 1) return { legend: matches[0] };
+      if (!matches.length) return { error: `No legend matches "${query}".` };
+      return { error: `"${query}" matches ${matches.length} legends: ${matches.slice(0, 6).map(l => l.name).join(', ')}${matches.length > 6 ? '…' : ''}` };
+    }
+
+    function legendRow(l) {
+      const lvl = Tracker.getLevel(l.name);
+      const st = Tracker.statusOf(l, lvl);
+      const cls = st === 'v' ? 'hi' : st === '!' ? 'warn' : 'dim';
+      line(`${padL(l.order, 2)}  ${pad(l.name.toUpperCase(), 17)} ${padL(lvl, 3)}  ${bar(Tracker.progressToNext(l, lvl))}  ${st.toUpperCase()}`, cls);
+    }
+
+    // ---------- commands ----------
+    const COMMANDS = {
+      help() {
+        line('COMMANDS', 'hi');
+        [
+          ['sync [id]', 'load levels from your Brawlhalla account'],
+          ['whoami', 'player profile'],
+          ['list [v|!|x]', 'all legends, or only one status'],
+          ['next [n]', 'legends closest to their next stance'],
+          ['show <legend>', 'stances and stats for one legend'],
+          ['set <legend> <lvl>', 'change a level by hand'],
+          ['find <text>', 'search names, stances and weapons'],
+          ['today', 'progress today and this week'],
+          ['log [n]', 'recent improvements'],
+          ['color green|amber|white', 'change the screen color'],
+          ['views', 'links to the other designs'],
+          ['clear', 'clear the screen']
+        ].forEach(([c, d]) => line(`  ${pad(c, 26)}${d}`));
+        line('TAB completes legend names. UP/DOWN repeats commands.', 'dim');
+      },
+
+      async sync(args) {
+        const id = args[0] || state.id;
+        if (!/^\d+$/.test(id || '')) return line('USAGE: sync <brawlhalla id>   (the number on your in-game profile)', 'warn');
+        Tracker.setId(id);
+        line(`CONNECTING TO BRAWLHALLA NETWORK... #${id}`, 'dim');
+        const r = await Tracker.sync();
+        if (r.error) return line(`ERROR: ${r.error}`, 'bad');
+        line(`OK. ${r.updated} LEGENDS SYNCED${r.missing ? `, ${r.missing} NEVER PLAYED` : ''}.`, 'hi');
+        if (r.unlocks.length && r.unlocks.length <= 8) r.unlocks.forEach(u => line(`  *** ${u.legend.toUpperCase()} UNLOCKED ${u.what.toUpperCase()} (LV ${u.lvl}) ***`, 'warn'));
+        COMMANDS.whoami();
+      },
+
+      whoami() {
+        const p = state.profile;
+        if (!p) return line('NO PLAYER LOADED. TYPE: sync <id>', 'warn');
+        const v = LEGENDS_DB.filter(l => Tracker.getLevel(l.name) >= l.vLvl).length;
+        line(`PLAYER  ${p.name}  #${p.id}`, 'hi');
+        line(`LEVEL ${p.level || '?'}   GAMES ${(p.games || 0).toLocaleString()}   WINS ${p.games ? Math.round((p.wins / p.games) * 100) : 0}%   TIME ${Math.round((p.time || 0) / 3600)}H`);
+        line(`TARGET STANCES ${v}/70 ${bar(v / 70, 20)}`);
+        line(`LAST SYNC ${new Date(p.syncedAt).toLocaleString()}`, 'dim');
+      },
+
+      list(args) {
+        const f = (args[0] || '').toLowerCase();
+        const want = f === 'v' ? 'v' : f === '!' ? '!' : f === 'x' ? 'x' : null;
+        if (f && !want && f !== 'all') return line('USAGE: list [v|!|x]', 'warn');
+        const rows = LEGENDS_DB.filter(l => !want || Tracker.statusOf(l, Tracker.getLevel(l.name)) === want);
+        line(` #  ${pad('LEGEND', 17)} LVL  PROGRESS      ST`, 'dim');
+        rows.forEach(legendRow);
+        line(`${rows.length} LEGEND${rows.length === 1 ? '' : 'S'}.`, 'dim');
+      },
+
+      next(args) {
+        const n = Math.min(70, Math.max(1, parseInt(args[0], 10) || 8));
+        const items = LEGENDS_DB.map(l => ({ l, lvl: Tracker.getLevel(l.name) }))
+          .map(o => ({ ...o, next: Tracker.nextTarget(o.l, o.lvl) }))
+          .filter(o => o.next)
+          .sort((a, b) => (a.next.lvl - a.lvl) - (b.next.lvl - b.lvl) || Tracker.progressToNext(b.l, b.lvl) - Tracker.progressToNext(a.l, a.lvl))
+          .slice(0, n);
+        if (!items.length) return line('ALL TARGET STANCES UNLOCKED. GG.', 'hi');
+        line(`${pad('LEGEND', 17)} NOW  NEED  UNLOCK`, 'dim');
+        items.forEach(o => line(`${pad(o.l.name.toUpperCase(), 17)} ${padL(o.lvl, 3)}  ${padL('+' + (o.next.lvl - o.lvl), 4)}  ${o.next.what} (${o.next.status})`, o.next.status === 'v' ? 'hi' : 'warn'));
+      },
+
+      show(args) {
+        const { legend: l, error } = findLegend(args.join(' '));
+        if (error) return line(error, 'warn');
+        const lvl = Tracker.getLevel(l.name);
+        const st = Tracker.statusOf(l, lvl);
+        const s = state.stats[l.name];
+        line(`== #${l.order} ${l.name.toUpperCase()} — ${l.title} ==`, 'hi');
+        line(`LEVEL ${lvl}   STATUS ${st.toUpperCase()}   TARGET ${l.target} @${l.vLvl}   STANDARD ${l.alt} @${l.bangLvl}`);
+        if (s) line(`GAMES ${(s.games || 0).toLocaleString()}   WINS ${s.games ? Math.round((s.wins / s.games) * 100) : 0}%   TIME ${((s.time || 0) / 3600).toFixed(1)}H   ${(s.weapons || []).filter(Boolean).join(' + ').toUpperCase()}`, 'dim');
+        [3, 4, 6, 8, 11, 13, 15, 17].forEach(sl => line(`  LV ${padL(sl, 2)}  ${pad(l.stances[sl], 17)} ${lvl >= sl ? '[UNLOCKED]' : '[LOCKED]'}`, lvl >= sl ? '' : 'dim'));
+        line(`  LV 40  ${pad('Challenge Stance', 17)} ${lvl >= 40 ? '[UNLOCKED]' : '[LOCKED]'}`, lvl >= 40 ? '' : 'dim');
+        line(`  LV100  ${pad('Gold Name', 17)} ${lvl >= 100 ? '[UNLOCKED]' : '[LOCKED]'}`, lvl >= 100 ? '' : 'dim');
+      },
+
+      set(args) {
+        const lvl = parseInt(args[args.length - 1], 10);
+        if (args.length < 2 || !Number.isFinite(lvl)) return line('USAGE: set <legend> <level>', 'warn');
+        const { legend: l, error } = findLegend(args.slice(0, -1).join(' '));
+        if (error) return line(error, 'warn');
+        const before = Tracker.getLevel(l.name);
+        Tracker.setLevel(l.name, lvl);
+        line(`${l.name.toUpperCase()}: LV ${before} -> LV ${Tracker.getLevel(l.name)}`, 'hi');
+      },
+
+      find(args) {
+        const q = args.join(' ').toLowerCase();
+        if (!q) return line('USAGE: find <text>', 'warn');
+        const rows = LEGENDS_DB.filter(l => {
+          const w = ((state.stats[l.name] && state.stats[l.name].weapons) || []).join(' ');
+          return `${l.name} ${l.title} ${l.target} ${l.alt} ${Object.values(l.stances).join(' ')} ${w}`.toLowerCase().includes(q);
+        });
+        if (!rows.length) return line(`NOTHING MATCHES "${q}".`, 'warn');
+        rows.forEach(legendRow);
+      },
+
+      today() {
+        const t = ProgressSummary.today(state.log), w = ProgressSummary.week(state.log);
+        line(`TODAY      ${ProgressSummary.describe(t)}`);
+        line(`LAST 7 DAYS ${ProgressSummary.describe(w)}`);
+        if (w.top) line(`MOST IMPROVED: ${w.top.legend.toUpperCase()} (+${w.top.levels})`, 'hi');
+      },
+
+      log(args) {
+        const n = Math.min(100, Math.max(1, parseInt(args[0], 10) || 10));
+        const rows = [...state.log].sort((a, b) => b.ts - a.ts).slice(0, n);
+        if (!rows.length) return line('LOG EMPTY.', 'dim');
+        rows.forEach(e => line(`${new Date(e.ts).toLocaleString().padEnd(22)} ${pad(e.legend.toUpperCase(), 17)} ${padL(e.oldLvl, 3)} -> ${padL(e.newLvl, 3)}  ${e.oldStatus !== e.newStatus ? `${e.oldStatus}->${e.newStatus}` : ''}`));
+      },
+
+      color(args) {
+        const order = ['green', 'amber', 'white'];
+        const current = document.documentElement.dataset.crt || 'green';
+        const pick = order.includes((args[0] || '').toLowerCase()) ? args[0].toLowerCase() : order[(order.indexOf(current) + 1) % order.length];
+        if (pick === 'green') delete document.documentElement.dataset.crt; else document.documentElement.dataset.crt = pick;
+        try { localStorage.setItem('bh_crt_v1', pick); } catch (err) { /* ignore */ }
+        line(`PHOSPHOR: ${pick.toUpperCase()}`, 'hi');
+      },
+
+      views() {
+        line('OTHER DESIGNS:', 'hi');
+        link('Desktop view', 'index.html?view=desktop');
+        link('Mobile view', 'app.html?view=mobile');
+        link('Card collection', 'cards.html');
+        link('Stance matrix', 'matrix.html');
+      },
+
+      clear() { out.textContent = ''; }
+    };
+    const ALIASES = { ls: 'list', '?': 'help', h: 'help', s: 'show', cls: 'clear', profile: 'whoami', me: 'whoami' };
+
+    async function run(raw) {
+      const text = raw.trim();
+      if (!text) return;
+      line(`STANCE> ${text}`, 'cmd');
+      cmdHistory.push(text);
+      histPos = cmdHistory.length;
+      const [word, ...args] = text.split(/\s+/);
+      const name = ALIASES[word.toLowerCase()] || word.toLowerCase();
+      const fn = COMMANDS[name];
+      if (!fn) return line(`UNKNOWN COMMAND "${word}". TYPE help`, 'bad');
+      input.disabled = true;
+      try { await fn(args); } catch (err) { line(`ERROR: ${err.message}`, 'bad'); }
+      input.disabled = false;
+      input.focus();
+      out.scrollTop = out.scrollHeight;
+    }
+
+    // ---------- input ----------
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { const v = input.value; input.value = ''; run(v); }
+      else if (e.key === 'ArrowUp') { if (histPos > 0) input.value = cmdHistory[--histPos]; e.preventDefault(); }
+      else if (e.key === 'ArrowDown') { histPos = Math.min(cmdHistory.length, histPos + 1); input.value = cmdHistory[histPos] || ''; e.preventDefault(); }
+      else if (e.key === 'Tab') {
+        // Complete the legend name after show/set/s
+        const m = input.value.match(/^(\S+\s+)(.*)$/);
+        if (!m) return;
+        e.preventDefault();
+        const q = normalize(m[2]);
+        const hits = LEGENDS_DB.filter(l => normalize(l.name).startsWith(q));
+        if (hits.length === 1) input.value = m[1] + hits[0].name;
+        else if (hits.length > 1) line(hits.map(l => l.name).join('  '), 'dim');
+      }
+    });
+    document.getElementById('chips').addEventListener('click', e => {
+      const b = e.target.closest('[data-cmd]');
+      if (b) run(b.dataset.cmd);
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('a, button') && !window.getSelection().toString()) input.focus();
+    });
+
+    // ---------- boot ----------
+    (async function boot() {
+      try { const c = localStorage.getItem('bh_crt_v1'); if (c && c !== 'green') document.documentElement.dataset.crt = c; } catch (err) { /* ignore */ }
+      const lines = [
+        ['BRAWLHALLA STANCE OS  v1.0', 'hi'],
+        ['(C) VALHALLA ARCADE SYSTEMS', 'dim'],
+        ['', ''],
+        ['MEMORY CHECK ......... 70 LEGENDS OK', ''],
+        ['STANCE TABLES ........ 560 ENTRIES OK', ''],
+        ['NETWORK .............. ONLINE', '']
+      ];
+      for (const [t, c] of lines) { line(t, c); await sleep(110); }
+      line('');
+      const linkId = new URLSearchParams(location.search).get('id');
+      if (linkId && /^\d+$/.test(linkId)) {
+        window.history.replaceState(null, '', location.pathname);
+        await run(`sync ${linkId}`);
+      } else if (state.profile) {
+        COMMANDS.whoami();
+        if (Date.now() - state.profile.syncedAt > 10 * 60 * 1000) await run('sync');
+      } else {
+        line('NO PLAYER LOADED. TYPE: sync <your brawlhalla id>', 'warn');
+      }
+      line('TYPE help FOR COMMANDS.', 'dim');
+      input.focus();
+    })();
+  </script>
+  <script>
+    // Offline support (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
