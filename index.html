@@ -600,6 +600,28 @@
       box-shadow:0 10px 30px rgba(0,0,0,0.45); font-size:0.88rem; animation: toastIn 0.25s ease-out; }
     .toast strong { display:block; font-size:0.95rem; margin-bottom:2px; }
     .theme-select { padding:7px 10px; }
+
+    /* Grid-only mode (default): only the legend grid shows; "Options" brings back everything else.
+       Clicking a legend opens its details as a drawer on the right. */
+    .options-fab { position:fixed; top:18px; right:18px; z-index:45; padding:10px 18px; border-radius:999px; font-size:0.92rem;
+      box-shadow:0 10px 28px var(--shadow); }
+    body:not(.minimal) .options-fab { position:static; display:block; margin:0 0 16px auto; }
+    body.minimal { padding-top:76px; }
+    body.minimal .top-bar, body.minimal .stats-strip, body.minimal .toolbar, body.minimal .log-panel { display:none; }
+    body.minimal .workspace { grid-template-columns:1fr; }
+    body.minimal .spotlight-panel { display:none; }
+    body.minimal.drawer-open .spotlight-panel {
+      display:block; position:fixed; top:16px; right:16px; bottom:16px; width:min(430px, calc(100vw - 32px));
+      overflow-y:auto; overscroll-behavior:contain; z-index:41; animation:drawerIn 0.22s ease-out;
+    }
+    @keyframes drawerIn { from { transform:translateX(24px); opacity:0; } }
+    .drawer-backdrop { display:none; position:fixed; inset:0; z-index:40; background:rgba(0,0,0,0.45); }
+    body.minimal.drawer-open .drawer-backdrop { display:block; }
+    .drawer-close { display:none; position:fixed; z-index:42; top:26px; right:min(430px, calc(100vw - 32px)); margin-right:-6px;
+      width:36px; height:36px; padding:0; border-radius:50%; font-size:1rem; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); }
+    body.minimal.drawer-open .drawer-close { display:block; }
+    body.minimal.drawer-open .options-fab { display:none; }
+    @media (prefers-reduced-motion: reduce) { body.minimal.drawer-open .spotlight-panel { animation:none; } }
     .brand-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; margin-top:6px; }
     .brand-row p { margin:0 !important; }
     .menu { position:relative; }
@@ -693,7 +715,10 @@
     @keyframes toastIn { from { transform:translateY(12px); opacity:0; } }
   </style>
 </head>
-<body>
+<body class="minimal">
+  <button class="options-fab" id="optionsFab" aria-expanded="false" aria-controls="optionsArea" onclick="toggleMinimal()">☰ Options</button>
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+  <button class="drawer-close" id="drawerClose" aria-label="Close details" onclick="closeDrawer()">✕</button>
 
   <!-- Top Header & Brawlhalla API Sync -->
   <div class="top-bar">
@@ -1277,13 +1302,32 @@
       }).join('');
     }
 
+    // Grid-only mode is the default; the choice is remembered
+    function setMinimal(on) {
+      document.body.classList.toggle('minimal', on);
+      if (!on) document.body.classList.remove('drawer-open');
+      const fab = document.getElementById('optionsFab');
+      fab.textContent = on ? '☰ Options' : '✕ Grid only';
+      fab.setAttribute('aria-expanded', String(!on));
+      try { localStorage.setItem('bh_minimal_v1', on ? '1' : '0'); } catch (err) { /* storage unavailable */ }
+    }
+    function toggleMinimal() { setMinimal(!document.body.classList.contains('minimal')); }
+    function closeDrawer() {
+      if (!document.body.classList.contains('drawer-open')) return;
+      document.body.classList.remove('drawer-open');
+      const tile = document.querySelector('.champ-tile.selected');
+      if (tile && tile.focus) tile.focus();
+    }
+    try { setMinimal(localStorage.getItem('bh_minimal_v1') !== '0'); } catch (err) { setMinimal(true); }
+
     function selectLegend(order) {
       selectedOrder = order;
+      if (document.body.classList.contains('minimal')) document.body.classList.add('drawer-open');
       document.querySelectorAll('.champ-tile.selected').forEach(t => t.classList.remove('selected'));
       const tile = document.querySelector(`.champ-tile[data-order="${order}"]`);
       if (tile) tile.classList.add('selected');
       renderSpotlight();
-      if (window.matchMedia('(max-width: 860px)').matches) {
+      if (!document.body.classList.contains('minimal') && window.matchMedia('(max-width: 860px)').matches) {
         document.getElementById('spotlightPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
@@ -1316,6 +1360,8 @@
       if (e.key === '/' && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
         e.preventDefault();
         search.focus();
+      } else if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
+        closeDrawer();
       } else if (e.key === 'Escape' && document.activeElement === search) {
         search.value = '';
         search.blur();
