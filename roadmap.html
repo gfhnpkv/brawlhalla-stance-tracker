@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stance Roadmap</title>
+  <meta name="description" content="Your Brawlhalla stance unlocks as a battle-pass style roadmap." />
+  <meta name="theme-color" content="#0b101d" />
+  <script src="theme-boot.js" data-page="roadmap"></script>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #0b101d; --panel: #131b2e; --card: #1a2540; --line: #2a395c; --text: #f1f5f9; --muted: #94a3b8;
+      --accent: #06b6d4; --accent-2: #a78bfa; --done: #22c55e; --soon: #f59e0b; --later: #64748b;
+      --track: linear-gradient(180deg, #22c55e, #06b6d4 30%, #a78bfa 70%, #334155);
+      color-scheme: dark;
+    }
+    :root[data-theme="valhalla"] {
+      --bg: #120c1f; --panel: #1d1430; --card: #2a1d45; --line: #4a3470; --text: #fdf6e3; --muted: #b8a9d4;
+      --accent: #f5c542; --accent-2: #fb923c; --later: #6e6290;
+      --track: linear-gradient(180deg, #22c55e, #f5c542 30%, #fb923c 70%, #4a3470);
+    }
+    :root[data-theme="daylight"] {
+      --bg: #f4f6fb; --panel: #ffffff; --card: #eef2f8; --line: #d5dce8; --text: #0f172a; --muted: #5b6678;
+      --accent: #0e7490; --accent-2: #7c3aed; --done: #15803d; --soon: #b45309; --later: #94a3b8;
+      --track: linear-gradient(180deg, #15803d, #0e7490 30%, #7c3aed 70%, #cbd5e1);
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 16px; min-height: 100vh; }
+    button, input { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .wrap { max-width: 820px; margin: 0 auto; }
+
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 6px; }
+    h1 { font-size: 1.55rem; font-weight: 900; }
+    .lead { color: var(--muted); font-size: 0.86rem; margin-top: 2px; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .input { width: 160px; padding: 8px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); outline: none; }
+    .btn { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 800; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #04141a; }
+    :root[data-theme="daylight"] .btn.primary { color: #fff; }
+    .btn[disabled] { opacity: 0.6; cursor: progress; }
+    .status { min-height: 1.3em; font-size: 0.82rem; color: var(--muted); margin: 6px 0 10px; }
+    .opts { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.84rem; color: var(--muted); margin-bottom: 18px; }
+    .opts label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+    /* the road */
+    .road { position: relative; padding-left: 46px; }
+    .road::before { content: ''; position: absolute; left: 17px; top: 6px; bottom: 6px; width: 4px; border-radius: 4px; background: var(--track); }
+    .tier { position: relative; margin: 22px 0 10px; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 900; color: var(--muted); }
+    .tier::before {
+      content: ''; position: absolute; left: -36px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%) rotate(45deg);
+      background: var(--bg); border: 3px solid var(--c, var(--muted)); border-radius: 4px;
+    }
+    .tier b { color: var(--c, var(--text)); }
+    .node {
+      position: relative; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
+      background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c, var(--line));
+      border-radius: 12px; padding: 11px 14px; margin-bottom: 9px;
+    }
+    .node::before {
+      content: ''; position: absolute; left: -35px; top: 50%; width: 12px; height: 12px; transform: translateY(-50%);
+      border-radius: 50%; background: var(--c, var(--later)); box-shadow: 0 0 0 4px var(--bg);
+    }
+    .node .t { font-weight: 800; }
+    .node .t small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+    .node .s { grid-column: 1; font-size: 0.8rem; color: var(--muted); }
+    .node .need { grid-row: 1 / span 2; grid-column: 2; text-align: right; font-weight: 900; font-size: 1.15rem; color: var(--c); white-space: nowrap; }
+    .node .need small { display: block; font-size: 0.68rem; color: var(--muted); font-weight: 700; }
+    .node .bar { grid-column: 1 / -1; height: 5px; border-radius: 99px; background: rgba(148,163,184,0.18); overflow: hidden; margin-top: 4px; }
+    .node .bar i { display: block; height: 100%; background: var(--c); border-radius: inherit; }
+    .node.done { opacity: 0.9; }
+    .node.done .need { font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+
+    .now {
+      position: relative; margin: 18px 0; padding: 14px 16px; border-radius: 14px;
+      background: var(--panel);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, var(--panel)), var(--panel));
+      border: 1px solid var(--accent);
+    }
+    .now::before {
+      content: ''; position: absolute; left: -41px; top: 50%; width: 22px; height: 22px; transform: translateY(-50%); border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 0 5px var(--bg), 0 0 18px var(--accent); animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 5px var(--bg), 0 0 4px var(--accent); } }
+    .now .lbl { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 900; color: var(--accent); }
+    .now .who { font-size: 1.15rem; font-weight: 900; margin-top: 2px; }
+    .now .meta { font-size: 0.82rem; color: var(--muted); margin-top: 3px; }
+    .now .meta b { color: var(--text); }
+    .finish { position: relative; margin-top: 22px; padding: 12px 16px; border-radius: 12px; border: 1px dashed var(--line); color: var(--muted); font-size: 0.86rem; }
+    .finish::before { content: '🏁'; position: absolute; left: -45px; top: 50%; transform: translateY(-50%); font-size: 1.3rem; }
+    .finish b { color: var(--text); }
+    .more { display: block; margin: 4px 0 0; background: none; border: none; color: var(--accent); font-weight: 800; cursor: pointer; font-size: 0.84rem; padding: 4px 0; }
+    footer { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; font-size: 0.8rem; color: var(--muted); }
+    footer a { color: var(--accent); text-decoration: none; font-weight: 700; }
+
+    @media (max-width: 560px) {
+      body { padding: 10px; }
+      .road { padding-left: 38px; }
+      .road::before { left: 13px; }
+      .tier::before { left: -32px; }
+      .node::before { left: -31px; }
+      .now::before { left: -36px; }
+      .finish::before { left: -39px; }
+      .actions { width: 100%; }
+      .input { flex: 1; width: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) { .now::before { animation: none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>🗺️ Stance Roadmap</h1>
+        <div class="lead">What you unlocked, where you are now, and what's next.</div>
+      </div>
+      <div class="actions">
+        <input class="input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" autocomplete="off" aria-label="Brawlhalla ID" />
+        <button class="btn primary" id="syncBtn">Sync</button>
+      </div>
+    </header>
+    <div class="status" id="status"></div>
+    <div class="opts">
+      <label><input type="checkbox" id="optStandard" checked /> Standard stances (!)</label>
+      <label><input type="checkbox" id="optChallenge" /> Challenge stances (Lv 40)</label>
+    </div>
+    <div class="road" id="road"></div>
+
+    <footer>
+      <a href="index.html?view=desktop">Desktop view</a>
+      <a href="app.html?view=mobile">Mobile view</a>
+      <a href="cards.html">Card collection</a>
+      <a href="matrix.html">Stance matrix</a>
+      <a href="terminal.html">Terminal</a>
+      <a href="compare.html">Compare</a>
+    </footer>
+  </div>
+
+  <script src="legends.js"></script>
+  <script src="core.js"></script>
+  <script src="summary.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const { state } = Tracker;
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const TIERS = [
+      { key: 'next', title: 'Next up', hint: '1–2 levels away', max: 2, c: 'var(--accent)' },
+      { key: 'soon', title: 'Soon', hint: '3–5 levels away', max: 5, c: 'var(--soon)' },
+      { key: 'later', title: 'Later', hint: '6+ levels away', max: Infinity, c: 'var(--later)' }
+    ];
+    const SHOW_PER_TIER = 8;
+    const expanded = new Set();
+
+    // Rough games-to-go at this legend's own pace (games played per level gained so far)
+    function gamesEstimate(name, lvl, levelsLeft) {
+      const s = state.stats[name];
+      if (!s || !s.games || lvl < 2) return null;
+      return Math.max(1, Math.round((s.games / (lvl - 1)) * levelsLeft));
+    }
+
+    function upcoming() {
+      const wantStd = $('optStandard').checked, wantCh = $('optChallenge').checked;
+      const items = [];
+      LEGENDS_DB.forEach(l => {
+        const lvl = Tracker.getLevel(l.name);
+        if (lvl < l.bangLvl && l.bangLvl < l.vLvl && wantStd) items.push({ l, lvl, at: l.bangLvl, what: l.alt, kind: '!' });
+        if (lvl < l.vLvl) items.push({ l, lvl, at: l.vLvl, what: l.target, kind: 'v' });
+        else if (wantCh && lvl < 40) items.push({ l, lvl, at: 40, what: 'Challenge Stance', kind: '⚔' });
+      });
+      return items.map(i => ({ ...i, need: i.at - i.lvl })).sort((a, b) => a.need - b.need || a.l.order - b.l.order);
+    }
+
+    // Real unlocks from the log (first-sync fill-ins start at level 1 and are skipped)
+    function recentUnlocks() {
+      const out = [];
+      [...state.log].sort((a, b) => b.ts - a.ts).forEach(e => {
+        if (!(e.oldLvl > 1) || e.oldStatus === e.newStatus || out.length >= 5) return;
+        out.push(e);
+      });
+      return out;
+    }
+
+    function nodeHtml(i, c) {
+      const est = gamesEstimate(i.l.name, i.lvl, i.need);
+      const pct = Math.min(100, Math.round(((i.lvl - 1) / Math.max(1, i.at - 1)) * 100));
+      return `<div class="node" style="--c:${c}">
+        <div class="t">${esc(i.l.name)}<small>Lv ${i.lvl} → ${i.at}</small></div>
+        <div class="need">+${i.need}<small>level${i.need === 1 ? '' : 's'}</small></div>
+        <div class="s">${i.kind === '⚔' ? '⚔️' : i.kind === 'v' ? 'Target' : 'Standard'}: ${esc(i.what)}${est ? ` · ≈ ${est.toLocaleString()} game${est === 1 ? '' : 's'} at your pace` : ''}</div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+      </div>`;
+    }
+
+    function render() {
+      const parts = [];
+      const recent = recentUnlocks();
+      if (recent.length) {
+        parts.push(`<div class="tier" style="--c:var(--done)"><b>Unlocked</b> · recently</div>`);
+        recent.forEach(e => parts.push(`<div class="node done" style="--c:var(--done)">
+          <div class="t">${esc(e.legend)}<small>Lv ${e.oldLvl} → ${e.newLvl}</small></div>
+          <div class="need">${new Date(e.ts).toLocaleDateString()}</div>
+          <div class="s">✓ ${esc(e.stanceUnlocked)} (${e.oldStatus} → ${e.newStatus})</div>
+        </div>`));
+      }
+
+      const p = state.profile;
+      const v = LEGENDS_DB.filter(l => Tracker.getLevel(l.name) >= l.vLvl).length;
+      const week = ProgressSummary.week(state.log);
+      parts.push(`<div class="now"><div class="lbl">You are here</div>
+        <div class="who">${p ? esc(p.name) : 'Your account'}</div>
+        <div class="meta"><b>${v}/70</b> target stances · this week: <b>${esc(ProgressSummary.describe(week))}</b>${p ? ` · synced ${new Date(p.syncedAt).toLocaleString()}` : ''}</div>
+      </div>`);
+
+      const items = upcoming();
+      TIERS.forEach((tier, ti) => {
+        const min = ti === 0 ? 1 : TIERS[ti - 1].max + 1;
+        const inTier = items.filter(i => i.need >= min && i.need <= tier.max);
+        if (!inTier.length) return;
+        parts.push(`<div class="tier" style="--c:${tier.c}"><b>${tier.title}</b> · ${tier.hint} · ${inTier.length}</div>`);
+        const shown = expanded.has(tier.key) ? inTier : inTier.slice(0, SHOW_PER_TIER);
+        shown.forEach(i => parts.push(nodeHtml(i, tier.c)));
+        if (inTier.length > shown.length) parts.push(`<button class="more" data-tier="${tier.key}">Show ${inTier.length - shown.length} more</button>`);
+      });
+
+      const left = 70 - v;
+      parts.push(`<div class="finish">${left ? `<b>${left}</b> target stance${left === 1 ? '' : 's'} to go until all 70 are unlocked.` : '<b>All 70 target stances unlocked.</b> GG!'}</div>`);
+      $('road').innerHTML = parts.join('');
+    }
+
+    async function doSync() {
+      const id = $('idInput').value.trim();
+      if (!/^\d+$/.test(id)) { $('status').textContent = 'Enter your numeric Brawlhalla ID.'; $('idInput').focus(); return; }
+      Tracker.setId(id);
+      $('syncBtn').disabled = true;
+      $('status').textContent = 'Syncing…';
+      const r = await Tracker.sync();
+      $('syncBtn').disabled = false;
+      if (r.error) { $('status').textContent = `Sync failed: ${r.error}`; return; }
+      $('status').textContent = r.updated ? `✓ ${r.updated} legends updated · ${new Date().toLocaleTimeString()}` : 'Synced, but no levels came back (dair.gg may be down).';
+      render();
+    }
+
+    $('road').addEventListener('click', e => {
+      const b = e.target.closest('[data-tier]');
+      if (b) { expanded.add(b.dataset.tier); render(); }
+    });
+    ['optStandard', 'optChallenge'].forEach(id => $(id).addEventListener('change', render));
+    $('syncBtn').addEventListener('click', doSync);
+    $('idInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSync(); });
+
+    const linkId = new URLSearchParams(location.search).get('id');
+    $('idInput').value = linkId && /^\d+$/.test(linkId) ? linkId : state.id;
+    render();
+    if (linkId && /^\d+$/.test(linkId)) { history.replaceState(null, '', location.pathname); doSync(); }
+    else if (state.id && (!state.profile || Date.now() - state.profile.syncedAt > 10 * 60 * 1000)) doSync();
+  </script>
+  <script>
+    // Offline support (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
