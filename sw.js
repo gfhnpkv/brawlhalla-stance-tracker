@@ -1,10 +1,10 @@
 // Service worker: lets the tracker open offline. Same-origin files are fetched from the
 // network first (so updates show up right away) and fall back to the last cached copy.
 // API calls to other sites are not touched, and saved data stays in localStorage.
-const CACHE = 'stance-tracker-v10';
+const CACHE = 'stance-tracker-v11';
 const FILES = [
-  './', 'index.html', 'app.html', 'cards.html', 'matrix.html', 'terminal.html', 'compare.html', 'roadmap.html', 'pixel.html',
-  'legends.js', 'core.js', 'goals.js', 'summary.js', 'shareimage.js', 'crest.js', 'theme-boot.js', 'icon.svg', 'manifest.webmanifest'
+  './', 'index.html', 'app.html', 'cards.html', 'matrix.html', 'terminal.html', 'compare.html', 'roadmap.html', 'pixel.html', 'stances.html',
+  'legends.js', 'stance-data.js', 'core.js', 'goals.js', 'summary.js', 'shareimage.js', 'crest.js', 'theme-boot.js', 'icon.svg', 'manifest.webmanifest'
 ];
 
 self.addEventListener('install', event => {
