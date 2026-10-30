@@ -477,6 +477,7 @@
     /* Legend art: the mini icon behind each tile, the full image behind the spotlight */
     .champ-tile.has-art { overflow:hidden; min-height:150px; }
     .tile-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 30%;
+      filter:grayscale(1) sepia(1) hue-rotate(175deg) saturate(2.2) brightness(0.95); /* one blue tone for every legend */
       pointer-events:none; transition:transform 0.2s; }
     .champ-tile.has-art::before { content:''; position:absolute; inset:0; pointer-events:none;
       background:linear-gradient(to bottom, transparent 20%, color-mix(in srgb, var(--bg-card) 70%, transparent) 55%, var(--bg-card) 85%); }
