@@ -12,3 +12,7 @@ Legend art belongs to Blue Mammoth Games / Ubisoft. The images in this folder we
 
 Legends without a portrait show an emblem with their initials. Tall images (about 3:4) look best;
 they are cropped from the top.
+
+The tracker (`index.html`) shows the full image behind the selected legend and a small icon from
+`mini/` (same file name) behind each legend tile, falling back to the full image. Import the icons with
+`python3 tools/import_portraits.py ../brawllhala-images/legends/mini --mini`.

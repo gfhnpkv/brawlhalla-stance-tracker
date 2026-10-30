@@ -474,9 +474,9 @@
       text-overflow: ellipsis;
     }
 
-    /* Legend art: a thumbnail behind each tile, the full image behind the spotlight */
+    /* Legend art: the mini icon behind each tile, the full image behind the spotlight */
     .champ-tile.has-art { overflow:hidden; min-height:150px; }
-    .tile-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center;
+    .tile-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 30%;
       pointer-events:none; transition:transform 0.2s; }
     .champ-tile.has-art::before { content:''; position:absolute; inset:0; pointer-events:none;
       background:linear-gradient(to bottom, transparent 20%, color-mix(in srgb, var(--bg-card) 70%, transparent) 55%, var(--bg-card) 85%); }
@@ -918,13 +918,13 @@
           .forEach(f => { portraits[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
       } catch (err) { /* no portraits folder, or opened as a file */ }
     }
-    // Tiles use the small copy in portraits/thumbs/ and fall back to the full image if it's missing
+    // Tiles use the mini icon in portraits/mini/ and fall back to the full image if it's missing
     function tileArtHtml(name) {
       const src = portraits[portraitSlug(name)];
       if (!src) return '';
       const full = esc(src);
-      return `<img class="tile-art" src="${full.replace('portraits/', 'portraits/thumbs/')}" alt="" loading="lazy"
-        onerror="if (this.src.includes('/thumbs/')) this.src='${full}'; else { this.parentNode.classList.remove('has-art'); this.remove(); }" />`;
+      return `<img class="tile-art" src="${full.replace('portraits/', 'portraits/mini/')}" alt="" loading="lazy"
+        onerror="if (this.src.includes('/mini/')) this.src='${full}'; else { this.parentNode.classList.remove('has-art'); this.remove(); }" />`;
     }
     function spotlightArtHtml(name) {
       const src = portraits[portraitSlug(name)];

@@ -5,25 +5,27 @@ Images named by Brawlhalla legend ID (e.g. 10.png) or by legend name (e.g. "Lord
 are copied to portraits/<slug>.<ext> (e.g. lord-vraxx.png) and listed in portraits/index.json.
 Nothing is downloaded. Only add images you have permission to publish.
 
+With --mini, the images are the small legend icons instead: they go to portraits/mini/
+(same file names) and are shown on the tracker's legend tiles. index.json is left as is.
+
 Usage (from the project folder):
-    python3 tools/import_portraits.py SOURCE_FOLDER [--dry-run]
+    python3 tools/import_portraits.py SOURCE_FOLDER [--mini] [--dry-run]
 
 Example:
     python3 tools/import_portraits.py ../brawllhala-images/legends/full --dry-run
     python3 tools/import_portraits.py ../brawllhala-images/legends/full
+    python3 tools/import_portraits.py ../brawllhala-images/legends/mini --mini
 """
 import argparse
 import json
 import re
 import shutil
-import subprocess
 import sys
 import unicodedata
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
 EXTS = {'.png', '.jpg', '.jpeg', '.webp', '.avif'}
-THUMB_SIZE = 360  # longest side of the tile backgrounds in portraits/thumbs/
 
 
 def slug(name):
@@ -42,23 +44,10 @@ def load_legends():
     return names, ids
 
 
-def make_thumbs(dest, files):
-    """Small copies for the tracker's legend tiles, so the page doesn't load every full image.
-    Uses macOS sips; elsewhere the tiles fall back to the full images."""
-    if not shutil.which('sips'):
-        print('sips not found (macOS only): skipped portraits/thumbs/. Tiles will use the full images.')
-        return
-    thumbs = dest / 'thumbs'
-    thumbs.mkdir(exist_ok=True)
-    for name in files:
-        subprocess.run(['sips', '-Z', str(THUMB_SIZE), str(dest / name), '--out', str(thumbs / name)],
-                       check=True, capture_output=True)
-    print(f'Made {len(files)} thumbnails in portraits/thumbs/.')
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('source', type=Path, help='folder with the images')
+    ap.add_argument('--mini', action='store_true', help='small legend icons for the tiles: copy to portraits/mini/')
     ap.add_argument('--dry-run', action='store_true', help='show what would happen without copying anything')
     args = ap.parse_args()
 
@@ -66,7 +55,8 @@ def main():
         sys.exit(f'Not a folder: {args.source}')
     names, ids = load_legends()
     by_slug = {slug(n): n for n in names}
-    dest = PROJECT / 'portraits'
+    dest = PROJECT / 'portraits' / 'mini' if args.mini else PROJECT / 'portraits'
+    folder = dest.relative_to(PROJECT).as_posix()
 
     matched, unmatched = {}, []
     for f in sorted(args.source.iterdir()):
@@ -93,17 +83,20 @@ def main():
         target = dest / f'{slug(name)}{f.suffix.lower()}'
         files.append(target.name)
         if args.dry_run:
-            print(f'  would copy {f.name} -> portraits/{target.name}  ({name})')
+            print(f'  would copy {f.name} -> {folder}/{target.name}  ({name})')
         else:
+            dest.mkdir(exist_ok=True)
             shutil.copy2(f, target)
 
     files.sort()
     if args.dry_run:
-        print(f'Dry run: nothing copied. portraits/index.json would list {len(files)} images.')
+        print(f'Dry run: nothing copied.' + ('' if args.mini else f' portraits/index.json would list {len(files)} images.'))
         return
-    (dest / 'index.json').write_text(json.dumps(files, indent=2) + '\n', encoding='utf-8')
-    print(f'Copied {len(files)} images into portraits/ and wrote portraits/index.json.')
-    make_thumbs(dest, files)
+    if args.mini:
+        print(f'Copied {len(files)} icons into {folder}/.')
+    else:
+        (dest / 'index.json').write_text(json.dumps(files, indent=2) + '\n', encoding='utf-8')
+        print(f'Copied {len(files)} images into portraits/ and wrote portraits/index.json.')
     print('Check them with: python3 server.py  (then open http://localhost:8000/stances.html)')
     print('Publish with:    git add portraits && git commit -m "Add portraits" && git push')
 
