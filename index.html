@@ -601,13 +601,10 @@
     .toast strong { display:block; font-size:0.95rem; margin-bottom:2px; }
     .theme-select { padding:7px 10px; }
 
-    /* Grid-only mode (default): only the legend grid shows; "Options" brings back everything else.
-       Clicking a legend opens its details as a drawer on the right. */
-    .options-fab { position:fixed; top:18px; right:18px; z-index:45; padding:10px 18px; border-radius:999px; font-size:0.92rem;
-      box-shadow:0 10px 28px var(--shadow); }
-    body:not(.minimal) .options-fab { position:static; display:block; margin:0 0 16px auto; }
-    body.minimal { padding-top:76px; }
-    body.minimal .top-bar, body.minimal .stats-strip, body.minimal .toolbar, body.minimal .log-panel { display:none; }
+    /* Default: the side columns are hidden so the grid gets the full width; "Side panels" brings them back.
+       While they are hidden, clicking a legend opens its details as a drawer on the right. */
+    body.minimal .log-panel { display:none; }
+    body:not(.minimal) #optionsFab { border-color:var(--accent-cyan); background:var(--active-bg); }
     body.minimal .workspace { grid-template-columns:1fr; }
     body.minimal .spotlight-panel { display:none; }
     body.minimal.drawer-open .spotlight-panel {
@@ -620,7 +617,6 @@
     .drawer-close { display:none; position:fixed; z-index:42; top:26px; right:min(430px, calc(100vw - 32px)); margin-right:-6px;
       width:36px; height:36px; padding:0; border-radius:50%; font-size:1rem; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); }
     body.minimal.drawer-open .drawer-close { display:block; }
-    body.minimal.drawer-open .options-fab { display:none; }
     @media (prefers-reduced-motion: reduce) { body.minimal.drawer-open .spotlight-panel { animation:none; } }
     .brand-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; margin-top:6px; }
     .brand-row p { margin:0 !important; }
@@ -716,7 +712,6 @@
   </style>
 </head>
 <body class="minimal">
-  <button class="options-fab" id="optionsFab" aria-expanded="false" aria-controls="optionsArea" onclick="toggleMinimal()">☰ Options</button>
   <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
   <button class="drawer-close" id="drawerClose" aria-label="Close details" onclick="closeDrawer()">✕</button>
 
@@ -822,6 +817,7 @@
       </select>
       <button class="secondary active" id="viewGridBtn" onclick="setViewMode('grid')">Champ Select Grid</button>
       <button class="secondary" id="viewSheetBtn" onclick="setViewMode('sheet')">Full Sheet Table</button>
+      <button class="secondary" id="optionsFab" aria-expanded="false" onclick="toggleMinimal()" title="Show or hide the legend panel and the right column">☰ Side panels</button>
     </div>
   </div>
 
@@ -1302,12 +1298,12 @@
       }).join('');
     }
 
-    // Grid-only mode is the default; the choice is remembered
+    // Side panels are hidden by default; the choice is remembered
     function setMinimal(on) {
       document.body.classList.toggle('minimal', on);
       if (!on) document.body.classList.remove('drawer-open');
       const fab = document.getElementById('optionsFab');
-      fab.textContent = on ? '☰ Options' : '✕ Grid only';
+      fab.textContent = on ? '☰ Side panels' : '✕ Hide side panels';
       fab.setAttribute('aria-expanded', String(!on));
       try { localStorage.setItem('bh_minimal_v1', on ? '1' : '0'); } catch (err) { /* storage unavailable */ }
     }
