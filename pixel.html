@@ -3,157 +3,185 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pixel Legends</title>
-  <meta name="description" content="The Brawlhalla Stance Tracker as an 8-bit game menu." />
-  <meta name="theme-color" content="#1d2b53" />
+  <title>Legend Select</title>
+  <meta name="description" content="The Brawlhalla Stance Tracker as a legend select screen." />
+  <meta name="theme-color" content="#0a0e17" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    /* PICO-8 palette */
     :root {
-      --black: #000000; --navy: #1d2b53; --plum: #7e2553; --green: #008751; --brown: #ab5236; --gray: #5f574f;
-      --silver: #c2c3c7; --white: #fff1e8; --red: #ff004d; --orange: #ffa300; --yellow: #ffec27; --lime: #00e436;
-      --blue: #29adff; --lavender: #83769c; --pink: #ff77a8; --peach: #ffccaa;
-      /* readable variants for text (WCAG 4.5:1) */
-      --lav-text: #a99cc2; --dim-text: #9d968e; --btn-green: #006e42;
+      --bg: #0a0e17; --bg-2: #111827; --panel: #141b2b; --panel-2: #1b2438; --line: #26314a; --line-2: #33415f;
+      --text: #eef2f8; --muted: #9aa6bd; --gold: #d9a441; --gold-2: #f3cf7a;
+      --v: #3ccf7a; --bang: #e8a33a; --x: #f07272; --accent: #5aa9ff;
+      --shadow: 0 18px 40px rgba(0,0,0,0.45);
       color-scheme: dark;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: var(--navy); color: var(--white); min-height: 100vh;
-      font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 10px; line-height: 1.6;
-      padding: 16px; image-rendering: pixelated;
-      background-image: radial-gradient(var(--black) 1px, transparent 1px); background-size: 6px 6px;
+      min-height: 100vh; color: var(--text); font-family: Inter, system-ui, -apple-system, sans-serif; font-size: 14px; padding: 18px;
+      background:
+        radial-gradient(1000px 500px at 50% -15%, rgba(217,164,65,0.10), transparent 60%),
+        linear-gradient(180deg, #0c1220, var(--bg) 40%);
+      background-color: var(--bg);
     }
-    button, input, select { font: inherit; color: inherit; }
-    .wrap { max-width: 1060px; margin: 0 auto; }
+    button, input { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+    .disp { font-family: 'Barlow Condensed', Inter, sans-serif; text-transform: uppercase; letter-spacing: 0.06em; }
 
-    /* chunky pixel box: stepped corners via clip-path */
-    .box {
-      position: relative; background: var(--black); border: 4px solid var(--white); padding: 12px;
-      clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+    /* top bar */
+    .hud {
+      display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center;
+      background: linear-gradient(135deg, var(--panel-2), var(--panel)); border: 1px solid var(--line); border-radius: 14px;
+      padding: 16px 20px; box-shadow: var(--shadow); position: relative; overflow: hidden;
     }
-    .title { font-size: clamp(14px, 3.4vw, 22px); color: var(--yellow); text-shadow: 3px 3px 0 var(--plum); letter-spacing: 1px; margin-bottom: 10px; }
-    .hud { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 14px; }
-    .hud .p1 { color: var(--blue); }
-    .hud .row { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 6px; color: var(--silver); }
-    .hud .row b { color: var(--white); font-weight: normal; }
-    .segbar { display: inline-flex; gap: 2px; vertical-align: middle; }
-    .segbar i { width: 6px; height: 10px; background: var(--gray); }
-    .segbar i.on { background: var(--lime); }
-    .segbar.small i { width: 4px; height: 6px; }
-    .segbar.y i.on { background: var(--yellow); }
-    .segbar.r i.on { background: var(--red); }
+    .hud::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--gold-2), var(--gold)); }
+    .title { font-size: 1.9rem; font-weight: 800; line-height: 1; }
+    .title span { color: var(--gold); }
+    .who { margin-top: 8px; font-size: 1rem; font-weight: 700; }
+    .who small { color: var(--muted); font-weight: 500; margin-left: 6px; }
+    .row { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; color: var(--muted); font-size: 0.82rem; align-items: center; }
+    .row b { color: var(--text); font-weight: 700; }
+    .meter { display: inline-block; width: 140px; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; vertical-align: middle; margin-left: 8px; }
+    .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-2)); border-radius: inherit; }
     .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
-    .pbtn {
-      background: var(--plum); color: var(--white); border: none; padding: 9px 12px; cursor: pointer;
-      box-shadow: inset -3px -3px 0 rgba(0,0,0,0.45), inset 3px 3px 0 rgba(255,255,255,0.25);
+    .input { width: 180px; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line-2); outline: none; }
+    .input:focus { border-color: var(--gold); }
+    .btn {
+      padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--panel-2); cursor: pointer;
+      font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.95rem;
     }
-    .pbtn:hover, .pbtn:focus-visible { background: var(--pink); color: var(--black); outline: none; }
-    .pbtn:active { box-shadow: inset 3px 3px 0 rgba(0,0,0,0.45); }
-    .pbtn.green { background: var(--btn-green); }
-    .pbtn[aria-pressed="true"] { background: var(--yellow); color: var(--black); }
-    .pinput { background: var(--navy); border: 3px solid var(--silver); color: var(--white); padding: 7px 9px; width: 168px; outline: none; }
-    .pinput:focus { border-color: var(--yellow); }
-    .msg { min-height: 1.6em; color: var(--peach); margin: 8px 2px; }
-    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    .hint { color: var(--lav-text); margin-left: auto; align-self: center; }
+    .btn:hover { border-color: var(--gold); }
+    .btn.gold { background: linear-gradient(135deg, var(--gold-2), var(--gold)); color: #1a1206; border-color: transparent; }
+    .btn[aria-pressed="true"] { border-color: var(--gold); color: var(--gold-2); background: rgba(217,164,65,0.12); }
+    .btn[disabled] { opacity: 0.6; cursor: progress; }
+    .msg { min-height: 1.4em; color: var(--muted); margin: 10px 4px; font-size: 0.85rem; }
 
-    /* select grid */
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+    .filters .btn { padding: 7px 14px; font-size: 0.88rem; }
+    .hint { color: var(--muted); margin-left: auto; font-size: 0.78rem; }
+    .hint kbd { font-family: Inter, sans-serif; font-size: 0.72rem; padding: 1px 6px; border-radius: 5px; border: 1px solid var(--line-2); background: var(--panel); }
+
+    /* legend grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(138px, 1fr)); gap: 12px; }
     .tile {
-      background: var(--black); border: 3px solid var(--gray); padding: 8px 6px 7px; cursor: pointer; text-align: center; position: relative;
-      outline: none;
+      position: relative; border-radius: 12px; overflow: hidden; cursor: pointer; outline: none;
+      background: var(--panel); border: 1px solid var(--line); aspect-ratio: 3 / 4;
+      display: flex; flex-direction: column; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
     }
-    .tile.v { border-color: var(--lime); }
-    .tile.bang { border-color: var(--orange); }
-    .tile.x { border-color: var(--gray); }
-    .tile.x .sprite { filter: grayscale(1) brightness(0.55); }
-    .tile.sel { border-color: var(--yellow); background: #2a1a3a; transform: translateY(-2px); box-shadow: 0 4px 0 var(--yellow); }
-    .tile.sel::before { content: '▶'; position: absolute; left: -2px; top: 4px; color: var(--yellow); animation: blink 0.8s steps(1) infinite; }
-    @keyframes blink { 50% { opacity: 0; } }
-    .sprite { width: 56px; height: 56px; margin: 2px auto 6px; display: block; image-rendering: pixelated; }
-    .mono { width: 56px; height: 56px; margin: 2px auto 6px; display: grid; place-items: center; background: var(--plum); font-size: 16px; }
-    .tname { font-size: 8px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tlv { font-size: 8px; color: var(--silver); margin: 4px 0 3px; }
-    .tlv .st { margin-left: 6px; }
-    .st.v { color: var(--lime); } .st.bang { color: var(--orange); } .st.x { color: var(--red); }
-    .pin { position: absolute; right: 4px; top: 3px; color: var(--yellow); font-size: 9px; }
-    .num { position: absolute; left: 6px; top: 4px; color: var(--lavender); font-size: 7px; }
+    .tile:hover { transform: translateY(-2px); border-color: var(--line-2); }
+    .tile.sel { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(217,164,65,0.35), var(--shadow); transform: translateY(-3px); }
+    .tile.x .art { filter: grayscale(0.9) brightness(0.6); }
+    .art { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+    .art img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+    .art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(10,14,23,0.92)); }
+    .emblem {
+      width: 100%; height: 100%; display: grid; place-items: center;
+      background: radial-gradient(circle at 50% 38%, hsl(var(--hue) 45% 34%), hsl(var(--hue) 40% 12%) 72%);
+    }
+    .emblem b {
+      width: 62%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; margin-top: -10%;
+      border: 2px solid rgba(255,255,255,0.28); box-shadow: inset 0 0 0 6px rgba(0,0,0,0.25);
+      font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 800; font-size: 2rem; letter-spacing: 0.04em; color: rgba(255,255,255,0.92);
+      background: rgba(0,0,0,0.18);
+    }
+    .info { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 10px 9px; z-index: 1; }
+    .tname { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 700; font-size: 1.08rem; text-transform: uppercase; letter-spacing: 0.04em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+    .tmeta { display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; color: #c9d2e3; margin: 2px 0 6px; }
+    .bar { height: 4px; border-radius: 99px; background: rgba(255,255,255,0.14); overflow: hidden; }
+    .bar i { display: block; height: 100%; border-radius: inherit; }
+    .bar.v i { background: var(--v); } .bar.bang i { background: var(--bang); } .bar.x i { background: var(--x); }
+    .badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; font-weight: 800; font-size: 0.72rem; }
+    .badge.v { background: rgba(60,207,122,0.18); color: var(--v); }
+    .badge.bang { background: rgba(232,163,58,0.18); color: var(--bang); }
+    .badge.x { background: rgba(240,114,114,0.16); color: var(--x); }
+    .corner { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; z-index: 1; font-size: 0.7rem; }
+    .corner .num { color: rgba(255,255,255,0.75); font-weight: 700; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+    .corner .pin { color: var(--gold-2); text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
 
-    /* RPG dialog */
-    .dialog-wrap { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px; z-index: 20; display: none; }
-    .dialog-wrap.open { display: block; }
-    .dialog { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 120px 1fr; gap: 14px; }
-    .dialog .big { width: 104px; height: 104px; image-rendering: pixelated; }
-    .dialog h2 { font-size: 13px; color: var(--yellow); font-weight: normal; margin-bottom: 6px; }
-    .dialog .sub { color: var(--lavender); margin-bottom: 8px; font-size: 8px; }
-    .dialog .stances { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 16px; font-size: 8px; margin: 8px 0; }
-    .dialog .stances span.on { color: var(--lime); }
-    .dialog .stances span.off { color: var(--dim-text); }
-    .dialog .stances span.tgt::after { content: ' ★'; color: var(--yellow); }
-    .dialog .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-    .dialog .stats { color: var(--silver); font-size: 8px; }
-    .typing::after { content: '▼'; color: var(--yellow); margin-left: 6px; animation: blink 0.8s steps(1) infinite; }
-    .footer { margin: 22px 0 140px; display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: center; font-size: 8px; color: var(--lav-text); }
-    .footer a { color: var(--blue); text-decoration: none; }
-    .footer a:hover { color: var(--yellow); }
+    /* details panel */
+    .dialog-wrap { position: fixed; inset: 0; z-index: 20; display: none; background: rgba(5,8,14,0.72); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 16px; }
+    .dialog-wrap.open { display: grid; place-items: center; }
+    .dialog {
+      width: min(860px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: grid; grid-template-columns: 260px 1fr;
+      background: var(--panel); border: 1px solid var(--line-2); border-radius: 16px; box-shadow: var(--shadow);
+    }
+    .dialog .portrait { position: relative; min-height: 320px; border-radius: 16px 0 0 16px; overflow: hidden; }
+    .dialog .portrait .art { position: absolute; inset: 0; }
+    .dialog .portrait .emblem b { font-size: 3.2rem; }
+    .dialog .body { padding: 20px 22px; }
+    .dialog h2 { font-size: 2rem; font-weight: 800; line-height: 1; display: flex; gap: 10px; align-items: center; }
+    .dialog .sub { color: var(--muted); margin: 4px 0 14px; }
+    .callout { padding: 10px 12px; border-radius: 10px; background: rgba(217,164,65,0.10); border: 1px solid rgba(217,164,65,0.35); color: var(--gold-2); font-weight: 600; margin-bottom: 14px; }
+    .stances { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }
+    .stances div { display: flex; justify-content: space-between; gap: 8px; padding: 7px 10px; border-radius: 8px; background: var(--bg-2); border: 1px solid var(--line); font-size: 0.84rem; color: var(--muted); }
+    .stances div.on { color: var(--text); border-color: rgba(60,207,122,0.35); }
+    .stances div.tgt { box-shadow: inset 3px 0 0 var(--gold); }
+    .stances b { color: var(--gold); margin-right: 6px; font-variant-numeric: tabular-nums; }
+    .stats { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 0.84rem; margin-bottom: 16px; }
+    .stats b { color: var(--text); }
+    .acts { display: flex; flex-wrap: wrap; gap: 8px; }
 
-    @media (max-width: 640px) {
-      body { padding: 10px; font-size: 9px; }
-      .hud { grid-template-columns: 1fr; }
+    .footer { margin: 26px 0 10px; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; font-size: 0.82rem; color: var(--muted); }
+    .footer a { color: var(--gold-2); text-decoration: none; font-weight: 600; }
+    .credit { text-align: center; color: var(--muted); font-size: 0.74rem; margin-bottom: 8px; }
+
+    @media (max-width: 720px) {
+      body { padding: 10px; }
+      .hud { grid-template-columns: 1fr; padding: 14px 16px; }
       .controls { justify-content: flex-start; }
-      .pinput { flex: 1; width: auto; }
-      .grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
-      .sprite, .mono { width: 44px; height: 44px; }
+      .input { flex: 1; width: auto; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; }
       .hint { display: none; }
       .dialog { grid-template-columns: 1fr; }
-      .dialog .big { width: 72px; height: 72px; }
+      .dialog .portrait { min-height: 200px; border-radius: 16px 16px 0 0; }
     }
-    @media (prefers-reduced-motion: reduce) { .tile.sel::before, .typing::after { animation: none; } .tile.sel { transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .tile, .tile:hover, .tile.sel { transition: none; transform: none; } }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="hud box">
+    <div class="hud">
       <div>
-        <div class="title">PIXEL LEGENDS</div>
-        <div><span class="p1">PLAYER 1</span> <span id="pname">-- NO SAVE --</span></div>
+        <div class="title disp">Legend <span>Select</span></div>
+        <div class="who" id="pname">No player loaded</div>
         <div class="row" id="pstats"></div>
       </div>
       <div class="controls">
-        <input class="pinput" id="idInput" inputmode="numeric" placeholder="BRAWLHALLA ID" autocomplete="off" aria-label="Brawlhalla ID" />
-        <button class="pbtn green" id="syncBtn">LOAD</button>
-        <button class="pbtn" id="soundBtn" aria-pressed="false" aria-label="Sound effects">♪ OFF</button>
+        <input class="input" id="idInput" inputmode="numeric" placeholder="Brawlhalla ID" autocomplete="off" aria-label="Brawlhalla ID" />
+        <button class="btn gold" id="syncBtn">Load</button>
+        <button class="btn" id="soundBtn" aria-pressed="false" aria-label="Sound effects">Sound off</button>
       </div>
     </div>
-    <div class="msg" id="msg">PRESS LOAD TO CONTINUE</div>
+    <div class="msg" id="msg">Enter your Brawlhalla ID and press Load.</div>
 
     <div class="filters" id="filters">
-      <button class="pbtn" data-f="ALL" aria-pressed="true">ALL</button>
-      <button class="pbtn" data-f="v" aria-pressed="false">★ TARGET</button>
-      <button class="pbtn" data-f="!" aria-pressed="false">! STANDARD</button>
-      <button class="pbtn" data-f="x" aria-pressed="false">✗ LOCKED</button>
-      <button class="pbtn" data-f="PIN" aria-pressed="false">♥ PINNED</button>
-      <span class="hint">ARROWS MOVE · ENTER SELECT · ESC BACK</span>
+      <button class="btn" data-f="ALL" aria-pressed="true">All</button>
+      <button class="btn" data-f="v" aria-pressed="false">Target</button>
+      <button class="btn" data-f="!" aria-pressed="false">Standard</button>
+      <button class="btn" data-f="x" aria-pressed="false">Locked</button>
+      <button class="btn" data-f="PIN" aria-pressed="false">★ Pinned</button>
+      <span class="hint"><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> move · <kbd>Enter</kbd> details · <kbd>Esc</kbd> back</span>
     </div>
     <div class="grid" id="grid" role="listbox" aria-label="Legends"></div>
 
     <div class="footer">
-      <a href="index.html?view=desktop">DESKTOP</a>
-      <a href="app.html?view=mobile">MOBILE</a>
-      <a href="cards.html">CARDS</a>
-      <a href="matrix.html">MATRIX</a>
-      <a href="terminal.html">TERMINAL</a>
-      <a href="compare.html">COMPARE</a>
-      <a href="roadmap.html">ROADMAP</a>
+      <a href="index.html?view=desktop">Desktop</a>
+      <a href="app.html?view=mobile">Mobile</a>
+      <a href="cards.html">Cards</a>
+      <a href="matrix.html">Matrix</a>
+      <a href="terminal.html">Terminal</a>
+      <a href="compare.html">Compare</a>
+      <a href="roadmap.html">Roadmap</a>
     </div>
+    <p class="credit">Brawlhalla and its legends belong to Blue Mammoth Games / Ubisoft. Not affiliated.</p>
   </div>
 
   <div class="dialog-wrap" id="dialogWrap">
-    <div class="box dialog" id="dialog" role="dialog" aria-modal="true" aria-label="Legend stats"></div>
+    <div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-label="Legend details"></div>
   </div>
 
   <script src="legends.js"></script>
@@ -164,86 +192,73 @@
     const { state } = Tracker;
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const cls = st => (st === 'v' ? 'v' : st === '!' ? 'bang' : 'x');
-    const ICON = { v: '★', '!': '!', x: '✗' };
-    const PALETTE = ['#ff004d', '#ffa300', '#ffec27', '#00e436', '#29adff', '#83769c', '#ff77a8', '#ffccaa', '#ab5236', '#008751', '#7e2553', '#c2c3c7'];
     let filter = 'ALL';
     let sel = 0;
     let visible = [];
     let sound = false;
     let dialogOpen = false;
 
-    // ---------- pixel sprites: an 8x8 mirrored pattern seeded by the legend's name ----------
-    const spriteCache = {};
-    function seeded(name) {
-      let h = 2166136261;
-      for (const ch of name) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
-      return () => { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
-    }
-    function sprite(name) {
-      if (name in spriteCache) return spriteCache[name];
-      let url = null;
+    // ---------- portraits ----------
+    // Legend art is not bundled. Put your own images in portraits/ (e.g. portraits/lord-vraxx.png) and
+    // list the file names in portraits/index.json, e.g. ["bodvar.png", "lord-vraxx.png"].
+    // Legends without a portrait get an emblem instead.
+    const slug = name => name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    let portraits = {};
+    async function loadPortraits() {
       try {
-        const c = document.createElement('canvas');
-        c.width = c.height = 10;
-        const ctx = c.getContext && c.getContext('2d');
-        if (ctx) {
-          const rnd = seeded(name);
-          const main = PALETTE[Math.floor(rnd() * PALETTE.length)];
-          let accent = PALETTE[Math.floor(rnd() * PALETTE.length)];
-          if (accent === main) accent = '#fff1e8';
-          for (let y = 0; y < 8; y++) {
-            for (let x = 0; x < 4; x++) {
-              const r = rnd();
-              if (r < 0.45) continue;
-              ctx.fillStyle = r < 0.85 ? main : accent;
-              ctx.fillRect(1 + x, 1 + y, 1, 1);
-              ctx.fillRect(8 - x, 1 + y, 1, 1);
-            }
-          }
-          // eyes, so every sprite reads as a little character
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(3, 3, 1, 1); ctx.fillRect(6, 3, 1, 1);
-          url = c.toDataURL();
-        }
-      } catch (err) { url = null; }
-      spriteCache[name] = url;
-      return url;
+        const res = await fetch('portraits/index.json', { cache: 'no-cache' });
+        if (!res.ok) return;
+        const files = await res.json();
+        if (!Array.isArray(files)) return;
+        files.filter(f => typeof f === 'string' && /^[a-z0-9-]+\.(png|jpe?g|webp|avif)$/i.test(f))
+          .forEach(f => { portraits[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
+      } catch (err) { /* no portraits folder */ }
     }
-    const spriteHtml = (name, klass) => {
-      const url = sprite(name);
-      return url ? `<img class="${klass}" src="${url}" alt="" />` : `<div class="mono">${esc(name.slice(0, 2).toUpperCase())}</div>`;
-    };
+    function hueOf(name) {
+      let h = 0;
+      for (const ch of name) h = (h * 31 + ch.codePointAt(0)) % 360;
+      return h;
+    }
+    function initials(name) {
+      const parts = name.normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[\s&]+/).filter(Boolean);
+      return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2)).toUpperCase();
+    }
+    function artHtml(name) {
+      const src = portraits[slug(name)];
+      return src
+        ? `<div class="art"><img src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.outerHTML=window.emblemHtml(${esc(JSON.stringify(name))})" /></div>`
+        : emblemHtml(name);
+    }
+    function emblemHtml(name) {
+      return `<div class="art"><div class="emblem" style="--hue:${hueOf(name)}"><b>${esc(initials(name))}</b></div></div>`;
+    }
+    window.emblemHtml = emblemHtml;
 
-    // ---------- 8-bit sound ----------
+    // ---------- sound (soft UI clicks, off by default) ----------
     let audio = null;
-    function blip(freq = 660, dur = 0.06, type = 'square') {
+    function click(freq = 520, dur = 0.05) {
       if (!sound) return;
       try {
         audio = audio || new (window.AudioContext || window.webkitAudioContext)();
         const o = audio.createOscillator(), g = audio.createGain();
-        o.type = type; o.frequency.value = freq;
-        g.gain.setValueAtTime(0.06, audio.currentTime);
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.05, audio.currentTime);
         g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + dur);
         o.connect(g); g.connect(audio.destination);
         o.start(); o.stop(audio.currentTime + dur);
       } catch (err) { /* no audio */ }
     }
-    function fanfare() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip(f, 0.12), i * 110)); }
-
-    function segbar(p, n, klass = '') {
-      const on = Math.round(p * n);
-      return `<span class="segbar ${klass}">${Array.from({ length: n }, (_, i) => `<i class="${i < on ? 'on' : ''}"></i>`).join('')}</span>`;
-    }
+    function chord() { [523, 659, 784].forEach((f, i) => setTimeout(() => click(f, 0.18), i * 90)); }
 
     // ---------- render ----------
     function renderHud() {
       const p = state.profile;
       const v = LEGENDS_DB.filter(l => Tracker.getLevel(l.name) >= l.vLvl).length;
-      $('pname').textContent = p ? p.name.toUpperCase() : '-- NO SAVE --';
+      $('pname').innerHTML = p ? `${esc(p.name)}<small>#${esc(p.id)}</small>` : 'No player loaded';
       $('pstats').innerHTML = `
-        <span>LV <b>${p && p.level ? p.level : '--'}</b></span>
-        <span>GAMES <b>${p ? (p.games || 0).toLocaleString() : '--'}</b></span>
-        <span>STANCES <b>${v}/70</b> ${segbar(v / 70, 14)}</span>`;
+        <span>Account level <b>${p && p.level ? p.level : '–'}</b></span>
+        <span>Games <b>${p ? (p.games || 0).toLocaleString() : '–'}</b></span>
+        <span>Target stances <b>${v} / 70</b><span class="meter"><i style="width:${(v / 70) * 100}%"></i></span></span>`;
     }
 
     function renderGrid() {
@@ -257,13 +272,15 @@
         const st = Tracker.statusOf(l, lvl);
         return `<div class="tile ${cls(st)}${i === sel ? ' sel' : ''}" role="option" aria-selected="${i === sel}" data-i="${i}" tabindex="${i === sel ? 0 : -1}"
                      aria-label="${esc(l.name)}, level ${lvl}">
-          <span class="num">${l.order}</span>${Goals.has(l.name) ? '<span class="pin">♥</span>' : ''}
-          ${spriteHtml(l.name, 'sprite')}
-          <div class="tname">${esc(l.name.toUpperCase())}</div>
-          <div class="tlv">LV${lvl}<span class="st ${cls(st)}">${ICON[st]}</span></div>
-          ${segbar(Tracker.progressToNext(l, lvl), 10, st === 'v' ? '' : st === '!' ? 'y small' : 'r small')}
+          ${artHtml(l.name)}
+          <div class="corner"><span class="num">#${l.order}</span>${Goals.has(l.name) ? '<span class="pin" title="Pinned goal">★</span>' : ''}</div>
+          <div class="info">
+            <div class="tname">${esc(l.name)}</div>
+            <div class="tmeta"><span>Lv ${lvl}</span><span class="badge ${cls(st)}">${st}</span></div>
+            <div class="bar ${cls(st)}"><i style="width:${Math.round(Tracker.progressToNext(l, lvl) * 100)}%"></i></div>
+          </div>
         </div>`;
-      }).join('') : '<div class="msg">NO LEGENDS HERE. TRY ANOTHER FILTER.</div>';
+      }).join('') : '<div class="msg">No legends in this group.</div>';
     }
 
     function render() { renderHud(); renderGrid(); if (dialogOpen) renderDialog(); }
@@ -273,9 +290,7 @@
       const next = Math.max(0, Math.min(visible.length - 1, sel + delta));
       if (next === sel) return;
       const tiles = $('grid').querySelectorAll('.tile');
-      tiles[sel] && tiles[sel].classList.remove('sel');
-      tiles[sel] && tiles[sel].setAttribute('aria-selected', 'false');
-      tiles[sel] && (tiles[sel].tabIndex = -1);
+      if (tiles[sel]) { tiles[sel].classList.remove('sel'); tiles[sel].setAttribute('aria-selected', 'false'); tiles[sel].tabIndex = -1; }
       sel = next;
       if (tiles[sel]) {
         tiles[sel].classList.add('sel');
@@ -284,7 +299,7 @@
         tiles[sel].focus({ preventScroll: true });
         tiles[sel].scrollIntoView && tiles[sel].scrollIntoView({ block: 'nearest' });
       }
-      blip(880, 0.03);
+      click(700, 0.03);
     }
     const columns = () => {
       const tiles = $('grid').querySelectorAll('.tile');
@@ -295,7 +310,7 @@
       return Math.max(1, n);
     };
 
-    // ---------- dialog ----------
+    // ---------- details ----------
     function renderDialog() {
       const l = visible[sel];
       if (!l) return closeDialog();
@@ -305,20 +320,20 @@
       const s = state.stats[l.name];
       const targets = l.target.replace(/[()]/g, '').split(/\s+or\s+/i).map(x => x.trim());
       $('dialog').innerHTML = `
-        <div>${spriteHtml(l.name, 'big')}</div>
-        <div>
-          <h2>${esc(l.name.toUpperCase())} <span class="st ${cls(st)}">${ICON[st]}</span></h2>
-          <div class="sub">${esc(l.title.toUpperCase())}</div>
-          <div class="typing">${next ? `${next.lvl - lvl} MORE LV TO UNLOCK ${esc(next.what.toUpperCase())}!` : 'TARGET STANCE UNLOCKED. WELL PLAYED!'}</div>
+        <div class="portrait">${artHtml(l.name)}</div>
+        <div class="body">
+          <h2 class="disp">${esc(l.name)} <span class="badge ${cls(st)}">${st}</span></h2>
+          <div class="sub">${esc(l.title)} · #${l.order} · level ${lvl}</div>
+          <div class="callout">${next ? `${next.lvl - lvl} more level${next.lvl - lvl === 1 ? '' : 's'} to unlock ${esc(next.what)} (${next.status}).` : 'Target stance unlocked.'}</div>
           <div class="stances">
-            ${[3, 4, 6, 8, 11, 13, 15, 17].map(sl => `<span class="${lvl >= sl ? 'on' : 'off'}${targets.includes(l.stances[sl]) ? ' tgt' : ''}">LV${String(sl).padStart(2, '0')} ${esc(l.stances[sl].toUpperCase())}</span>`).join('')}
+            ${[3, 4, 6, 8, 11, 13, 15, 17].map(sl => `<div class="${lvl >= sl ? 'on' : ''}${targets.includes(l.stances[sl]) ? ' tgt' : ''}"><span><b>${sl}</b>${esc(l.stances[sl])}</span><span>${lvl >= sl ? '✓' : '🔒'}</span></div>`).join('')}
           </div>
-          ${s ? `<div class="stats">GAMES ${(s.games || 0).toLocaleString()} · WINS ${s.games ? Math.round((s.wins / s.games) * 100) : 0}% · ${(s.weapons || []).filter(Boolean).join(' + ').toUpperCase()}</div>` : ''}
+          ${s ? `<div class="stats"><span>Games <b>${(s.games || 0).toLocaleString()}</b></span><span>Win rate <b>${s.games ? Math.round((s.wins / s.games) * 100) : 0}%</b></span><span>Time <b>${((s.time || 0) / 3600).toFixed(1)}h</b></span>${(s.weapons || []).filter(Boolean).length ? `<span>Weapons <b>${esc(s.weapons.filter(Boolean).join(' · '))}</b></span>` : ''}</div>` : ''}
           <div class="acts">
-            <button class="pbtn" data-act="down" aria-label="Level down">LV -</button>
-            <button class="pbtn" data-act="up" aria-label="Level up">LV +</button>
-            <button class="pbtn" data-act="pin" aria-pressed="${Goals.has(l.name)}">${Goals.has(l.name) ? '♥ PINNED' : '♡ PIN'}</button>
-            <button class="pbtn green" data-act="close">BACK</button>
+            <button class="btn" data-act="down" aria-label="Level down">Level −</button>
+            <button class="btn" data-act="up" aria-label="Level up">Level +</button>
+            <button class="btn" data-act="pin" aria-pressed="${Goals.has(l.name)}">${Goals.has(l.name) ? '★ Pinned' : '☆ Pin goal'}</button>
+            <button class="btn gold" data-act="close">Back</button>
           </div>
         </div>`;
     }
@@ -327,14 +342,14 @@
       dialogOpen = true;
       renderDialog();
       $('dialogWrap').classList.add('open');
-      blip(523, 0.08); setTimeout(() => blip(784, 0.08), 80);
-      const first = $('dialog').querySelector('[data-act="close"]');
-      first && first.focus && first.focus();
+      click(620, 0.07);
+      const back = $('dialog').querySelector('[data-act="close"]');
+      back && back.focus && back.focus();
     }
     function closeDialog() {
       dialogOpen = false;
       $('dialogWrap').classList.remove('open');
-      blip(392, 0.06);
+      click(420, 0.05);
       const tile = $('grid').querySelector('.tile.sel');
       tile && tile.focus && tile.focus({ preventScroll: true });
     }
@@ -342,19 +357,19 @@
     // ---------- sync ----------
     async function load() {
       const id = $('idInput').value.trim();
-      if (!/^\d+$/.test(id)) { $('msg').textContent = 'ENTER YOUR BRAWLHALLA ID (NUMBERS ONLY)'; blip(150, 0.2, 'sawtooth'); return; }
+      if (!/^\d+$/.test(id)) { $('msg').textContent = 'Brawlhalla ID must be a number.'; return; }
       Tracker.setId(id);
       $('syncBtn').disabled = true;
-      $('msg').textContent = 'LOADING SAVE DATA...';
+      $('msg').textContent = 'Loading…';
       const r = await Tracker.sync();
       $('syncBtn').disabled = false;
-      if (r.error) { $('msg').textContent = `ERROR: ${r.error.toUpperCase()}`; blip(150, 0.25, 'sawtooth'); return; }
-      $('msg').textContent = r.updated ? `SAVE LOADED! ${r.updated} LEGENDS READY.` : 'LOADED, BUT NO LEVELS CAME BACK. TRY AGAIN LATER.';
+      if (r.error) { $('msg').textContent = `Sync failed: ${r.error}`; return; }
+      $('msg').textContent = r.updated ? `Loaded ${r.updated} legends · ${new Date().toLocaleTimeString()}` : 'Loaded, but no levels came back (dair.gg may be down).';
       render();
       const targets = r.unlocks.filter(u => { const l = LEGENDS_DB.find(x => x.name === u.legend); return l && u.lvl === l.vLvl; });
       if (targets.length && targets.length <= 5) {
-        fanfare();
-        $('msg').textContent += ` NEW: ${targets.map(u => u.legend.toUpperCase()).join(', ')}!`;
+        chord();
+        $('msg').textContent += ` · New target stance: ${targets.map(u => u.legend).join(', ')}`;
       }
     }
 
@@ -372,11 +387,11 @@
       const l = visible[sel];
       if (b.dataset.act === 'close') return closeDialog();
       if (b.dataset.act === 'pin') {
-        if (!Goals.toggle(l.name)) { $('msg').textContent = `GOAL SLOTS FULL (${Goals.MAX})`; blip(150, 0.2, 'sawtooth'); return; }
-        blip(1047, 0.08);
+        if (!Goals.toggle(l.name)) { $('msg').textContent = `You can pin up to ${Goals.MAX} legends.`; return; }
+        click(880, 0.06);
       } else {
         Tracker.setLevel(l.name, Tracker.getLevel(l.name) + (b.dataset.act === 'up' ? 1 : -1));
-        blip(b.dataset.act === 'up' ? 988 : 330, 0.06);
+        click(b.dataset.act === 'up' ? 760 : 380, 0.05);
       }
       render();
     });
@@ -387,13 +402,13 @@
       filter = b.dataset.f;
       sel = 0;
       document.querySelectorAll('#filters [data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-      blip(740, 0.05);
+      click(600, 0.04);
       renderGrid();
     });
     document.addEventListener('keydown', e => {
       if (e.target === $('idInput')) { if (e.key === 'Enter') load(); return; }
       if (dialogOpen) {
-        if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); closeDialog(); }
+        if (e.key === 'Escape') { e.preventDefault(); closeDialog(); }
         return;
       }
       const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns(), ArrowDown: columns() };
@@ -404,19 +419,20 @@
     $('soundBtn').addEventListener('click', () => {
       sound = !sound;
       $('soundBtn').setAttribute('aria-pressed', String(sound));
-      $('soundBtn').textContent = sound ? '♪ ON' : '♪ OFF';
-      try { localStorage.setItem('bh_pixel_sound_v1', sound ? '1' : '0'); } catch (err) { /* ignore */ }
-      blip(660, 0.08);
+      $('soundBtn').textContent = sound ? 'Sound on' : 'Sound off';
+      try { localStorage.setItem('bh_select_sound_v1', sound ? '1' : '0'); } catch (err) { /* ignore */ }
+      click(660, 0.06);
     });
 
     // ---------- start ----------
-    try { sound = localStorage.getItem('bh_pixel_sound_v1') === '1'; } catch (err) { /* ignore */ }
+    try { sound = localStorage.getItem('bh_select_sound_v1') === '1'; } catch (err) { /* ignore */ }
     $('soundBtn').setAttribute('aria-pressed', String(sound));
-    $('soundBtn').textContent = sound ? '♪ ON' : '♪ OFF';
+    $('soundBtn').textContent = sound ? 'Sound on' : 'Sound off';
     const linkId = new URLSearchParams(location.search).get('id');
     $('idInput').value = linkId && /^\d+$/.test(linkId) ? linkId : state.id;
     render();
-    if (state.profile) $('msg').textContent = 'SAVE FOUND. PRESS LOAD TO REFRESH.';
+    loadPortraits().then(() => { if (Object.keys(portraits).length) render(); });
+    if (state.profile) $('msg').textContent = 'Saved data loaded. Press Load to refresh.';
     if (linkId && /^\d+$/.test(linkId)) { history.replaceState(null, '', location.pathname); load(); }
     else if (state.id && (!state.profile || Date.now() - state.profile.syncedAt > 10 * 60 * 1000)) load();
   </script>
