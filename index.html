@@ -484,6 +484,7 @@
     .champ-tile.has-art > :not(.tile-art) { position:relative; }
     .champ-tile.has-art .tile-name { text-shadow:0 1px 3px var(--bg-card), 0 0 8px var(--bg-card); }
     .champ-tile.has-art:hover .tile-art { transform:scale(1.05); filter:none; } /* real colors on hover */
+    .champ-tile.has-art.selected .tile-art { filter:none; } /* and on the selected legend */
     .spotlight-panel.has-art { overflow:hidden; }
     .spotlight-art { position:absolute; top:0; left:0; right:0; height:460px; pointer-events:none;
       -webkit-mask-image:linear-gradient(to bottom, #000 45%, transparent); mask-image:linear-gradient(to bottom, #000 45%, transparent); }
