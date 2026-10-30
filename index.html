@@ -634,6 +634,12 @@
     .next-item:hover, .next-item:focus-visible { border-color:var(--accent-cyan); outline:none; }
     .next-item .need { font-weight:800; color:var(--accent-cyan); white-space:nowrap; }
     .next-item .sub { font-size:0.72rem; color:var(--text-muted); }
+    .pin-btn { width:38px; height:38px; border-radius:10px; font-size:1.15rem; padding:0; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-muted); }
+    .pin-btn.on { color:#facc15; border-color:#facc15; }
+    .goal .unpin { background:none; border:none; color:var(--text-muted); font-size:1.1rem; padding:2px 6px; }
+    .goal .unpin:hover { color:var(--x-red); transform:none; }
+    .goal-empty { font-size:0.8rem; color:var(--text-muted); }
+    .tile-star { color:#facc15; margin-left:4px; }
     .sum-row { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:8px; background:var(--bg-card); border:1px solid var(--border-color); margin-bottom:6px; font-size:0.8rem; }
     .sum-row span { color:var(--text-muted); white-space:nowrap; }
     .sum-row b { text-align:right; }
@@ -778,6 +784,10 @@
 
     <div class="log-panel">
       <div class="next-box">
+        <div class="section-title">📌 Pinned goals</div>
+        <div id="goalsList"></div>
+      </div>
+      <div class="next-box">
         <div class="section-title">Your progress</div>
         <div class="sum-row"><span>Today</span><b id="sumToday">–</b></div>
         <div class="sum-row"><span>Last 7 days</span><b id="sumWeek">–</b></div>
@@ -802,6 +812,7 @@
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
+  <script src="goals.js"></script>
   <script src="summary.js"></script>
   <script>
     let playerLevels = JSON.parse(localStorage.getItem('bh_levels_v1') || '{}');
@@ -936,7 +947,11 @@
             <h2>${legend.name}</h2>
             <div class="sub-title">${legend.title} (Lvl 50 Title)</div>
           </div>
-          <div class="status-pill-lg ${getStatusClass(status)}">${status}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="pin-btn${Goals.has(legend.name) ? ' on' : ''}" data-pin="${esc(legend.name)}" aria-pressed="${Goals.has(legend.name)}"
+              title="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}">${Goals.has(legend.name) ? '★' : '☆'}</button>
+            <div class="status-pill-lg ${getStatusClass(status)}">${status}</div>
+          </div>
         </div>
 
         <div class="level-control">
@@ -1115,7 +1130,7 @@
           <div class="champ-tile ${getTileStatusClass(st)} ${l.order === selectedOrder ? 'selected' : ''}"
                data-order="${l.order}" tabindex="0" role="button" aria-label="${esc(l.name)}, level ${lvl}, status ${st}">
             <div class="tile-top">
-              <span class="tile-order">#${l.order}</span>
+              <span class="tile-order">#${l.order}${Goals.has(l.name) ? '<span class="tile-star" title="Pinned goal">★</span>' : ''}</span>
               <span class="tile-badge ${getStatusClass(st)}">${st}</span>
             </div>
             <div class="tile-name" title="${l.name}">${l.name}</div>
@@ -1152,6 +1167,32 @@
       renderNextList();
       renderPlayerCard();
       renderSummary();
+      renderGoals();
+    }
+
+    function renderGoals() {
+      const goals = Goals.list();
+      document.getElementById('goalsList').innerHTML = goals.length ? goals.map(name => {
+        const l = LEGENDS_DB.find(x => x.name === name);
+        const lvl = getLegendLevel(name);
+        const next = nextTarget(l, lvl);
+        const st = computeStatus(l, lvl);
+        return `
+          <div class="next-item goal" tabindex="0" role="button" data-order="${l.order}">
+            <div style="flex:1;min-width:0">
+              <strong>★ ${esc(name)}</strong>
+              <div class="sub">${next ? `Lv.${lvl} → ${next.lvl} · ${esc(next.what)} (${next.status})` : `Lv.${lvl} · target stance unlocked ✓`}</div>
+              <div class="bar tile-bar ${st === '!' ? 'bang' : st}"><span style="width:${Math.round(progressToNext(l, lvl) * 100)}%"></span></div>
+            </div>
+            ${next ? `<span class="need">${next.lvl - lvl}</span>` : ''}
+            <button class="unpin" data-unpin="${esc(name)}" aria-label="Unpin ${esc(name)}" title="Unpin">×</button>
+          </div>`;
+      }).join('') : `<div class="goal-empty">Pin a legend with ☆ in its details to track it here (up to ${Goals.MAX}).</div>`;
+    }
+
+    function togglePin(name) {
+      if (!Goals.toggle(name)) showToast('Goals full', `You can pin up to ${Goals.MAX} legends. Unpin one first.`);
+      renderAll();
     }
 
     function renderSummary() {
@@ -1206,13 +1247,23 @@
 
     // One click/keyboard handler for tiles, table rows and the "closest to unlock" list
     function handlePick(e) {
+      const unpin = e.target.closest('[data-unpin]');
+      if (unpin) {
+        if (e.type === 'click') { Goals.remove(unpin.dataset.unpin); renderAll(); }
+        return;
+      }
       const el = e.target.closest('[data-order]');
       if (!el) return;
       if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
       if (e.type === 'keydown') e.preventDefault();
       selectLegend(Number(el.dataset.order));
     }
-    ['champGrid', 'sheetBody', 'nextList'].forEach(id => {
+    document.getElementById('spotlightPanel').addEventListener('click', e => {
+      const pin = e.target.closest('[data-pin]');
+      if (pin) togglePin(pin.dataset.pin);
+    });
+    window.addEventListener('storage', e => { if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); } });
+    ['champGrid', 'sheetBody', 'nextList', 'goalsList'].forEach(id => {
       document.getElementById(id).addEventListener('click', handlePick);
       document.getElementById(id).addEventListener('keydown', handlePick);
     });

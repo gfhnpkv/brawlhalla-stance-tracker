@@ -140,6 +140,7 @@
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
+  <script src="goals.js"></script>
   <script src="summary.js"></script>
   <script>
     const $ = id => document.getElementById(id);
@@ -186,7 +187,7 @@
       const est = gamesEstimate(i.l.name, i.lvl, i.need);
       const pct = Math.min(100, Math.round(((i.lvl - 1) / Math.max(1, i.at - 1)) * 100));
       return `<div class="node" style="--c:${c}">
-        <div class="t">${esc(i.l.name)}<small>Lv ${i.lvl} → ${i.at}</small></div>
+        <div class="t">${Goals.has(i.l.name) ? '<span style="color:#facc15">★</span> ' : ''}${esc(i.l.name)}<small>Lv ${i.lvl} → ${i.at}</small></div>
         <div class="need">+${i.need}<small>level${i.need === 1 ? '' : 's'}</small></div>
         <div class="s">${i.kind === '⚔' ? '⚔️' : i.kind === 'v' ? 'Target' : 'Standard'}: ${esc(i.what)}${est ? ` · ≈ ${est.toLocaleString()} game${est === 1 ? '' : 's'} at your pace` : ''}</div>
         <div class="bar"><i style="width:${pct}%"></i></div>
@@ -214,6 +215,11 @@
       </div>`);
 
       const items = upcoming();
+      const pinned = items.filter(i => Goals.has(i.l.name));
+      if (pinned.length) {
+        parts.push(`<div class="tier" style="--c:#facc15"><b>📌 Your goals</b> · ${pinned.length}</div>`);
+        pinned.forEach(i => parts.push(nodeHtml(i, '#facc15')));
+      }
       TIERS.forEach((tier, ti) => {
         const min = ti === 0 ? 1 : TIERS[ti - 1].max + 1;
         const inTier = items.filter(i => i.need >= min && i.need <= tier.max);

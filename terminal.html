@@ -96,6 +96,7 @@
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
+  <script src="goals.js"></script>
   <script src="summary.js"></script>
   <script>
     const out = document.getElementById('out');
@@ -159,6 +160,9 @@
           ['show <legend>', 'stances and stats for one legend'],
           ['set <legend> <lvl>', 'change a level by hand'],
           ['find <text>', 'search names, stances and weapons'],
+          ['pin <legend>', 'pin a legend as a goal'],
+          ['unpin <legend>', 'remove a goal'],
+          ['goals', 'your pinned goals'],
           ['today', 'progress today and this week'],
           ['log [n]', 'recent improvements'],
           ['color green|amber|white', 'change the screen color'],
@@ -245,6 +249,34 @@
         });
         if (!rows.length) return line(`NOTHING MATCHES "${q}".`, 'warn');
         rows.forEach(legendRow);
+      },
+
+      pin(args) {
+        const { legend: l, error } = findLegend(args.join(' '));
+        if (error) return line(error, 'warn');
+        if (Goals.has(l.name)) return line(`${l.name.toUpperCase()} IS ALREADY PINNED.`, 'dim');
+        if (!Goals.toggle(l.name)) return line(`GOALS FULL (${Goals.MAX}). UNPIN ONE FIRST.`, 'warn');
+        line(`PINNED ${l.name.toUpperCase()}.`, 'hi');
+      },
+
+      unpin(args) {
+        const { legend: l, error } = findLegend(args.join(' '));
+        if (error) return line(error, 'warn');
+        if (!Goals.has(l.name)) return line(`${l.name.toUpperCase()} IS NOT PINNED.`, 'dim');
+        Goals.remove(l.name);
+        line(`UNPINNED ${l.name.toUpperCase()}.`, 'hi');
+      },
+
+      goals() {
+        const goals = Goals.list();
+        if (!goals.length) return line('NO GOALS. TYPE: pin <legend>', 'dim');
+        line(`GOALS ${goals.length}/${Goals.MAX}`, 'hi');
+        goals.forEach(name => {
+          const l = LEGENDS_DB.find(x => x.name === name);
+          const lvl = Tracker.getLevel(name);
+          const next = Tracker.nextTarget(l, lvl);
+          line(`  ${pad(name.toUpperCase(), 17)} ${padL(lvl, 3)}  ${bar(Tracker.progressToNext(l, lvl))}  ${next ? `+${next.lvl - lvl} TO ${next.what}` : 'TARGET DONE'}`, next ? '' : 'hi');
+        });
       },
 
       today() {

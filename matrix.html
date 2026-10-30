@@ -157,6 +157,7 @@
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
+  <script src="goals.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const { state } = Tracker;
@@ -194,7 +195,7 @@
           style="--c:${COLOR[type]}" title="Lv ${lv}: ${esc(stance)}${isTarget ? ' (target)' : ''} – ${lvl >= lv ? 'unlocked' : 'locked'}">${label}</span></span></td>`;
       }).join('');
       return `<tr data-order="${l.order}">
-        <td class="name" title="Open in desktop view"><div class="n">${esc(l.name)}<span class="badge ${statusCls(st)}">${st}</span></div>
+        <td class="name" title="Open in desktop view"><div class="n">${esc(l.name)}${Goals.has(l.name) ? ' <span style="color:#facc15" title="Pinned goal">★</span>' : ''}<span class="badge ${statusCls(st)}">${st}</span></div>
           <div class="m">${s ? `${(s.games || 0).toLocaleString()} games · ` : ''}target: ${esc(l.target)}</div></td>
         <td class="lvl">${lvl}</td>
         ${cells}

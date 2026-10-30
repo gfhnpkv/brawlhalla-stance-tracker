@@ -166,6 +166,9 @@
     .stance-list b { color: var(--gold); margin-right: 5px; font-variant-numeric: tabular-nums; }
     .back-stats { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted); margin: 8px 0 6px; }
     .back-stats b { display: block; color: var(--text); font-size: 0.82rem; }
+    .pin-chip { font-family: Inter, sans-serif; font-size: 0.62rem; font-weight: 800; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); cursor: pointer; color: var(--muted); }
+    .pin-chip.on { color: var(--gold); border-color: var(--gold); }
+    .num .pinned { color: var(--gold); margin-left: 4px; }
     .lvl-ctrl { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 6px; background: rgba(0,0,0,0.35); border-radius: 10px; padding: 4px; }
     .lvl-ctrl button { width: 34px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255,255,255,0.06); cursor: pointer; font-weight: 900; }
     .lvl-ctrl button:hover { border-color: var(--gold); }
@@ -243,6 +246,7 @@
       <button class="tab t-v" data-filter="v" aria-pressed="false">✦ Foil<b id="cV">0</b></button>
       <button class="tab t-bang" data-filter="!" aria-pressed="false">◆ Rare<b id="cBang">0</b></button>
       <button class="tab t-x" data-filter="x" aria-pressed="false">Locked<b id="cX">0</b></button>
+      <button class="tab" data-filter="PIN" aria-pressed="false">★ Pinned<b id="cPin">0</b></button>
     </div>
     <div class="tools">
       <input class="search" id="search" type="search" placeholder="Search legends, stances, weapons" autocomplete="off" />
@@ -272,6 +276,7 @@
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
+  <script src="goals.js"></script>
   <script src="summary.js"></script>
   <script>
     const $ = id => document.getElementById(id);
@@ -329,7 +334,7 @@
             <div class="face front">
               ${isNew ? '<div class="new-tag">NEW</div>' : ''}
               <div class="front-top">
-                <span class="num">#${String(l.order).padStart(2, '0')}</span>
+                <span class="num">#${String(l.order).padStart(2, '0')}${Goals.has(l.name) ? '<span class="pinned">★</span>' : ''}</span>
                 <span class="gem"><span><small>LV</small>${lvl}</span></span>
               </div>
               <div class="crest">${esc(monogram(l.name))}</div>
@@ -341,7 +346,7 @@
               </div>
             </div>
             <div class="face back">
-              <h3>${esc(l.name)} <small>Lv ${lvl}</small></h3>
+              <h3>${esc(l.name)} <button class="pin-chip${Goals.has(l.name) ? ' on' : ''}" data-pin aria-pressed="${Goals.has(l.name)}">${Goals.has(l.name) ? '★ Pinned' : '☆ Pin'}</button></h3>
               <ul class="stance-list">
                 ${STANCE_LEVELS.map(sl => `
                   <li class="${lvl >= sl ? 'on' : ''}${targets.includes(l.stances[sl]) ? ' target' : ''}">
@@ -368,6 +373,7 @@
       let v = 0, b = 0, x = 0;
       LEGENDS_DB.forEach(l => { const st = Tracker.statusOf(l, Tracker.getLevel(l.name)); st === 'v' ? v++ : st === '!' ? b++ : x++; });
       $('cV').textContent = v; $('cBang').textContent = b; $('cX').textContent = x; $('cAll').textContent = LEGENDS_DB.length;
+      $('cPin').textContent = Goals.list().length;
       $('meterNum').textContent = v;
       $('meterFill').style.strokeDashoffset = 326.7 * (1 - v / LEGENDS_DB.length);
       const stars = Math.floor((v / LEGENDS_DB.length) * 5);
@@ -392,7 +398,7 @@
       const need = l => { const lvl = Tracker.getLevel(l.name); const n = Tracker.nextTarget(l, lvl); return n ? l.vLvl - lvl : 999; };
       const list = LEGENDS_DB.filter(l => {
         const st = Tracker.statusOf(l, Tracker.getLevel(l.name));
-        if (filter !== 'ALL' && st !== filter) return false;
+        if (filter === 'PIN' ? !Goals.has(l.name) : filter !== 'ALL' && st !== filter) return false;
         if (!q) return true;
         const weapons = ((state.stats[l.name] && state.stats[l.name].weapons) || []).join(' ');
         return `${l.name} ${l.title} ${l.target} ${l.alt} ${weapons}`.toLowerCase().includes(q);
@@ -443,6 +449,12 @@
       const card = e.target.closest('.card');
       if (!card) return;
       const name = card.dataset.name;
+      if (e.target.closest('[data-pin]')) {
+        e.stopPropagation();
+        if (!Goals.toggle(name)) toast('Goals full', `You can pin up to ${Goals.MAX} legends.`);
+        render();
+        return;
+      }
       const step = e.target.closest('[data-step]');
       if (step) {
         e.stopPropagation();

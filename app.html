@@ -239,6 +239,9 @@
     .big-badge.v { background: var(--v-bg); color: var(--v); border: 2px solid var(--v); }
     .big-badge.bang { background: var(--bang-bg); color: var(--bang); border: 2px solid var(--bang); }
     .big-badge.x { background: var(--x-bg); color: var(--x); border: 2px solid var(--x); }
+    .pin { width: 48px; height: 48px; border-radius: 14px; font-size: 1.35rem; background: var(--bg); border: 2px solid var(--line); color: var(--muted); flex: none; }
+    .pin[aria-pressed="true"] { color: #facc15; border-color: #facc15; }
+    .star { color: #facc15; margin-left: 4px; }
     .stepper { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 8px; margin-bottom: 8px; }
     .stepper button { width: 48px; height: 48px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); font-size: 1.4rem; font-weight: 900; }
     .stepper input { width: 90px; text-align: center; font-size: 1.6rem; font-weight: 900; background: none; border: none; }
@@ -317,6 +320,10 @@
     </section>
 
     <section class="view" id="view-next" hidden>
+      <div id="pinWrap" hidden>
+        <div class="section-title">📌 Pinned goals</div>
+        <div class="list" id="pinList" style="margin-bottom:18px"></div>
+      </div>
       <div class="section-title">Closest to next unlock</div>
       <div class="list" id="nextList"></div>
     </section>
@@ -405,6 +412,7 @@
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
+  <script src="goals.js"></script>
   <script src="summary.js"></script>
   <script>
     // Mobile view of the tracker. Uses the same localStorage keys as index.html,
@@ -502,7 +510,7 @@
       return `
         <button class="row ${cls(st)}" data-order="${l.order}">
           <div class="row-main">
-            <div class="row-title"><span class="row-name">${esc(l.name)}</span><span class="row-order">#${l.order}</span></div>
+            <div class="row-title"><span class="row-name">${esc(l.name)}${Goals.has(l.name) ? '<span class="star">★</span>' : ''}</span><span class="row-order">#${l.order}</span></div>
             <div class="row-sub">${esc(sub)}</div>
             <div class="bar thin ${cls(st)}"><span style="width:${Math.round(progressToNext(l, lvl) * 100)}%"></span></div>
           </div>
@@ -536,7 +544,14 @@
       $('legendList').innerHTML = list.length ? list.map(rowHtml).join('') : `<div class="empty">No legends match.</div>`;
     }
 
+    function renderPins() {
+      const goals = Goals.list();
+      $('pinWrap').hidden = !goals.length;
+      $('pinList').innerHTML = goals.map(name => rowHtml(LEGENDS_DB.find(l => l.name === name))).join('');
+    }
+
     function renderNext() {
+      renderPins();
       const items = LEGENDS_DB.map(l => ({ l, lvl: getLevel(l.name) }))
         .map(o => ({ ...o, next: nextTarget(o.l, o.lvl) }))
         .filter(o => o.next)
@@ -622,7 +637,10 @@
             <h2>${esc(legend.name)}</h2>
             <div class="t">${esc(legend.title)}</div>
           </div>
-          <div class="big-badge ${cls(st)}">${st}</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="pin" data-pin aria-pressed="${Goals.has(legend.name)}" aria-label="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}">${Goals.has(legend.name) ? '★' : '☆'}</button>
+            <div class="big-badge ${cls(st)}">${st}</div>
+          </div>
         </div>
 
         <div class="stepper">
@@ -849,7 +867,8 @@
       const tab = e.target.closest('.tab');
       if (tab) showTab(tab.dataset.view);
     });
-    ['legendList', 'nextList'].forEach(id => $(id).addEventListener('click', e => {
+    window.addEventListener('storage', e => { if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); } });
+    ['legendList', 'nextList', 'pinList'].forEach(id => $(id).addEventListener('click', e => {
       const row = e.target.closest('[data-order]');
       if (row) openSheet(Number(row.dataset.order));
     }));
@@ -867,6 +886,10 @@
     $('scrim').addEventListener('click', closeSheet);
     $('sheet').addEventListener('click', e => {
       if (e.target.closest('[data-close]')) return closeSheet();
+      if (e.target.closest('[data-pin]') && openLegend) {
+        if (!Goals.toggle(openLegend.name)) toast('Goals full', `You can pin up to ${Goals.MAX} legends. Unpin one first.`);
+        return renderAll();
+      }
       const step = e.target.closest('[data-step]');
       if (step && openLegend) setLevel(openLegend.name, getLevel(openLegend.name) + Number(step.dataset.step));
     });
