@@ -695,6 +695,7 @@
         <option value="daylight">☀️ Daylight</option>
       </select>
       <button class="secondary" onclick="copyShareLink()" title="Copy a link that opens this tracker for your ID">🔗 Share</button>
+      <button class="secondary" onclick="shareImage()" title="Save a picture of your collection">📸 Image</button>
       <button class="secondary" id="liveBtn" onclick="toggleLive()" title="Auto-check every minute and notify on new unlocks">● Live</button>
       <button class="secondary" onclick="exportBackup()">Export JSON</button>
       <button class="secondary" onclick="document.getElementById('importFile').click()">Import JSON</button>
@@ -814,6 +815,7 @@
   <script src="core.js"></script>
   <script src="goals.js"></script>
   <script src="summary.js"></script>
+  <script src="shareimage.js"></script>
   <script>
     let playerLevels = JSON.parse(localStorage.getItem('bh_levels_v1') || '{}');
     let improvementsLog = JSON.parse(localStorage.getItem('bh_improvements_v1') || '[]');
@@ -1289,6 +1291,15 @@
       try { localStorage.setItem('bh_theme_v1', name); } catch (err) { /* storage unavailable */ }
     }
     document.getElementById('themeSelect').value = document.documentElement.getAttribute('data-theme') || 'midnight';
+
+    async function shareImage() {
+      try {
+        const r = await ShareImage.share();
+        if (r === 'downloaded') showToast('📸 Image saved', 'Check your downloads folder.');
+      } catch (err) {
+        showToast('Could not make the image', err.message || 'Try again.');
+      }
+    }
 
     function copyShareLink() {
       const bhId = document.getElementById('brawlhallaIdInput').value.trim();

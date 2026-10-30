@@ -383,6 +383,7 @@
         <h3>Share &amp; backup</h3>
         <p>A share link opens the tracker and syncs your ID. Backups move your levels and log to another device.</p>
         <button class="btn secondary" id="shareBtn">🔗 Copy share link</button>
+        <button class="btn secondary" id="imageBtn">📸 Share an image</button>
         <div class="btn-row" style="margin-top:8px">
           <button class="btn secondary" id="exportBtn">Export</button>
           <button class="btn secondary" id="importBtn">Import</button>
@@ -414,6 +415,7 @@
   <script src="core.js"></script>
   <script src="goals.js"></script>
   <script src="summary.js"></script>
+  <script src="shareimage.js"></script>
   <script>
     // Mobile view of the tracker. Uses the same localStorage keys as index.html,
     // so both pages show the same levels, stats and log.
@@ -926,6 +928,14 @@
       if (navigator.share) navigator.share({ title: 'My Brawlhalla stances', url }).catch(() => {});
       else if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(() => toast('🔗 Link copied', url));
       else prompt('Copy this link:', url);
+    });
+    $('imageBtn').addEventListener('click', async () => {
+      try {
+        const r = await ShareImage.share();
+        if (r === 'downloaded') toast('📸 Image saved', 'Check your downloads.');
+      } catch (err) {
+        toast('Could not make the image', err.message || 'Try again.');
+      }
     });
     $('exportBtn').addEventListener('click', () => {
       const blob = new Blob([JSON.stringify({ playerLevels, improvementsLog, savedBhId, legendStats, playerProfile }, null, 2)], { type: 'application/json' });

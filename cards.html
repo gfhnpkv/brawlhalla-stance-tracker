@@ -236,6 +236,7 @@
     <div class="actions">
       <input class="id-input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" autocomplete="off" aria-label="Brawlhalla ID" />
       <button class="pill-btn gold" id="syncBtn">Sync</button>
+      <button class="pill-btn" id="imageBtn" title="Save a picture of your collection">📸</button>
     </div>
   </header>
   <div class="status" id="status"></div>
@@ -279,6 +280,7 @@
   <script src="core.js"></script>
   <script src="goals.js"></script>
   <script src="summary.js"></script>
+  <script src="shareimage.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const { state } = Tracker;
@@ -509,6 +511,15 @@
     $('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(render, 120); });
     $('sort').addEventListener('change', render);
     $('syncBtn').addEventListener('click', doSync);
+    $('imageBtn').setAttribute('aria-label', 'Save a picture of your collection');
+    $('imageBtn').addEventListener('click', async () => {
+      try {
+        const r = await ShareImage.share();
+        if (r === 'downloaded') toast('📸 Image saved', 'Check your downloads.');
+      } catch (err) {
+        toast('Could not make the image', err.message || 'Try again.');
+      }
+    });
     $('idInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSync(); });
 
     // ---------- startup ----------
