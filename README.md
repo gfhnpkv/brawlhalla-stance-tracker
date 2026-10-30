@@ -35,4 +35,4 @@ When a level is missing, your manually entered level is kept. Set levels with + 
 Progress is saved in your browser (localStorage). Use Export/Import JSON for backups.
 
 ---
-Data from the official Brawlhalla API and the dair.gg community API. Not affiliated with Blue Mammoth Games or Ubisoft.
+Data from the official Brawlhalla API and the dair.gg community API. Legend art © Blue Mammoth Games, used with permission. Not affiliated with Blue Mammoth Games or Ubisoft.
