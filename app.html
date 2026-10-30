@@ -731,6 +731,7 @@
       $('syncBtn').classList.add('spinning');
       if (!quiet) $('statusLine').textContent = 'Syncing…';
 
+      const beforeLevels = { ...playerLevels };
       // core.js owns fetching and merging; hand it this page's current data and take the result back
       Tracker.setId(bhId);
       Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
@@ -747,7 +748,17 @@
         ? `✓ Synced ${r.updated} legends${r.missing ? ` (${r.missing} never played)` : ''} · ${new Date().toLocaleTimeString()}`
         : 'Synced, but no legend levels came back (dair.gg may be down). Set levels by hand.';
       renderAll();
-      return { unlocks: r.unlocks, games: playerProfile.games };
+      const goalAlerts = Goals.alerts(beforeLevels, playerLevels);
+      goalAlerts.forEach(a => {
+        const m = Goals.describe(a);
+        toast(m.title, m.body);
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try { new Notification(m.title, { body: m.body }); } catch (err) { /* ignore */ }
+        }
+      });
+      if (goalAlerts.length) chime();
+      const reached = new Set(goalAlerts.filter(a => a.type === 'reached').map(a => `${a.legend}:${a.lvl}`));
+      return { unlocks: r.unlocks.filter(u => !reached.has(`${u.legend}:${u.lvl}`)), games: playerProfile.games, goalAlerts };
     }
 
     // ---------- live mode ----------

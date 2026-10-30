@@ -1359,6 +1359,7 @@
       savedBhId = bhId;
       statusEl.textContent = 'Syncing player stats…';
 
+      const beforeLevels = { ...playerLevels };
       // core.js owns fetching and merging; hand it this page's current data and take the result back
       Tracker.setId(bhId);
       Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
@@ -1377,7 +1378,12 @@
       if (opts.live) statusEl.textContent += ` Last checked ${new Date().toLocaleTimeString()}.`;
 
       renderAll();
-      return { unlocks: r.unlocks, games: playerProfile.games };
+      const goalAlerts = Goals.alerts(beforeLevels, playerLevels);
+      goalAlerts.forEach(a => { const m = Goals.describe(a); notify(m.title, m.body); });
+      if (goalAlerts.length && opts.live) playChime();
+      // Unlocks already announced as a reached goal are left out of the regular alerts
+      const reached = new Set(goalAlerts.filter(a => a.type === 'reached').map(a => `${a.legend}:${a.lvl}`));
+      return { unlocks: r.unlocks.filter(u => !reached.has(`${u.legend}:${u.lvl}`)), games: playerProfile.games, goalAlerts };
     }
 
     // ---------- Live mode: activity detection + unlock notifications ----------

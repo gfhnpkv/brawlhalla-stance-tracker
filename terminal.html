@@ -175,10 +175,15 @@
       async sync(args) {
         const id = args[0] || state.id;
         if (!/^\d+$/.test(id || '')) return line('USAGE: sync <brawlhalla id>   (the number on your in-game profile)', 'warn');
+        const beforeLevels = state.profile && state.profile.id === id ? { ...state.levels } : {};
         Tracker.setId(id);
         line(`CONNECTING TO BRAWLHALLA NETWORK... #${id}`, 'dim');
         const r = await Tracker.sync();
         if (r.error) return line(`ERROR: ${r.error}`, 'bad');
+        Goals.alerts(beforeLevels, state.levels).forEach(a => {
+          const m = Goals.describe(a);
+          line(`  >>> ${m.title.toUpperCase()} ${m.body.toUpperCase()}`, 'hi');
+        });
         line(`OK. ${r.updated} LEGENDS SYNCED${r.missing ? `, ${r.missing} NEVER PLAYED` : ''}.`, 'hi');
         if (r.unlocks.length && r.unlocks.length <= 8) r.unlocks.forEach(u => line(`  *** ${u.legend.toUpperCase()} UNLOCKED ${u.what.toUpperCase()} (LV ${u.lvl}) ***`, 'warn'));
         COMMANDS.whoami();

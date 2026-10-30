@@ -34,6 +34,23 @@ const Goals = (() => {
       list = list.filter(n => n !== name);
       save();
     },
-    reload() { list = load(); }
+    reload() { list = load(); },
+    // Pinned goals that just got 1 level from their target stance, or reached it, between two
+    // level snapshots. Legends with no earlier level (first sync, new player) never alert.
+    alerts(before, after) {
+      return list.map(name => {
+        const l = LEGENDS_DB.find(x => x.name === name);
+        const b = before[name], a = after[name] || 1;
+        if (!l || b == null || a <= b) return null;
+        if (b < l.vLvl && a >= l.vLvl) return { type: 'reached', legend: name, what: l.target, lvl: l.vLvl };
+        if (l.vLvl - a === 1 && l.vLvl - b > 1) return { type: 'close', legend: name, what: l.target, lvl: l.vLvl };
+        return null;
+      }).filter(Boolean);
+    },
+    describe(alert) {
+      return alert.type === 'reached'
+        ? { title: `🎯 Goal reached: ${alert.legend}!`, body: `${alert.what} unlocked at level ${alert.lvl}.` }
+        : { title: `🎯 ${alert.legend} is 1 level away`, body: `One more level unlocks ${alert.what}.` };
+    }
   };
 })();
