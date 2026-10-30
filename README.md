@@ -13,6 +13,7 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **Terminal:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/terminal.html (retro arcade terminal, type `help`)
 - **Compare:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/compare.html?a=ID&b=ID (two players head to head)
 - **Roadmap:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/roadmap.html (battle-pass style: unlocked, now, next)
+- **Pixel:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/pixel.html (8-bit game menu, arrow keys + Enter)
 - **Locally:** `python3 server.py`, then open http://localhost:8000
 
 ## How data is fetched

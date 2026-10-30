@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pixel Legends</title>
+  <meta name="description" content="The Brawlhalla Stance Tracker as an 8-bit game menu." />
+  <meta name="theme-color" content="#1d2b53" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    /* PICO-8 palette */
+    :root {
+      --black: #000000; --navy: #1d2b53; --plum: #7e2553; --green: #008751; --brown: #ab5236; --gray: #5f574f;
+      --silver: #c2c3c7; --white: #fff1e8; --red: #ff004d; --orange: #ffa300; --yellow: #ffec27; --lime: #00e436;
+      --blue: #29adff; --lavender: #83769c; --pink: #ff77a8; --peach: #ffccaa;
+      /* readable variants for text (WCAG 4.5:1) */
+      --lav-text: #a99cc2; --dim-text: #9d968e; --btn-green: #006e42;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--navy); color: var(--white); min-height: 100vh;
+      font-family: 'Press Start 2P', ui-monospace, monospace; font-size: 10px; line-height: 1.6;
+      padding: 16px; image-rendering: pixelated;
+      background-image: radial-gradient(var(--black) 1px, transparent 1px); background-size: 6px 6px;
+    }
+    button, input, select { font: inherit; color: inherit; }
+    .wrap { max-width: 1060px; margin: 0 auto; }
+
+    /* chunky pixel box: stepped corners via clip-path */
+    .box {
+      position: relative; background: var(--black); border: 4px solid var(--white); padding: 12px;
+      clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+    }
+    .title { font-size: clamp(14px, 3.4vw, 22px); color: var(--yellow); text-shadow: 3px 3px 0 var(--plum); letter-spacing: 1px; margin-bottom: 10px; }
+    .hud { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; margin-bottom: 14px; }
+    .hud .p1 { color: var(--blue); }
+    .hud .row { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 6px; color: var(--silver); }
+    .hud .row b { color: var(--white); font-weight: normal; }
+    .segbar { display: inline-flex; gap: 2px; vertical-align: middle; }
+    .segbar i { width: 6px; height: 10px; background: var(--gray); }
+    .segbar i.on { background: var(--lime); }
+    .segbar.small i { width: 4px; height: 6px; }
+    .segbar.y i.on { background: var(--yellow); }
+    .segbar.r i.on { background: var(--red); }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
+    .pbtn {
+      background: var(--plum); color: var(--white); border: none; padding: 9px 12px; cursor: pointer;
+      box-shadow: inset -3px -3px 0 rgba(0,0,0,0.45), inset 3px 3px 0 rgba(255,255,255,0.25);
+    }
+    .pbtn:hover, .pbtn:focus-visible { background: var(--pink); color: var(--black); outline: none; }
+    .pbtn:active { box-shadow: inset 3px 3px 0 rgba(0,0,0,0.45); }
+    .pbtn.green { background: var(--btn-green); }
+    .pbtn[aria-pressed="true"] { background: var(--yellow); color: var(--black); }
+    .pinput { background: var(--navy); border: 3px solid var(--silver); color: var(--white); padding: 7px 9px; width: 168px; outline: none; }
+    .pinput:focus { border-color: var(--yellow); }
+    .msg { min-height: 1.6em; color: var(--peach); margin: 8px 2px; }
+    .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .hint { color: var(--lav-text); margin-left: auto; align-self: center; }
+
+    /* select grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+    .tile {
+      background: var(--black); border: 3px solid var(--gray); padding: 8px 6px 7px; cursor: pointer; text-align: center; position: relative;
+      outline: none;
+    }
+    .tile.v { border-color: var(--lime); }
+    .tile.bang { border-color: var(--orange); }
+    .tile.x { border-color: var(--gray); }
+    .tile.x .sprite { filter: grayscale(1) brightness(0.55); }
+    .tile.sel { border-color: var(--yellow); background: #2a1a3a; transform: translateY(-2px); box-shadow: 0 4px 0 var(--yellow); }
+    .tile.sel::before { content: '▶'; position: absolute; left: -2px; top: 4px; color: var(--yellow); animation: blink 0.8s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .sprite { width: 56px; height: 56px; margin: 2px auto 6px; display: block; image-rendering: pixelated; }
+    .mono { width: 56px; height: 56px; margin: 2px auto 6px; display: grid; place-items: center; background: var(--plum); font-size: 16px; }
+    .tname { font-size: 8px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tlv { font-size: 8px; color: var(--silver); margin: 4px 0 3px; }
+    .tlv .st { margin-left: 6px; }
+    .st.v { color: var(--lime); } .st.bang { color: var(--orange); } .st.x { color: var(--red); }
+    .pin { position: absolute; right: 4px; top: 3px; color: var(--yellow); font-size: 9px; }
+    .num { position: absolute; left: 6px; top: 4px; color: var(--lavender); font-size: 7px; }
+
+    /* RPG dialog */
+    .dialog-wrap { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px; z-index: 20; display: none; }
+    .dialog-wrap.open { display: block; }
+    .dialog { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 120px 1fr; gap: 14px; }
+    .dialog .big { width: 104px; height: 104px; image-rendering: pixelated; }
+    .dialog h2 { font-size: 13px; color: var(--yellow); font-weight: normal; margin-bottom: 6px; }
+    .dialog .sub { color: var(--lavender); margin-bottom: 8px; font-size: 8px; }
+    .dialog .stances { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 16px; font-size: 8px; margin: 8px 0; }
+    .dialog .stances span.on { color: var(--lime); }
+    .dialog .stances span.off { color: var(--dim-text); }
+    .dialog .stances span.tgt::after { content: ' ★'; color: var(--yellow); }
+    .dialog .acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .dialog .stats { color: var(--silver); font-size: 8px; }
+    .typing::after { content: '▼'; color: var(--yellow); margin-left: 6px; animation: blink 0.8s steps(1) infinite; }
+    .footer { margin: 22px 0 140px; display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: center; font-size: 8px; color: var(--lav-text); }
+    .footer a { color: var(--blue); text-decoration: none; }
+    .footer a:hover { color: var(--yellow); }
+
+    @media (max-width: 640px) {
+      body { padding: 10px; font-size: 9px; }
+      .hud { grid-template-columns: 1fr; }
+      .controls { justify-content: flex-start; }
+      .pinput { flex: 1; width: auto; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+      .sprite, .mono { width: 44px; height: 44px; }
+      .hint { display: none; }
+      .dialog { grid-template-columns: 1fr; }
+      .dialog .big { width: 72px; height: 72px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .tile.sel::before, .typing::after { animation: none; } .tile.sel { transform: none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hud box">
+      <div>
+        <div class="title">PIXEL LEGENDS</div>
+        <div><span class="p1">PLAYER 1</span> <span id="pname">-- NO SAVE --</span></div>
+        <div class="row" id="pstats"></div>
+      </div>
+      <div class="controls">
+        <input class="pinput" id="idInput" inputmode="numeric" placeholder="BRAWLHALLA ID" autocomplete="off" aria-label="Brawlhalla ID" />
+        <button class="pbtn green" id="syncBtn">LOAD</button>
+        <button class="pbtn" id="soundBtn" aria-pressed="false" aria-label="Sound effects">♪ OFF</button>
+      </div>
+    </div>
+    <div class="msg" id="msg">PRESS LOAD TO CONTINUE</div>
+
+    <div class="filters" id="filters">
+      <button class="pbtn" data-f="ALL" aria-pressed="true">ALL</button>
+      <button class="pbtn" data-f="v" aria-pressed="false">★ TARGET</button>
+      <button class="pbtn" data-f="!" aria-pressed="false">! STANDARD</button>
+      <button class="pbtn" data-f="x" aria-pressed="false">✗ LOCKED</button>
+      <button class="pbtn" data-f="PIN" aria-pressed="false">♥ PINNED</button>
+      <span class="hint">ARROWS MOVE · ENTER SELECT · ESC BACK</span>
+    </div>
+    <div class="grid" id="grid" role="listbox" aria-label="Legends"></div>
+
+    <div class="footer">
+      <a href="index.html?view=desktop">DESKTOP</a>
+      <a href="app.html?view=mobile">MOBILE</a>
+      <a href="cards.html">CARDS</a>
+      <a href="matrix.html">MATRIX</a>
+      <a href="terminal.html">TERMINAL</a>
+      <a href="compare.html">COMPARE</a>
+      <a href="roadmap.html">ROADMAP</a>
+    </div>
+  </div>
+
+  <div class="dialog-wrap" id="dialogWrap">
+    <div class="box dialog" id="dialog" role="dialog" aria-modal="true" aria-label="Legend stats"></div>
+  </div>
+
+  <script src="legends.js"></script>
+  <script src="core.js"></script>
+  <script src="goals.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const { state } = Tracker;
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const cls = st => (st === 'v' ? 'v' : st === '!' ? 'bang' : 'x');
+    const ICON = { v: '★', '!': '!', x: '✗' };
+    const PALETTE = ['#ff004d', '#ffa300', '#ffec27', '#00e436', '#29adff', '#83769c', '#ff77a8', '#ffccaa', '#ab5236', '#008751', '#7e2553', '#c2c3c7'];
+    let filter = 'ALL';
+    let sel = 0;
+    let visible = [];
+    let sound = false;
+    let dialogOpen = false;
+
+    // ---------- pixel sprites: an 8x8 mirrored pattern seeded by the legend's name ----------
+    const spriteCache = {};
+    function seeded(name) {
+      let h = 2166136261;
+      for (const ch of name) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
+      return () => { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+    }
+    function sprite(name) {
+      if (name in spriteCache) return spriteCache[name];
+      let url = null;
+      try {
+        const c = document.createElement('canvas');
+        c.width = c.height = 10;
+        const ctx = c.getContext && c.getContext('2d');
+        if (ctx) {
+          const rnd = seeded(name);
+          const main = PALETTE[Math.floor(rnd() * PALETTE.length)];
+          let accent = PALETTE[Math.floor(rnd() * PALETTE.length)];
+          if (accent === main) accent = '#fff1e8';
+          for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 4; x++) {
+              const r = rnd();
+              if (r < 0.45) continue;
+              ctx.fillStyle = r < 0.85 ? main : accent;
+              ctx.fillRect(1 + x, 1 + y, 1, 1);
+              ctx.fillRect(8 - x, 1 + y, 1, 1);
+            }
+          }
+          // eyes, so every sprite reads as a little character
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(3, 3, 1, 1); ctx.fillRect(6, 3, 1, 1);
+          url = c.toDataURL();
+        }
+      } catch (err) { url = null; }
+      spriteCache[name] = url;
+      return url;
+    }
+    const spriteHtml = (name, klass) => {
+      const url = sprite(name);
+      return url ? `<img class="${klass}" src="${url}" alt="" />` : `<div class="mono">${esc(name.slice(0, 2).toUpperCase())}</div>`;
+    };
+
+    // ---------- 8-bit sound ----------
+    let audio = null;
+    function blip(freq = 660, dur = 0.06, type = 'square') {
+      if (!sound) return;
+      try {
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.06, audio.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + dur);
+        o.connect(g); g.connect(audio.destination);
+        o.start(); o.stop(audio.currentTime + dur);
+      } catch (err) { /* no audio */ }
+    }
+    function fanfare() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => blip(f, 0.12), i * 110)); }
+
+    function segbar(p, n, klass = '') {
+      const on = Math.round(p * n);
+      return `<span class="segbar ${klass}">${Array.from({ length: n }, (_, i) => `<i class="${i < on ? 'on' : ''}"></i>`).join('')}</span>`;
+    }
+
+    // ---------- render ----------
+    function renderHud() {
+      const p = state.profile;
+      const v = LEGENDS_DB.filter(l => Tracker.getLevel(l.name) >= l.vLvl).length;
+      $('pname').textContent = p ? p.name.toUpperCase() : '-- NO SAVE --';
+      $('pstats').innerHTML = `
+        <span>LV <b>${p && p.level ? p.level : '--'}</b></span>
+        <span>GAMES <b>${p ? (p.games || 0).toLocaleString() : '--'}</b></span>
+        <span>STANCES <b>${v}/70</b> ${segbar(v / 70, 14)}</span>`;
+    }
+
+    function renderGrid() {
+      visible = LEGENDS_DB.filter(l => {
+        const st = Tracker.statusOf(l, Tracker.getLevel(l.name));
+        return filter === 'ALL' || (filter === 'PIN' ? Goals.has(l.name) : st === filter);
+      });
+      sel = Math.min(sel, Math.max(0, visible.length - 1));
+      $('grid').innerHTML = visible.length ? visible.map((l, i) => {
+        const lvl = Tracker.getLevel(l.name);
+        const st = Tracker.statusOf(l, lvl);
+        return `<div class="tile ${cls(st)}${i === sel ? ' sel' : ''}" role="option" aria-selected="${i === sel}" data-i="${i}" tabindex="${i === sel ? 0 : -1}"
+                     aria-label="${esc(l.name)}, level ${lvl}">
+          <span class="num">${l.order}</span>${Goals.has(l.name) ? '<span class="pin">♥</span>' : ''}
+          ${spriteHtml(l.name, 'sprite')}
+          <div class="tname">${esc(l.name.toUpperCase())}</div>
+          <div class="tlv">LV${lvl}<span class="st ${cls(st)}">${ICON[st]}</span></div>
+          ${segbar(Tracker.progressToNext(l, lvl), 10, st === 'v' ? '' : st === '!' ? 'y small' : 'r small')}
+        </div>`;
+      }).join('') : '<div class="msg">NO LEGENDS HERE. TRY ANOTHER FILTER.</div>';
+    }
+
+    function render() { renderHud(); renderGrid(); if (dialogOpen) renderDialog(); }
+
+    function moveSel(delta) {
+      if (!visible.length) return;
+      const next = Math.max(0, Math.min(visible.length - 1, sel + delta));
+      if (next === sel) return;
+      const tiles = $('grid').querySelectorAll('.tile');
+      tiles[sel] && tiles[sel].classList.remove('sel');
+      tiles[sel] && tiles[sel].setAttribute('aria-selected', 'false');
+      tiles[sel] && (tiles[sel].tabIndex = -1);
+      sel = next;
+      if (tiles[sel]) {
+        tiles[sel].classList.add('sel');
+        tiles[sel].setAttribute('aria-selected', 'true');
+        tiles[sel].tabIndex = 0;
+        tiles[sel].focus({ preventScroll: true });
+        tiles[sel].scrollIntoView && tiles[sel].scrollIntoView({ block: 'nearest' });
+      }
+      blip(880, 0.03);
+    }
+    const columns = () => {
+      const tiles = $('grid').querySelectorAll('.tile');
+      if (tiles.length < 2 || !tiles[0].getBoundingClientRect) return 1;
+      const top = tiles[0].getBoundingClientRect().top;
+      let n = 0;
+      for (const t of tiles) { if (t.getBoundingClientRect().top !== top) break; n++; }
+      return Math.max(1, n);
+    };
+
+    // ---------- dialog ----------
+    function renderDialog() {
+      const l = visible[sel];
+      if (!l) return closeDialog();
+      const lvl = Tracker.getLevel(l.name);
+      const st = Tracker.statusOf(l, lvl);
+      const next = Tracker.nextTarget(l, lvl);
+      const s = state.stats[l.name];
+      const targets = l.target.replace(/[()]/g, '').split(/\s+or\s+/i).map(x => x.trim());
+      $('dialog').innerHTML = `
+        <div>${spriteHtml(l.name, 'big')}</div>
+        <div>
+          <h2>${esc(l.name.toUpperCase())} <span class="st ${cls(st)}">${ICON[st]}</span></h2>
+          <div class="sub">${esc(l.title.toUpperCase())}</div>
+          <div class="typing">${next ? `${next.lvl - lvl} MORE LV TO UNLOCK ${esc(next.what.toUpperCase())}!` : 'TARGET STANCE UNLOCKED. WELL PLAYED!'}</div>
+          <div class="stances">
+            ${[3, 4, 6, 8, 11, 13, 15, 17].map(sl => `<span class="${lvl >= sl ? 'on' : 'off'}${targets.includes(l.stances[sl]) ? ' tgt' : ''}">LV${String(sl).padStart(2, '0')} ${esc(l.stances[sl].toUpperCase())}</span>`).join('')}
+          </div>
+          ${s ? `<div class="stats">GAMES ${(s.games || 0).toLocaleString()} · WINS ${s.games ? Math.round((s.wins / s.games) * 100) : 0}% · ${(s.weapons || []).filter(Boolean).join(' + ').toUpperCase()}</div>` : ''}
+          <div class="acts">
+            <button class="pbtn" data-act="down" aria-label="Level down">LV -</button>
+            <button class="pbtn" data-act="up" aria-label="Level up">LV +</button>
+            <button class="pbtn" data-act="pin" aria-pressed="${Goals.has(l.name)}">${Goals.has(l.name) ? '♥ PINNED' : '♡ PIN'}</button>
+            <button class="pbtn green" data-act="close">BACK</button>
+          </div>
+        </div>`;
+    }
+    function openDialog() {
+      if (!visible[sel]) return;
+      dialogOpen = true;
+      renderDialog();
+      $('dialogWrap').classList.add('open');
+      blip(523, 0.08); setTimeout(() => blip(784, 0.08), 80);
+      const first = $('dialog').querySelector('[data-act="close"]');
+      first && first.focus && first.focus();
+    }
+    function closeDialog() {
+      dialogOpen = false;
+      $('dialogWrap').classList.remove('open');
+      blip(392, 0.06);
+      const tile = $('grid').querySelector('.tile.sel');
+      tile && tile.focus && tile.focus({ preventScroll: true });
+    }
+
+    // ---------- sync ----------
+    async function load() {
+      const id = $('idInput').value.trim();
+      if (!/^\d+$/.test(id)) { $('msg').textContent = 'ENTER YOUR BRAWLHALLA ID (NUMBERS ONLY)'; blip(150, 0.2, 'sawtooth'); return; }
+      Tracker.setId(id);
+      $('syncBtn').disabled = true;
+      $('msg').textContent = 'LOADING SAVE DATA...';
+      const r = await Tracker.sync();
+      $('syncBtn').disabled = false;
+      if (r.error) { $('msg').textContent = `ERROR: ${r.error.toUpperCase()}`; blip(150, 0.25, 'sawtooth'); return; }
+      $('msg').textContent = r.updated ? `SAVE LOADED! ${r.updated} LEGENDS READY.` : 'LOADED, BUT NO LEVELS CAME BACK. TRY AGAIN LATER.';
+      render();
+      const targets = r.unlocks.filter(u => { const l = LEGENDS_DB.find(x => x.name === u.legend); return l && u.lvl === l.vLvl; });
+      if (targets.length && targets.length <= 5) {
+        fanfare();
+        $('msg').textContent += ` NEW: ${targets.map(u => u.legend.toUpperCase()).join(', ')}!`;
+      }
+    }
+
+    // ---------- events ----------
+    $('grid').addEventListener('click', e => {
+      const t = e.target.closest('.tile');
+      if (!t) return;
+      const i = Number(t.dataset.i);
+      if (i !== sel) moveSel(i - sel);
+      openDialog();
+    });
+    $('dialog').addEventListener('click', e => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const l = visible[sel];
+      if (b.dataset.act === 'close') return closeDialog();
+      if (b.dataset.act === 'pin') {
+        if (!Goals.toggle(l.name)) { $('msg').textContent = `GOAL SLOTS FULL (${Goals.MAX})`; blip(150, 0.2, 'sawtooth'); return; }
+        blip(1047, 0.08);
+      } else {
+        Tracker.setLevel(l.name, Tracker.getLevel(l.name) + (b.dataset.act === 'up' ? 1 : -1));
+        blip(b.dataset.act === 'up' ? 988 : 330, 0.06);
+      }
+      render();
+    });
+    $('dialogWrap').addEventListener('click', e => { if (e.target === $('dialogWrap')) closeDialog(); });
+    $('filters').addEventListener('click', e => {
+      const b = e.target.closest('[data-f]');
+      if (!b) return;
+      filter = b.dataset.f;
+      sel = 0;
+      document.querySelectorAll('#filters [data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      blip(740, 0.05);
+      renderGrid();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.target === $('idInput')) { if (e.key === 'Enter') load(); return; }
+      if (dialogOpen) {
+        if (e.key === 'Escape' || e.key === 'Backspace') { e.preventDefault(); closeDialog(); }
+        return;
+      }
+      const moves = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns(), ArrowDown: columns() };
+      if (e.key in moves) { e.preventDefault(); moveSel(moves[e.key]); }
+      else if (e.key === 'Enter' || e.key === ' ') { if (e.target.closest && e.target.closest('.grid')) { e.preventDefault(); openDialog(); } }
+    });
+    $('syncBtn').addEventListener('click', load);
+    $('soundBtn').addEventListener('click', () => {
+      sound = !sound;
+      $('soundBtn').setAttribute('aria-pressed', String(sound));
+      $('soundBtn').textContent = sound ? '♪ ON' : '♪ OFF';
+      try { localStorage.setItem('bh_pixel_sound_v1', sound ? '1' : '0'); } catch (err) { /* ignore */ }
+      blip(660, 0.08);
+    });
+
+    // ---------- start ----------
+    try { sound = localStorage.getItem('bh_pixel_sound_v1') === '1'; } catch (err) { /* ignore */ }
+    $('soundBtn').setAttribute('aria-pressed', String(sound));
+    $('soundBtn').textContent = sound ? '♪ ON' : '♪ OFF';
+    const linkId = new URLSearchParams(location.search).get('id');
+    $('idInput').value = linkId && /^\d+$/.test(linkId) ? linkId : state.id;
+    render();
+    if (state.profile) $('msg').textContent = 'SAVE FOUND. PRESS LOAD TO REFRESH.';
+    if (linkId && /^\d+$/.test(linkId)) { history.replaceState(null, '', location.pathname); load(); }
+    else if (state.id && (!state.profile || Date.now() - state.profile.syncedAt > 10 * 60 * 1000)) load();
+  </script>
+  <script>
+    // Offline support (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
