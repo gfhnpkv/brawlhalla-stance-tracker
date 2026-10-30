@@ -85,3 +85,25 @@ const BRAWLHALLA_ID_MAP = {
   59: "Arcadia", 60: "Ezio", 61: "Seven", 62: "Thea", 63: "Tezca", 64: "Vivi", 65: "Imugi", 66: "King Zuva",
   67: "Priya", 68: "Ransom", 69: "Lady Vera", 70: "Rupture", 71: "Aurus", 72: "Qinghua & Baobao"
 };
+
+// Each legend's two weapon types (from the official API's /v1/static/legends)
+const LEGEND_WEAPONS = {
+  "Bödvar": ["Hammer", "Sword"], "Cassidy": ["Pistol", "Hammer"], "Orion": ["RocketLance", "Spear"], "Lord Vraxx": ["RocketLance", "Pistol"],
+  "Gnash": ["Hammer", "Spear"], "Queen Nai": ["Spear", "Katar"], "Hattori": ["Sword", "Spear"], "Sir Roland": ["RocketLance", "Sword"],
+  "Scarlet": ["Hammer", "RocketLance"], "Thatch": ["Sword", "Pistol"], "Ada": ["Pistol", "Spear"], "Sentinel": ["Hammer", "Katar"],
+  "Lucien": ["Katar", "Pistol"], "Teros": ["Axe", "Hammer"], "Brynn": ["Axe", "Spear"], "Asuri": ["Katar", "Sword"],
+  "Barraza": ["Axe", "Pistol"], "Ember": ["Bow", "Katar"], "Azoth": ["Bow", "Axe"], "Koji": ["Bow", "Sword"],
+  "Ulgrim": ["Axe", "RocketLance"], "Diana": ["Bow", "Pistol"], "Jhala": ["Axe", "Sword"], "Kor": ["Fists", "Hammer"],
+  "Wu Shang": ["Fists", "Spear"], "Val": ["Fists", "Sword"], "Ragnir": ["Katar", "Axe"], "Cross": ["Pistol", "Fists"],
+  "Mirage": ["Scythe", "Spear"], "Nix": ["Scythe", "Pistol"], "Mordex": ["Scythe", "Fists"], "Yumiko": ["Bow", "Hammer"],
+  "Artemis": ["RocketLance", "Scythe"], "Caspian": ["Fists", "Katar"], "Sidra": ["Cannon", "Sword"], "Xull": ["Cannon", "Axe"],
+  "Kaya": ["Spear", "Bow"], "Isaiah": ["Cannon", "Pistol"], "Jiro": ["Sword", "Scythe"], "Lin Fei": ["Katar", "Cannon"],
+  "Zariel": ["Fists", "Bow"], "Rayman": ["Fists", "Axe"], "Dusk": ["Spear", "Orb"], "Fait": ["Scythe", "Orb"],
+  "Thor": ["Hammer", "Orb"], "Petra": ["Fists", "Orb"], "Vector": ["RocketLance", "Bow"], "Volkov": ["Axe", "Scythe"],
+  "Onyx": ["Fists", "Cannon"], "Jaeyun": ["Sword", "Greatsword"], "Mako": ["Katar", "Greatsword"], "Magyar": ["Hammer", "Greatsword"],
+  "Reno": ["Pistol", "Orb"], "Munin": ["Bow", "Scythe"], "Arcadia": ["Spear", "Greatsword"], "Ezio": ["Sword", "Orb"],
+  "Tezca": ["Boots", "Fists"], "Thea": ["Boots", "RocketLance"], "Red Raptor": ["Boots", "Orb"], "Loki": ["Katar", "Scythe"],
+  "Seven": ["Spear", "Cannon"], "Vivi": ["Boots", "Pistol"], "Imugi": ["Axe", "Greatsword"], "King Zuva": ["Hammer", "Boots"],
+  "Priya": ["Chakram", "Sword"], "Ransom": ["Chakram", "Bow"], "Lady Vera": ["Chakram", "Scythe"], "Rupture": ["Katar", "RocketLance"],
+  "Aurus": ["Chakram", "Spear"], "Qinghua & Baobao": ["Orb", "Cannon"]
+};

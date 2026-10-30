@@ -81,12 +81,7 @@
       width: 100%; height: 100%; display: grid; place-items: center;
       background: radial-gradient(circle at 50% 38%, hsl(var(--hue) 45% 34%), hsl(var(--hue) 40% 12%) 72%);
     }
-    .emblem b {
-      width: 62%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; margin-top: -10%;
-      border: 2px solid rgba(255,255,255,0.28); box-shadow: inset 0 0 0 6px rgba(0,0,0,0.25);
-      font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 800; font-size: 2rem; letter-spacing: 0.04em; color: rgba(255,255,255,0.92);
-      background: rgba(0,0,0,0.18);
-    }
+    .emblem .crest { width: 62%; height: auto; margin-top: -22%; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.55)); }
     .info { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 10px 9px; z-index: 1; }
     .tname { font-family: 'Barlow Condensed', Inter, sans-serif; font-weight: 700; font-size: 1.08rem; text-transform: uppercase; letter-spacing: 0.04em;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
@@ -111,7 +106,7 @@
     }
     .dialog .portrait { position: relative; min-height: 320px; border-radius: 16px 0 0 16px; overflow: hidden; }
     .dialog .portrait .art { position: absolute; inset: 0; }
-    .dialog .portrait .emblem b { font-size: 3.2rem; }
+    .dialog .portrait .emblem .crest { width: 58%; margin-top: 0; }
     .dialog .body { padding: 20px 22px; }
     .dialog h2 { font-size: 2rem; font-weight: 800; line-height: 1; display: flex; gap: 10px; align-items: center; }
     .dialog .sub { color: var(--muted); margin: 4px 0 14px; }
@@ -187,6 +182,7 @@
   <script src="legends.js"></script>
   <script src="core.js"></script>
   <script src="goals.js"></script>
+  <script src="crest.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const { state } = Tracker;
@@ -201,7 +197,7 @@
     // ---------- portraits ----------
     // Legend art is not bundled. Put your own images in portraits/ (e.g. portraits/lord-vraxx.png) and
     // list the file names in portraits/index.json, e.g. ["bodvar.png", "lord-vraxx.png"].
-    // Legends without a portrait get an emblem instead.
+    // Legends without a portrait get an original crest (crest.js) instead.
     const slug = name => name.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     let portraits = {};
     async function loadPortraits() {
@@ -219,18 +215,16 @@
       for (const ch of name) h = (h * 31 + ch.codePointAt(0)) % 360;
       return h;
     }
-    function initials(name) {
-      const parts = name.normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[\s&]+/).filter(Boolean);
-      return (parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2)).toUpperCase();
-    }
-    function artHtml(name) {
+    // big: the details panel, which shows the crest's initials banner; tiles already show the name
+    function artHtml(name, big = false) {
       const src = portraits[slug(name)];
       return src
-        ? `<div class="art"><img src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.outerHTML=window.emblemHtml(${esc(JSON.stringify(name))})" /></div>`
-        : emblemHtml(name);
+        ? `<div class="art"><img src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.outerHTML=window.emblemHtml(${esc(JSON.stringify(name))}, ${big})" /></div>`
+        : emblemHtml(name, big);
     }
-    function emblemHtml(name) {
-      return `<div class="art"><div class="emblem" style="--hue:${hueOf(name)}"><b>${esc(initials(name))}</b></div></div>`;
+    function emblemHtml(name, big = false) {
+      const l = LEGENDS_DB.find(x => x.name === name);
+      return `<div class="art"><div class="emblem" style="--hue:${hueOf(name)}">${Crest.svg(l, Tracker.statusOf(l, Tracker.getLevel(name)), { banner: big })}</div></div>`;
     }
     window.emblemHtml = emblemHtml;
 
@@ -320,7 +314,7 @@
       const s = state.stats[l.name];
       const targets = l.target.replace(/[()]/g, '').split(/\s+or\s+/i).map(x => x.trim());
       $('dialog').innerHTML = `
-        <div class="portrait">${artHtml(l.name)}</div>
+        <div class="portrait">${artHtml(l.name, true)}</div>
         <div class="body">
           <h2 class="disp">${esc(l.name)} <span class="badge ${cls(st)}">${st}</span></h2>
           <div class="sub">${esc(l.title)} · #${l.order} · level ${lvl}</div>
