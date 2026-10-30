@@ -474,6 +474,13 @@
       text-overflow: ellipsis;
     }
 
+    .tile-head { display:flex; align-items:center; gap:8px; margin:6px 0 4px; min-width:0; }
+    .tile-head .tile-name { margin:0; min-width:0; }
+    .portrait { flex:none; border-radius:8px; overflow:hidden; background:var(--bg-card-hover); }
+    .portrait img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+    .tile-portrait { width:34px; height:34px; }
+    .spotlight-portrait { width:64px; height:64px; border-radius:12px; margin-right:12px; }
+
     .tile-stance {
       font-size: 0.73rem;
       color: var(--text-muted);
@@ -889,6 +896,23 @@
     function esc(str) {
       return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
+    // Legend portraits listed in portraits/index.json (same files as Legend Select and the Stance Lab)
+    const portraitSlug = name => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    let portraits = {};
+    async function loadPortraits() {
+      try {
+        const res = await fetch('portraits/index.json', { cache: 'no-cache' });
+        if (!res.ok) return;
+        const files = await res.json();
+        if (!Array.isArray(files)) return;
+        files.filter(f => typeof f === 'string' && /^[a-z0-9-]+\.(png|jpe?g|webp|avif)$/i.test(f))
+          .forEach(f => { portraits[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
+      } catch (err) { /* no portraits folder, or opened as a file */ }
+    }
+    function portraitHtml(name, cls) {
+      const src = portraits[portraitSlug(name)];
+      return src ? `<div class="portrait ${cls}"><img src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.remove()" /></div>` : '';
+    }
     function fmtHours(seconds) {
       if (!seconds) return '0h';
       const h = seconds / 3600;
@@ -1007,7 +1031,8 @@
 
       document.getElementById('spotlightPanel').innerHTML = `
         <div class="spotlight-header">
-          <div class="spotlight-title">
+          ${portraitHtml(legend.name, 'spotlight-portrait')}
+          <div class="spotlight-title" style="flex:1;min-width:0">
             <div class="order-tag">Legend #${legend.order}</div>
             <h2>${legend.name}</h2>
             <div class="sub-title">${legend.title} (Lvl 50 Title)</div>
@@ -1198,7 +1223,7 @@
               <span class="tile-order">#${l.order}${Goals.has(l.name) ? '<span class="tile-star" title="Pinned goal">★</span>' : ''}</span>
               <span class="tile-badge ${getStatusClass(st)}">${st}</span>
             </div>
-            <div class="tile-name" title="${l.name}">${l.name}</div>
+            <div class="tile-head">${portraitHtml(l.name, 'tile-portrait')}<div class="tile-name" title="${l.name}">${l.name}</div></div>
             <div class="tile-stance">${l.target}</div>
             <div class="tile-footer">
               <span>Lv.${lvl}</span>
@@ -1652,6 +1677,7 @@
     }
 
     renderAll();
+    loadPortraits().then(() => { if (Object.keys(portraits).length) renderAll(); });
     // Links like index.html#legend-12 (from the stance matrix) open that legend
     function openLegendFromHash() {
       const m = location.hash.match(/^#legend-(\d+)$/);
