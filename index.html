@@ -20,7 +20,7 @@
       --v-bg: rgba(34, 197, 94, 0.16);
       --bang-yellow: #f59e0b;
       --bang-bg: rgba(245, 158, 11, 0.16);
-      --x-red: #ef4444;
+      --x-red: #f87171;
       --x-bg: rgba(239, 68, 68, 0.16);
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
@@ -58,8 +58,8 @@
     :root[data-theme="daylight"] {
       --bg-dark: #f4f6fb; --bg-panel: #ffffff; --bg-card: #eef2f8; --bg-card-hover: #e2e8f3;
       --accent-blue: #2563eb; --accent-cyan: #0e7490;
-      --v-green: #15803d; --v-bg: rgba(21,128,61,0.12);
-      --bang-yellow: #b45309; --bang-bg: rgba(180,83,9,0.12);
+      --v-green: #166534; --v-bg: rgba(21,128,61,0.12);
+      --bang-yellow: #92400e; --bang-bg: rgba(180,83,9,0.12);
       --x-red: #b91c1c; --x-bg: rgba(185,28,28,0.1);
       --text-main: #0f172a; --text-muted: #5b6678; --border-color: #d5dce8;
       --page-glow: #dfe7fb;
@@ -687,7 +687,7 @@
       </div>
     </div>
     <div class="api-controls">
-      <input type="text" id="brawlhallaIdInput" placeholder="Your Brawlhalla ID" style="width:175px" />
+      <input type="text" id="brawlhallaIdInput" aria-label="Brawlhalla ID" inputmode="numeric" placeholder="Your Brawlhalla ID" style="width:175px" />
       <button id="syncBtn" onclick="syncFromApi()">Sync API</button>
       <select id="themeSelect" class="theme-select" aria-label="Theme" onchange="setTheme(this.value)">
         <option value="midnight">🌙 Midnight</option>
@@ -737,7 +737,7 @@
   <!-- Filter, Sort, & View Mode Toolbar -->
   <div class="toolbar">
     <div class="filter-group">
-      <input type="text" id="searchInput" placeholder="Search legend, stance or weapon…  ( / )" oninput="scheduleRender()" />
+      <input type="text" id="searchInput" aria-label="Search legends" placeholder="Search legend, stance or weapon…  ( / )" oninput="scheduleRender()" />
       <button class="secondary active" id="filterAll" onclick="setStatusFilter('ALL')">All</button>
       <button class="secondary" id="filterV" onclick="setStatusFilter('v')">v Ready</button>
       <button class="secondary" id="filterBang" onclick="setStatusFilter('!')">! Standard</button>
@@ -948,7 +948,7 @@
             <div class="sub-title">${legend.title} (Lvl 50 Title)</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="pin-btn${Goals.has(legend.name) ? ' on' : ''}" data-pin="${esc(legend.name)}" aria-pressed="${Goals.has(legend.name)}"
+            <button class="pin-btn${Goals.has(legend.name) ? ' on' : ''}" data-pin="${esc(legend.name)}" aria-pressed="${Goals.has(legend.name)}" aria-label="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}"
               title="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}">${Goals.has(legend.name) ? '★' : '☆'}</button>
             <div class="status-pill-lg ${getStatusClass(status)}">${status}</div>
           </div>
@@ -960,10 +960,10 @@
             <div style="font-size:1.35rem;font-weight:900">Level ${lvl}</div>
           </div>
           <div class="level-btns">
-            <button class="secondary" onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl - 1})">-</button>
-            <input type="number" min="1" max="100" value="${lvl}" style="width:64px;text-align:center"
+            <button class="secondary" aria-label="Level down" onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl - 1})">-</button>
+            <input type="number" min="1" max="100" aria-label="Level" value="${lvl}" style="width:64px;text-align:center"
               onchange="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', this.value)" />
-            <button onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl + 1})">+</button>
+            <button aria-label="Level up" onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl + 1})">+</button>
           </div>
         </div>
 
