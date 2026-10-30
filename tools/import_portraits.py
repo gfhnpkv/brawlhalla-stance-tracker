@@ -16,12 +16,14 @@ import argparse
 import json
 import re
 import shutil
+import subprocess
 import sys
 import unicodedata
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
 EXTS = {'.png', '.jpg', '.jpeg', '.webp', '.avif'}
+THUMB_SIZE = 360  # longest side of the tile backgrounds in portraits/thumbs/
 
 
 def slug(name):
@@ -38,6 +40,20 @@ def load_legends():
     id_block = id_block[:id_block.index('};')]
     ids = {int(i): n for i, n in re.findall(r'(\d+): "([^"]+)"', id_block)}
     return names, ids
+
+
+def make_thumbs(dest, files):
+    """Small copies for the tracker's legend tiles, so the page doesn't load every full image.
+    Uses macOS sips; elsewhere the tiles fall back to the full images."""
+    if not shutil.which('sips'):
+        print('sips not found (macOS only): skipped portraits/thumbs/. Tiles will use the full images.')
+        return
+    thumbs = dest / 'thumbs'
+    thumbs.mkdir(exist_ok=True)
+    for name in files:
+        subprocess.run(['sips', '-Z', str(THUMB_SIZE), str(dest / name), '--out', str(thumbs / name)],
+                       check=True, capture_output=True)
+    print(f'Made {len(files)} thumbnails in portraits/thumbs/.')
 
 
 def main():
@@ -87,6 +103,7 @@ def main():
         return
     (dest / 'index.json').write_text(json.dumps(files, indent=2) + '\n', encoding='utf-8')
     print(f'Copied {len(files)} images into portraits/ and wrote portraits/index.json.')
+    make_thumbs(dest, files)
     print('Check them with: python3 server.py  (then open http://localhost:8000/stances.html)')
     print('Publish with:    git add portraits && git commit -m "Add portraits" && git push')
 
