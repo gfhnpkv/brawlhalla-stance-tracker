@@ -66,6 +66,8 @@
     .card-head { display: flex; gap: 14px; align-items: center; }
     .crest-box { width: 54px; flex: none; }
     .crest-box .crest { width: 100%; height: auto; display: block; }
+    .crest-box.photo { width: 64px; height: 64px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+    .crest-box.photo img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
     .who { flex: 1; min-width: 0; }
     .who .n { font-weight: 900; font-size: 1.08rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .who .t { font-size: 0.78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -238,6 +240,32 @@
       return Object.keys(lv).sort((a, b) => lv[a] - lv[b]);
     }
 
+    // ---------- portraits ----------
+    // Same as Legend Select: images you add to portraits/ and list in portraits/index.json replace
+    // the crest for that legend. None are bundled (the art belongs to Blue Mammoth).
+    const slug = name => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    let portraits = {};
+    async function loadPortraits() {
+      try {
+        const res = await fetch('portraits/index.json', { cache: 'no-cache' });
+        if (!res.ok) return;
+        const files = await res.json();
+        if (!Array.isArray(files)) return;
+        files.filter(f => typeof f === 'string' && /^[a-z0-9-]+\.(png|jpe?g|webp|avif)$/i.test(f))
+          .forEach(f => { portraits[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
+      } catch (err) { /* no portraits folder */ }
+    }
+    function avatarHtml(l, st) {
+      const src = portraits[slug(l.name)];
+      return src
+        ? `<div class="crest-box photo"><img src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.outerHTML=window.crestBoxHtml(${esc(JSON.stringify(l.name))})" /></div>`
+        : `<div class="crest-box">${Crest.svg(l, st, { banner: false })}</div>`;
+    }
+    window.crestBoxHtml = name => {
+      const l = LEGENDS_DB.find(x => x.name === name);
+      return `<div class="crest-box">${Crest.svg(l, Tracker.statusOf(l, Tracker.getLevel(name)), { banner: false })}</div>`;
+    };
+
     // ---------- render ----------
     const hovered = {};
     function pipsHtml(name, key) {
@@ -263,7 +291,7 @@
       const st = Tracker.statusOf(l, lvl);
       return `<article class="card${cmp.includes(l.name) ? ' cmp' : ''}" data-name="${esc(l.name)}">
         <div class="card-head">
-          <div class="crest-box">${Crest.svg(l, st, { banner: false })}</div>
+          ${avatarHtml(l, st)}
           <div class="who"><div class="n">${esc(l.name)}</div><div class="t">${esc(l.title)}</div><div class="w">${esc(weapons)} · Lv ${lvl}</div></div>
           ${p.role === 'none' ? '' : `<span class="badge ${p.role}">${ROLE[p.role]}</span>`}
         </div>
@@ -470,6 +498,7 @@
     $('weapon').innerHTML = '<option value="ALL">All</option>' + weapons.map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join('');
     $('idInput').value = state.id;
     render();
+    loadPortraits().then(() => { if (Object.keys(portraits).length) render(); });
     if (state.profile) $('status').textContent = `Showing ${state.profile.name}'s levels · locked stances are marked 🔒`;
     if (state.id && (!state.profile || Date.now() - state.profile.syncedAt > 10 * 60 * 1000)) doSync();
   </script>
