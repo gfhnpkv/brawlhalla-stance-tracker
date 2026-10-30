@@ -179,7 +179,10 @@ const Tracker = (() => {
       if (level === null) { missing++; return; }
       const oldLvl = getLevel(name);
       state.levels[name] = level;
-      MILESTONES.filter(m => oldLvl < m && level >= m).forEach(m => unlocks.push({ legend: name, lvl: m, what: milestoneName(legend, m) }));
+      MILESTONES.filter(m => oldLvl < m && level >= m).forEach(m => unlocks.push({
+        legend: name, lvl: m, what: milestoneName(legend, m),
+        statusUp: m === legend.vLvl ? 'v' : (m === legend.bangLvl ? '!' : null)
+      }));
       if (level > oldLvl) state.log.push(logEntry(legend, oldLvl, level));
       updated++;
     });

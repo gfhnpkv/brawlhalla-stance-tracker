@@ -404,6 +404,7 @@
   <div class="toasts" id="toasts"></div>
 
   <script src="legends.js"></script>
+  <script src="core.js"></script>
   <script src="summary.js"></script>
   <script>
     // Mobile view of the tracker. Uses the same localStorage keys as index.html,
@@ -431,15 +432,11 @@
     let openLegend = null;
 
     const $ = id => document.getElementById(id);
-    const MILESTONES = [3, 4, 6, 8, 11, 13, 15, 17, 40, 100];
     const STANCE_LEVELS = [3, 4, 6, 8, 11, 13, 15, 17];
 
     // ---------- helpers ----------
     function esc(str) {
       return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-    function normalizeName(str) {
-      return (str || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
     }
     const getLevel = name => playerLevels[name] || 1;
     function statusOf(legend, lvl) {
@@ -471,11 +468,6 @@
       if (m < 60) return `${m} min ago`;
       const h = Math.round(m / 60);
       return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
-    }
-    function milestoneName(legend, lvl) {
-      if (lvl === 40) return 'Challenge Stance';
-      if (lvl === 100) return 'Gold Name';
-      return `${legend.stances[lvl]} stance`;
     }
 
     // ---------- rendering ----------
@@ -701,45 +693,10 @@
     }
 
     // ---------- sync ----------
+    // Live mode reads the games count from the official API, with the relay as fallback.
+    // Level syncing itself lives in core.js.
     const RELAY_URL = 'https://brawlhalla-tracker-relay.gfhnpkv.workers.dev';
     const relayBase = () => (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/api' : RELAY_URL);
-
-    function fromDair(json) {
-      const d = json && json.data;
-      if (!d || !Array.isArray(d.legends)) return null;
-      return {
-        name: d.name, level: d.stats && d.stats.level, games: d.stats && d.stats.games,
-        wins: d.stats && d.stats.wins, time: d.stats && d.stats.matchtime,
-        legends: d.legends.map(l => {
-          const st = l.stats || {};
-          return {
-            legend_id: l.id, legend_name_key: l.name, level: st.level, games: st.games, wins: st.wins,
-            match_time: st.matchtime, kos: st.kos, xp_percentage: st.xp_percentage,
-            weapons: [l.weapon_one && l.weapon_one.name, l.weapon_two && l.weapon_two.name]
-          };
-        })
-      };
-    }
-
-    async function fetchPlayer(bhId) {
-      const relay = relayBase();
-      const sources = [
-        { url: `${relay}/dair/${bhId}`, transform: fromDair },
-        { url: `https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all` },
-        { url: `${relay}/player/${bhId}` }
-      ];
-      let lastErr = 'Could not reach the Brawlhalla API.';
-      for (const { url, transform } of sources) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (!res.ok) { lastErr = res.status === 429 ? 'Rate limited, try again in a minute.' : `API returned HTTP ${res.status}`; continue; }
-          const json = await res.json();
-          const data = transform ? transform(json) : json;
-          if (data && Array.isArray(data.legends) && data.legends.length) return { data };
-        } catch (err) { /* try next source */ }
-      }
-      return { error: lastErr };
-    }
 
     let syncing = false;
     async function sync({ quiet = false } = {}) {
@@ -754,73 +711,23 @@
       $('syncBtn').classList.add('spinning');
       if (!quiet) $('statusLine').textContent = 'Syncing…';
 
-      const { data, error } = await fetchPlayer(bhId);
+      // core.js owns fetching and merging; hand it this page's current data and take the result back
+      Tracker.setId(bhId);
+      Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
+      const r = await Tracker.sync();
+      ({ levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile } = Tracker.state);
       syncing = false;
       $('syncBtn').classList.remove('spinning');
-      if (!data) {
-        $('statusLine').textContent = `Sync failed: ${error}`;
+      if (r.error) {
+        $('statusLine').textContent = `Sync failed: ${r.error}`;
         return null;
       }
 
-      if (playerProfile && playerProfile.id !== bhId) {
-        // Different player: start fresh so data doesn't mix between accounts
-        playerLevels = {}; legendStats = {}; improvementsLog = [];
-      }
-      let updated = 0, missing = 0;
-      const unlocks = [];
-      data.legends.forEach(apiLeg => {
-        let name = null;
-        if (apiLeg.legend_name_key) {
-          const clean = normalizeName(apiLeg.legend_name_key);
-          const found = LEGENDS_DB.find(l => normalizeName(l.name) === clean);
-          if (found) name = found.name;
-        }
-        if (!name) name = BRAWLHALLA_ID_MAP[apiLeg.legend_id];
-        const legend = LEGENDS_DB.find(l => l.name === name);
-        if (!legend) return;
-
-        legendStats[name] = {
-          games: apiLeg.games || 0, wins: apiLeg.wins || 0, time: apiLeg.match_time || 0,
-          kos: apiLeg.kos != null ? apiLeg.kos : null,
-          xpPct: apiLeg.xp_percentage != null ? apiLeg.xp_percentage : null,
-          weapons: apiLeg.weapons || (legendStats[name] && legendStats[name].weapons) || []
-        };
-
-        const lvl = parseInt(apiLeg.level, 10);
-        if (!Number.isFinite(lvl) || lvl < 1) { missing++; return; }
-        const newLvl = Math.min(100, lvl);
-        const oldLvl = getLevel(name);
-        const oldStatus = statusOf(legend, oldLvl);
-        const newStatus = statusOf(legend, newLvl);
-        playerLevels[name] = newLvl;
-        MILESTONES.filter(m => oldLvl < m && newLvl >= m).forEach(m => unlocks.push({
-          legend: name, lvl: m, what: milestoneName(legend, m),
-          statusUp: m === legend.vLvl ? 'v' : (m === legend.bangLvl ? '!' : null)
-        }));
-        if (newLvl > oldLvl) {
-          improvementsLog.push({
-            legend: name, oldLvl, newLvl, oldStatus, newStatus,
-            stanceUnlocked: newStatus === 'v' ? legend.target : (newStatus === '!' ? legend.alt : 'Level Up'),
-            ts: Date.now()
-          });
-        }
-        updated++;
-      });
-
-      playerProfile = {
-        id: bhId, name: data.name || 'Player', level: data.level || null, games: data.games, wins: data.wins,
-        time: data.time || data.legends.reduce((sum, l) => sum + (l.match_time || 0), 0), syncedAt: Date.now()
-      };
-      save(KEYS.levels, playerLevels);
-      save(KEYS.log, improvementsLog);
-      save(KEYS.stats, legendStats);
-      save(KEYS.profile, playerProfile);
-
-      $('statusLine').textContent = updated
-        ? `✓ Synced ${updated} legends${missing ? ` (${missing} never played)` : ''} · ${new Date().toLocaleTimeString()}`
+      $('statusLine').textContent = r.updated
+        ? `✓ Synced ${r.updated} legends${r.missing ? ` (${r.missing} never played)` : ''} · ${new Date().toLocaleTimeString()}`
         : 'Synced, but no legend levels came back (dair.gg may be down). Set levels by hand.';
       renderAll();
-      return { unlocks, games: data.games };
+      return { unlocks: r.unlocks, games: playerProfile.games };
     }
 
     // ---------- live mode ----------
