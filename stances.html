@@ -439,21 +439,27 @@
       if (act && act.dataset.act === 'edit') return openEdit(name);
       if (act && act.dataset.act === 'cmp') return toggleCmp(name);
     });
-    // Hover (or keyboard focus) on a stance previews it
+    // Hover (or keyboard focus) on a stance previews it; only one card previews at a time
+    const clearPreviews = except => {
+      Object.keys(hovered).forEach(n => { if (n !== except) { delete hovered[n]; rerenderCard(n); } });
+    };
     const preview = e => {
       const chip = e.target.closest('[data-stance]');
       const card = e.target.closest('.card');
-      if (!card) return;
-      const name = card.dataset.name;
-      const key = chip && (e.type === 'mouseover' || e.type === 'focusin') ? chip.dataset.stance : null;
+      const name = card ? card.dataset.name : null;
+      clearPreviews(name); // also clears when moving into the gaps between cards
+      if (!name) return;
+      const key = chip ? chip.dataset.stance : null;
       if ((hovered[name] || null) === key) return;
       if (key) hovered[name] = key; else delete hovered[name];
       rerenderCard(name);
       if (e.type === 'focusin' && key) { const again = document.querySelector(`.card[data-name="${CSS.escape(name)}"] [data-stance="${key}"]`); again && again.focus(); }
     };
     $('grid').addEventListener('mouseover', preview);
-    $('grid').addEventListener('mouseleave', () => { Object.keys(hovered).forEach(n => { delete hovered[n]; rerenderCard(n); }); });
+    $('grid').addEventListener('mouseleave', () => clearPreviews(null));
     $('grid').addEventListener('focusin', preview);
+    // Checked after the event, since re-rendering a card briefly drops focus from its chip
+    $('grid').addEventListener('focusout', () => setTimeout(() => { if (!$('grid').contains(document.activeElement)) clearPreviews(null); }));
 
     $('dialog').addEventListener('click', e => {
       const role = e.target.closest('[data-role]');
