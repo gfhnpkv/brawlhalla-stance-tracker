@@ -4,6 +4,8 @@
 // origins are answered; anything else (other sites, scripts, sandboxed pages) gets a 403.
 //   GET /dair/{id}    -> https://api.dair.gg/v1/brawlhalla/players/{id}   (has legend levels)
 //   GET /player/{id}  -> https://api.brawlhalla.com/v1/player/stats?...    (official, fresh games count)
+// The Origin check stops other websites, but scripts can fake it, so each IP is also rate limited
+// (the LIMITER binding in wrangler.toml) to keep the free daily request quota from being used up.
 
 const ALLOWED_ORIGINS = ['https://gfhnpkv.github.io'];
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -29,11 +31,15 @@ function json(status, payload, headers) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const origin = request.headers.get('Origin');
     const cors = corsHeaders(origin);
     if (!isAllowed(origin)) return json(403, { error: 'Only the Brawlhalla Stance Tracker can use this relay' }, cors);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    if (env.LIMITER && !(await env.LIMITER.limit({ key: ip })).success) {
+      return json(429, { error: 'Too many requests, try again in a minute' }, { ...cors, 'Retry-After': '60' });
+    }
     if (request.method !== 'GET') return json(405, { error: 'Method not allowed' }, cors);
 
     const match = new URL(request.url).pathname.match(/^\/(dair|player)\/(\d{1,12})$/);
@@ -43,7 +49,8 @@ export default {
     try {
       const upstream = await fetch(route.url(match[2]), {
         headers: { 'User-Agent': 'BrawlhallaStanceTracker/1.0 (+https://github.com/gfhnpkv/brawlhalla-stance-tracker)' },
-        cf: { cacheTtl: route.cacheTtl, cacheEverything: true },
+        // Only successful answers are cached, so one upstream error isn't replayed to everyone
+        cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': route.cacheTtl, '300-599': 0 } },
       });
       const body = await upstream.text();
       return new Response(body, {

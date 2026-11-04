@@ -1,3 +1,9 @@
 name = "brawlhalla-tracker-relay"
 main = "worker.js"
 compatibility_date = "2026-10-01"
+
+# Per-IP rate limit for the relay (see worker.js); period must be 10 or 60 seconds
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
