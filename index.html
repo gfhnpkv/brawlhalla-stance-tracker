@@ -22,6 +22,8 @@
       --bang-bg: rgba(245, 158, 11, 0.16);
       --x-red: #f87171;
       --x-bg: rgba(239, 68, 68, 0.16);
+      --locked: #64748b;
+      --locked-bg: rgba(100, 116, 139, 0.16);
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
       --border-color: #2a395c;
@@ -61,6 +63,7 @@
       --v-green: #166534; --v-bg: rgba(21,128,61,0.12);
       --bang-yellow: #92400e; --bang-bg: rgba(180,83,9,0.12);
       --x-red: #b91c1c; --x-bg: rgba(185,28,28,0.1);
+      --locked: #94a3b8; --locked-bg: rgba(100,116,139,0.12);
       --text-main: #0f172a; --text-muted: #5b6678; --border-color: #d5dce8;
       --page-glow: #dfe7fb;
       --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
@@ -222,6 +225,12 @@
       align-items: center;
       gap: 10px;
     }
+    #searchInput { width:300px; max-width:100%; }
+    /* Segmented controls: one bordered group instead of loose buttons */
+    .seg { display:inline-flex; padding:3px; gap:2px; border-radius:10px; background:var(--bg-dark); border:1px solid var(--border-color); }
+    .seg > button { border:1px solid transparent; background:none; padding:6px 12px; border-radius:7px; }
+    .seg > button.active { border-color:var(--accent-cyan); background:var(--active-bg); }
+    .seg .dot { width:8px; height:8px; margin-right:6px; vertical-align:0; }
 
     /* Main Workspace */
     .workspace {
@@ -311,9 +320,9 @@
     }
 
     .status-x {
-      background: var(--x-bg);
-      color: var(--x-red);
-      border-color: var(--x-red);
+      background: var(--locked-bg);
+      color: var(--locked);
+      border-color: var(--locked);
     }
 
     .level-control {
@@ -439,7 +448,7 @@
     }
 
     .champ-tile.tile-x {
-      border-bottom: 4px solid var(--x-red);
+      border-bottom: 4px solid var(--border-color);
     }
 
     .tile-top {
@@ -474,21 +483,24 @@
       text-overflow: ellipsis;
     }
 
-    /* Legend art: the mini icon behind each tile, the full image behind the spotlight */
-    .champ-tile.has-art { overflow:hidden; min-height:150px; }
-    .tile-art { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 30%;
+    /* Legend art: the mini icon in a band across the top of each tile, the full image behind the spotlight */
+    .champ-tile.has-art { overflow:hidden; min-height:176px; }
+    .tile-art { position:absolute; top:0; left:0; width:100%; height:104px; object-fit:cover; object-position:center 30%;
+      -webkit-mask-image:linear-gradient(to bottom, #000 40%, transparent); mask-image:linear-gradient(to bottom, #000 40%, transparent);
       filter:grayscale(1) sepia(1) hue-rotate(175deg) saturate(2.2) brightness(0.95); /* one blue tone for every legend */
-      pointer-events:none; transition:transform 0.2s, filter 0.2s; }
-    .champ-tile.has-art::before { content:''; position:absolute; inset:0; pointer-events:none;
-      background:linear-gradient(to bottom, transparent 20%, color-mix(in srgb, var(--bg-card) 70%, transparent) 55%, var(--bg-card) 85%); }
+      opacity:0; pointer-events:none; transition:opacity 0.35s, transform 0.2s, filter 0.2s; }
+    .tile-art.loaded { opacity:1; }
     .champ-tile.has-art > :not(.tile-art) { position:relative; }
-    .champ-tile.has-art .tile-name { text-shadow:0 1px 3px var(--bg-card), 0 0 8px var(--bg-card); }
+    .champ-tile.has-art .tile-name { margin-top:44px; text-shadow:0 1px 2px var(--bg-card), 0 0 10px var(--bg-card), 0 0 4px var(--bg-card); }
+    .champ-tile.has-art .tile-order { padding:2px 7px; border-radius:6px; background:color-mix(in srgb, var(--bg-card) 80%, transparent); }
+    .champ-tile.has-art .tile-badge { backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); background-color:color-mix(in srgb, var(--bg-card) 70%, transparent); }
     .champ-tile.has-art:hover .tile-art { transform:scale(1.05); filter:none; } /* real colors on hover */
     .champ-tile.has-art.selected .tile-art { filter:none; } /* and on the selected legend */
     .spotlight-panel.has-art { overflow:hidden; }
     .spotlight-art { position:absolute; top:0; left:0; right:0; height:460px; pointer-events:none;
       -webkit-mask-image:linear-gradient(to bottom, #000 45%, transparent); mask-image:linear-gradient(to bottom, #000 45%, transparent); }
-    .spotlight-art img { width:100%; height:100%; object-fit:contain; object-position:top right; opacity:0.45; }
+    .spotlight-art img { width:100%; height:100%; object-fit:contain; object-position:top right; opacity:0; transition:opacity 0.4s; }
+    .spotlight-art img.loaded { opacity:0.45; }
     .spotlight-panel.has-art > :not(.spotlight-art) { position:relative; }
     .spotlight-panel.has-art .spotlight-title h2 { text-shadow:0 2px 8px var(--bg-panel); }
 
@@ -608,6 +620,7 @@
       color: var(--accent-cyan);
       margin-top: 4px;
     }
+    .live-row[hidden] { display:none; }
     .live-row { display:flex; align-items:center; gap:10px; margin-top:6px; font-size:0.82rem; flex-wrap:wrap; }
     .live-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#6b7280; margin-right:6px; vertical-align:middle; }
     .live-dot.on { background:#22c55e; box-shadow:0 0 8px #22c55e; animation: livePulse 1.6s infinite; }
@@ -630,7 +643,7 @@
       overflow-y:auto; overscroll-behavior:contain; z-index:41; animation:drawerIn 0.22s ease-out;
     }
     @keyframes drawerIn { from { transform:translateX(24px); opacity:0; } }
-    .drawer-backdrop { display:none; position:fixed; inset:0; z-index:40; background:rgba(0,0,0,0.45); }
+    .drawer-backdrop { display:none; position:fixed; inset:0; z-index:40; background:rgba(4,8,18,0.62); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
     body.minimal.drawer-open .drawer-backdrop { display:block; }
     .drawer-close { display:none; position:fixed; z-index:42; top:26px; right:min(430px, calc(100vw - 32px)); margin-right:-6px;
       width:36px; height:36px; padding:0; border-radius:50%; font-size:1rem; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); }
@@ -668,10 +681,19 @@
     .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); transition:width 0.4s ease; }
     .bar.v > span { background:var(--v-green); }
     .bar.bang > span { background:var(--bang-yellow); }
-    .bar.x > span { background:var(--x-red); }
+    .bar.x > span { background:var(--locked); }
     .tile-bar { margin-top:8px; height:4px; }
-    .completion-box { flex-direction:column; align-items:stretch !important; gap:8px; }
-    .completion-box .bar { height:8px; }
+    .completion-box { flex-direction:column; align-items:stretch !important; gap:12px; }
+    .completion-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+    .completion-num { font-size:1.45rem; font-weight:900; }
+    .seg-bar { height:10px; display:flex; }
+    .seg-bar > span { border-radius:0; }
+    .seg-bar > .seg-v { background:var(--v-green); }
+    .seg-bar > .seg-bang { background:var(--bang-yellow); }
+    .completion-legend { display:flex; flex-wrap:wrap; gap:6px 22px; font-size:0.85rem; color:var(--text-muted); }
+    .completion-legend b { color:var(--text-main); font-weight:800; margin-right:3px; }
+    .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; vertical-align:-1px; }
+    .dot-v { background:var(--v-green); } .dot-bang { background:var(--bang-yellow); } .dot-x { background:var(--locked); }
 
     /* Spotlight stats */
     .stat-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:14px; }
@@ -716,8 +738,6 @@
       .api-controls { width:100%; }
       .api-controls #brawlhallaIdInput { flex:1 1 100%; width:auto !important; }
       .api-controls button { flex:1 1 auto; }
-      .stats-strip { grid-template-columns:repeat(2, 1fr); gap:8px; }
-      .completion-box { grid-column:1 / -1; }
       .stat-box { padding:10px 12px; }
       .toolbar .filter-group { width:100%; }
       #searchInput { flex:1 1 100%; }
@@ -743,7 +763,6 @@
           <summary>Views ▾</summary>
           <div class="menu-list">
             <a href="app.html?view=mobile">📱 Mobile view</a>
-            <a href="cards.html">🃏 Card collection</a>
             <a href="matrix.html">▦ Stance matrix</a>
             <a href="roadmap.html">🗺️ Roadmap</a>
             <a href="compare.html">⚔️ Compare players</a>
@@ -755,15 +774,14 @@
       </div>
       <div class="player-card" id="playerCard" hidden></div>
       <div id="syncStatus" class="sync-msg"></div>
-      <div class="live-row">
-        <span id="activityStatus"><span class="live-dot"></span>Live tracking off</span>
+      <div class="live-row" id="liveRow" hidden>
+        <span id="activityStatus"></span>
       </div>
     </div>
     <div class="api-controls">
       <input type="text" id="brawlhallaIdInput" aria-label="Brawlhalla ID" inputmode="numeric" placeholder="Your Brawlhalla ID" style="width:175px" />
-      <button id="syncBtn" onclick="syncFromApi()">Sync API</button>
+      <button id="syncBtn" onclick="syncFromApi()">Sync</button>
       <button class="secondary" id="liveBtn" onclick="toggleLive()" title="Auto-check every minute and notify on new unlocks">● Live</button>
-      <button class="secondary" onclick="copyShareLink()" title="Copy a link that opens this tracker for your ID">🔗 Share</button>
       <details class="menu menu-right" id="moreMenu">
         <summary aria-label="More options">⋯ More</summary>
         <div class="menu-list">
@@ -774,6 +792,7 @@
               <option value="daylight">☀️ Daylight</option>
             </select>
           </label>
+          <button class="menu-btn" onclick="copyShareLink()" title="Copy a link that opens this tracker for your ID">🔗 Copy share link</button>
           <button class="menu-btn" onclick="shareImage()">📸 Save an image</button>
           <button class="menu-btn" onclick="exportBackup()">⬇️ Export backup (JSON)</button>
           <button class="menu-btn" onclick="document.getElementById('importFile').click()">⬆️ Import backup</button>
@@ -783,60 +802,47 @@
     </div>
   </div>
 
-  <!-- Summary Progress Counters -->
+  <!-- Summary Progress -->
   <div class="stats-strip">
     <div class="stat-box completion-box">
-      <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <div class="label">Target stances unlocked</div>
-        <div style="font-weight:900" id="completionText">0 / 70</div>
+      <div class="completion-head">
+        <div class="label">Best stances unlocked</div>
+        <div class="completion-num" id="completionText">0 / 70</div>
       </div>
-      <div class="bar v"><span id="completionBar" style="width:0%"></span></div>
-    </div>
-    <div class="stat-box" style="border-color: rgba(34,197,94,0.4)">
-      <div>
-        <div class="label" style="color:var(--v-green)">v • Target Unlocked</div>
-        <div class="val" id="countV" style="color:var(--v-green)">0</div>
+      <div class="bar seg-bar"><span class="seg-v" id="completionBar" style="width:0%"></span><span class="seg-bang" id="bangBar" style="width:0%"></span></div>
+      <div class="completion-legend">
+        <span><i class="dot dot-v"></i><b id="countV">0</b> best stance</span>
+        <span><i class="dot dot-bang"></i><b id="countBang">0</b> standard stance only</span>
+        <span><i class="dot dot-x"></i><b id="countX">0</b> locked</span>
       </div>
-      <div class="status-pill-lg status-v" style="width:38px;height:38px;font-size:1.2rem">v</div>
-    </div>
-    <div class="stat-box" style="border-color: rgba(245,158,11,0.4)">
-      <div>
-        <div class="label" style="color:var(--bang-yellow)">! • Standard Unlocked</div>
-        <div class="val" id="countBang" style="color:var(--bang-yellow)">0</div>
-      </div>
-      <div class="status-pill-lg status-bang" style="width:38px;height:38px;font-size:1.2rem">!</div>
-    </div>
-    <div class="stat-box" style="border-color: rgba(239,68,68,0.4)">
-      <div>
-        <div class="label" style="color:var(--x-red)">x • Locked</div>
-        <div class="val" id="countX" style="color:var(--x-red)">0</div>
-      </div>
-      <div class="status-pill-lg status-x" style="width:38px;height:38px;font-size:1.2rem">x</div>
     </div>
   </div>
 
   <!-- Filter, Sort, & View Mode Toolbar -->
   <div class="toolbar">
     <div class="filter-group">
-      <input type="text" id="searchInput" aria-label="Search legends" placeholder="Search legend, stance or weapon…  ( / )" oninput="scheduleRender()" />
-      <button class="secondary active" id="filterAll" onclick="setStatusFilter('ALL')">All</button>
-      <button class="secondary" id="filterV" onclick="setStatusFilter('v')">v Ready</button>
-      <button class="secondary" id="filterBang" onclick="setStatusFilter('!')">! Standard</button>
-      <button class="secondary" id="filterX" onclick="setStatusFilter('x')">x Locked</button>
-    </div>
-    <div class="filter-group">
-      <label style="font-size:0.82rem;color:var(--text-muted)">Sort:</label>
-      <select id="sortSelect" onchange="renderAll()">
-        <option value="order">Champ Select Order (#1–#70)</option>
+      <input type="text" id="searchInput" aria-label="Search legends" placeholder="Search legends, stances, weapons  ( / )" oninput="scheduleRender()" />
+      <div class="seg" role="group" aria-label="Show">
+        <button class="secondary active" id="filterAll" onclick="setStatusFilter('ALL')">All</button>
+        <button class="secondary" id="filterV" onclick="setStatusFilter('v')"><i class="dot dot-v"></i>Best</button>
+        <button class="secondary" id="filterBang" onclick="setStatusFilter('!')"><i class="dot dot-bang"></i>Standard</button>
+        <button class="secondary" id="filterX" onclick="setStatusFilter('x')"><i class="dot dot-x"></i>Locked</button>
+      </div>
+      <select id="sortSelect" aria-label="Sort" onchange="renderAll()">
+        <option value="order">Sort: Champ select order</option>
         <option value="recent">Recent Improvements (By Date)</option>
         <option value="level_desc">My Level (High ➔ Low)</option>
         <option value="level_asc">My Level (Low ➔ High)</option>
         <option value="needed">Closest to Next Unlock</option>
         <option value="alpha">Alphabetical (A–Z)</option>
       </select>
-      <button class="secondary active" id="viewGridBtn" onclick="setViewMode('grid')">Champ Select Grid</button>
-      <button class="secondary" id="viewSheetBtn" onclick="setViewMode('sheet')">Full Sheet Table</button>
-      <button class="secondary" id="optionsFab" aria-expanded="false" onclick="toggleMinimal()" title="Show or hide the legend panel and the right column">☰ Side panels</button>
+    </div>
+    <div class="filter-group">
+      <div class="seg" role="group" aria-label="Layout">
+        <button class="secondary active" id="viewGridBtn" onclick="setViewMode('grid')">▦ Grid</button>
+        <button class="secondary" id="viewSheetBtn" onclick="setViewMode('sheet')">☰ Table</button>
+      </div>
+      <button class="secondary" id="optionsFab" aria-expanded="false" onclick="toggleMinimal()" title="Show or hide the legend panel and the right column">◧ Side panels</button>
     </div>
   </div>
 
@@ -920,17 +926,21 @@
           .forEach(f => { portraits[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
       } catch (err) { /* no portraits folder, or opened as a file */ }
     }
-    // Tiles use the mini icon in portraits/mini/ and fall back to the full image if it's missing
+    // Tiles use the mini icon in portraits/mini/ and fall back to the full image if it's missing.
+    // Icons fade in the first time they load; after that, re-renders show them straight away.
+    const artLoaded = new Set();
+    window.markArtLoaded = img => { img.classList.add('loaded'); artLoaded.add(img.getAttribute('src')); };
     function tileArtHtml(name) {
       const src = portraits[portraitSlug(name)];
       if (!src) return '';
       const full = esc(src);
-      return `<img class="tile-art" src="${full.replace('portraits/', 'portraits/mini/')}" alt="" loading="lazy"
+      const mini = full.replace('portraits/', 'portraits/mini/');
+      return `<img class="tile-art${artLoaded.has(mini) ? ' loaded' : ''}" src="${mini}" alt="" loading="lazy" onload="markArtLoaded(this)"
         onerror="if (this.src.includes('/mini/')) this.src='${full}'; else { this.parentNode.classList.remove('has-art'); this.remove(); }" />`;
     }
     function spotlightArtHtml(name) {
       const src = portraits[portraitSlug(name)];
-      return src ? `<div class="spotlight-art"><img src="${esc(src)}" alt="" onerror="this.parentNode.parentNode.classList.remove('has-art'); this.parentNode.remove()" /></div>` : '';
+      return src ? `<div class="spotlight-art"><img src="${esc(src)}" alt="" onload="this.classList.add('loaded')" onerror="this.parentNode.parentNode.classList.remove('has-art'); this.parentNode.remove()" /></div>` : '';
     }
     function fmtHours(seconds) {
       if (!seconds) return '0h';
@@ -990,6 +1000,13 @@
       return 'status-x';
     }
 
+    // Words and symbols for the v / ! / x statuses
+    const STATUS_WORD = { v: 'Best stance unlocked', '!': 'Standard stance unlocked', x: 'Locked' };
+    const STATUS_ICON = { v: '✓', '!': '!', x: '🔒' };
+    function statusBadge(status, cls, style = '') {
+      return `<span class="${cls} ${getStatusClass(status)}" title="${STATUS_WORD[status]}" aria-label="${STATUS_WORD[status]}"${style ? ` style="${style}"` : ''}>${STATUS_ICON[status]}</span>`;
+    }
+
     function getTileStatusClass(status) {
       if (status === 'v') return 'tile-v';
       if (status === '!') return 'tile-bang';
@@ -1030,11 +1047,11 @@
       const lvl = getLegendLevel(legend.name);
       const status = computeStatus(legend, lvl);
 
-      let nextNeededText = 'Max Target Stance Unlocked (v)';
+      let nextNeededText = 'Best stance unlocked ✓';
       if (status === 'x') {
-        nextNeededText = `Need Lvl ${legend.bangLvl} for ! (${legend.bangLvl - lvl} lvls) • Lvl ${legend.vLvl} for v`;
+        nextNeededText = `Standard stance at Lv ${legend.bangLvl} (${legend.bangLvl - lvl} to go) · best stance at Lv ${legend.vLvl}`;
       } else if (status === '!') {
-        nextNeededText = `Need Lvl ${legend.vLvl} for v (${legend.vLvl - lvl} more lvls)`;
+        nextNeededText = `Best stance at Lv ${legend.vLvl} (${legend.vLvl - lvl} to go)`;
       }
 
       const stanceLevels = [3, 4, 6, 8, 11, 13, 15, 17];
@@ -1055,12 +1072,12 @@
           <div class="spotlight-title">
             <div class="order-tag">Legend #${legend.order}</div>
             <h2>${legend.name}</h2>
-            <div class="sub-title">${legend.title} (Lvl 50 Title)</div>
+            <div class="sub-title">${legend.title} · title at Lv 50</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="pin-btn${Goals.has(legend.name) ? ' on' : ''}" data-pin="${esc(legend.name)}" aria-pressed="${Goals.has(legend.name)}" aria-label="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}"
               title="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}">${Goals.has(legend.name) ? '★' : '☆'}</button>
-            <div class="status-pill-lg ${getStatusClass(status)}">${status}</div>
+            ${statusBadge(status, 'status-pill-lg')}
           </div>
         </div>
 
@@ -1083,16 +1100,16 @@
 
         <div class="stance-box" style="border-left: 4px solid var(--v-green)">
           <div class="stance-header">
-            <span>Target Best Stance (v)</span>
-            <span style="color:var(--v-green)">Unlocks @ Lvl ${legend.vLvl}</span>
+            <span>Best stance</span>
+            <span style="color:var(--v-green)">Unlocks at Lv ${legend.vLvl}</span>
           </div>
           <div class="stance-name">${legend.target}</div>
         </div>
 
         <div class="stance-box" style="border-left: 4px solid var(--bang-yellow)">
           <div class="stance-header">
-            <span>Standard Alternative (!)</span>
-            <span style="color:var(--bang-yellow)">Unlocks @ Lvl ${legend.bangLvl}</span>
+            <span>Standard stance</span>
+            <span style="color:var(--bang-yellow)">Unlocks at Lv ${legend.bangLvl}</span>
           </div>
           <div class="stance-name">${legend.alt}</div>
         </div>
@@ -1196,6 +1213,7 @@
       document.getElementById('countX').textContent = xCount;
       document.getElementById('completionText').textContent = `${vCount} / ${LEGENDS_DB.length}`;
       document.getElementById('completionBar').style.width = `${(vCount / LEGENDS_DB.length) * 100}%`;
+      document.getElementById('bangBar').style.width = `${(bangCount / LEGENDS_DB.length) * 100}%`;
 
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const sortBy = document.getElementById('sortSelect').value;
@@ -1238,17 +1256,17 @@
         const st = computeStatus(l, lvl);
         return `
           <div class="champ-tile ${getTileStatusClass(st)} ${l.order === selectedOrder ? 'selected' : ''} ${portraits[portraitSlug(l.name)] ? 'has-art' : ''}"
-               data-order="${l.order}" tabindex="0" role="button" aria-label="${esc(l.name)}, level ${lvl}, status ${st}">
+               data-order="${l.order}" tabindex="0" role="button" aria-label="${esc(l.name)}, level ${lvl}, ${STATUS_WORD[st]}">
             ${tileArtHtml(l.name)}
             <div class="tile-top">
               <span class="tile-order">#${l.order}${Goals.has(l.name) ? '<span class="tile-star" title="Pinned goal">★</span>' : ''}</span>
-              <span class="tile-badge ${getStatusClass(st)}">${st}</span>
+              ${statusBadge(st, 'tile-badge')}
             </div>
             <div class="tile-name" title="${l.name}">${l.name}</div>
             <div class="tile-stance">${l.target}</div>
             <div class="tile-footer">
               <span>Lv.${lvl}</span>
-              <span style="color:var(--text-muted)">v@${l.vLvl}</span>
+              <span style="color:var(--text-muted)">${st === 'v' ? 'Best ✓' : `Best at Lv ${l.vLvl}`}</span>
             </div>
             <div class="bar tile-bar ${st === '!' ? 'bang' : st}"><span style="width:${Math.round(progressToNext(l, lvl) * 100)}%"></span></div>
           </div>
@@ -1265,7 +1283,7 @@
             <td>#${l.order}</td>
             <td style="font-weight:800">${l.name}</td>
             <td>Lv.${lvl}</td>
-            <td><span class="tile-badge ${getStatusClass(st)}" style="display:inline-flex">${st}</span></td>
+            <td>${statusBadge(st, 'tile-badge', 'display:inline-flex')}</td>
             <td><strong>${l.target}</strong> <span style="color:var(--text-muted)">(Lv.${l.vLvl})</span></td>
             <td>${l.alt} <span style="color:var(--text-muted)">(Lv.${l.bangLvl})</span></td>
             <td style="font-size:0.76rem;color:var(--text-muted)">${stOrder}</td>
@@ -1548,8 +1566,9 @@
 
     function renderActivity() {
       const el = document.getElementById('activityStatus');
+      document.getElementById('liveRow').hidden = !liveState;
       if (!liveState) {
-        el.innerHTML = '<span class="live-dot"></span>Live tracking off';
+        el.innerHTML = '';
         return;
       }
       const now = Date.now();

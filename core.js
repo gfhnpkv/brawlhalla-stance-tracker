@@ -1,4 +1,4 @@
-// Shared tracker state and sync for cards.html (needs legends.js loaded first).
+// Shared tracker state and sync (needs legends.js loaded first).
 // Uses the same localStorage keys as index.html and app.html, so all views share data.
 const Tracker = (() => {
   const KEYS = {
