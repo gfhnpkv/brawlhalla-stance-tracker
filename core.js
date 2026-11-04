@@ -153,14 +153,6 @@ const Tracker = (() => {
     };
   }
 
-  // Load any player without touching saved data (used by compare.html)
-  async function lookup(bhId) {
-    if (!/^\d+$/.test(bhId || '')) return { error: 'Brawlhalla ID must be a number.' };
-    const { data, error } = await fetchPlayer(bhId);
-    if (!data) return { error };
-    return { player: parsePlayer(bhId, data) };
-  }
-
   async function sync() {
     const bhId = state.id;
     if (!/^\d+$/.test(bhId)) return { error: 'Enter your Brawlhalla ID first.' };
@@ -196,5 +188,5 @@ const Tracker = (() => {
     return { updated, missing, unlocks };
   }
 
-  return { state, getLevel, statusOf, nextTarget, progressToNext, setLevel, setId, sync, lookup };
+  return { state, getLevel, statusOf, nextTarget, progressToNext, setLevel, setId, sync };
 })();

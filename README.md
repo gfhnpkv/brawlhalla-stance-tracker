@@ -8,11 +8,6 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 ## Use it
 - **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (works from any computer or phone)
 - **Phone:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/app.html (mobile view; add it to your home screen)
-- **Stance matrix:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/matrix.html (every legend × every stance level)
-- **Terminal:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/terminal.html (retro arcade terminal, type `help`)
-- **Compare:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/compare.html?a=ID&b=ID (two players head to head)
-- **Roadmap:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/roadmap.html (battle-pass style: unlocked, now, next)
-- **Legend select:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/pixel.html (select-screen style, arrow keys + Enter; add your own portraits in `portraits/`)
 - **Stance lab:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stances.html (what each stance does to every legend's stats, with your picks and notes)
 - **Locally:** `python3 server.py`, then open http://localhost:8000
 

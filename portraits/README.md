@@ -1,6 +1,6 @@
 # Legend portraits (optional)
 
-The Legend Select view (`pixel.html`) and the Stance Lab (`stances.html`) show a portrait for each legend if you add one here.
+The main page (`index.html`) and the Stance Lab (`stances.html`) show a portrait for each legend if you add one here.
 Legend art belongs to Blue Mammoth Games / Ubisoft. The images in this folder were added by the site owner: Legend art © Blue Mammoth Games, used with permission.
 
 1. Add your images to this folder, named after the legend in lowercase with dashes:
