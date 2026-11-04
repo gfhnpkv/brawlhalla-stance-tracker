@@ -24,6 +24,8 @@
       --x-bg: rgba(239, 68, 68, 0.16);
       --locked: #64748b;
       --locked-bg: rgba(100, 116, 139, 0.16);
+      --prog: #60a5fa;
+      --prog-bg: rgba(59, 130, 246, 0.16);
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
       --border-color: #2a395c;
@@ -63,7 +65,7 @@
       --v-green: #166534; --v-bg: rgba(21,128,61,0.12);
       --bang-yellow: #92400e; --bang-bg: rgba(180,83,9,0.12);
       --x-red: #b91c1c; --x-bg: rgba(185,28,28,0.1);
-      --locked: #94a3b8; --locked-bg: rgba(100,116,139,0.12);
+      --locked: #64748b; --locked-bg: rgba(100,116,139,0.12); --prog: #2563eb; --prog-bg: rgba(37,99,235,0.12);
       --text-main: #0f172a; --text-muted: #5b6678; --border-color: #d5dce8;
       --page-glow: #dfe7fb;
       --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
@@ -319,6 +321,12 @@
       border-color: var(--bang-yellow);
     }
 
+    .status-p {
+      background: var(--prog-bg);
+      color: var(--prog);
+      border-color: var(--prog);
+    }
+
     .status-x {
       background: var(--locked-bg);
       color: var(--locked);
@@ -451,9 +459,16 @@
       border-bottom: 4px solid var(--bang-yellow);
     }
 
+    .champ-tile.tile-p {
+      border-bottom: 4px solid var(--prog);
+    }
+
+    /* Not played (or not owned): dimmed until hovered or selected */
     .champ-tile.tile-x {
       border-bottom: 4px solid var(--border-color);
+      opacity: 0.6;
     }
+    .champ-tile.tile-x:hover, .champ-tile.tile-x.selected, .champ-tile.tile-x:focus-visible { opacity: 1; }
 
     .tile-top {
       display: flex;
@@ -498,6 +513,8 @@
     .champ-tile.has-art .tile-name { margin-top:44px; text-shadow:0 1px 2px var(--bg-card), 0 0 10px var(--bg-card), 0 0 4px var(--bg-card); }
     .champ-tile.has-art .tile-order { padding:2px 7px; border-radius:6px; background:color-mix(in srgb, var(--bg-card) 80%, transparent); }
     .champ-tile.has-art .tile-badge { backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); background-color:color-mix(in srgb, var(--bg-card) 70%, transparent); }
+    /* The light art washes out the badges, so give them a solid backing in Daylight */
+    :root[data-theme="daylight"] .champ-tile.has-art .tile-badge { background-color:var(--bg-card); box-shadow:0 1px 4px rgba(15,23,42,0.3); }
     @media (hover: hover) { .champ-tile.has-art:hover .tile-art { transform:scale(1.05); filter:none; } } /* real colors on hover */
     :where(body:not(.minimal), body.drawer-open) .champ-tile.has-art.selected .tile-art { filter:none; } /* and on the selected legend while its spotlight shows */
     .spotlight-panel.has-art { overflow:hidden; }
@@ -516,6 +533,7 @@
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      min-height: 2.4em; /* always two lines, so names and footers line up across a row */
     }
 
     .tile-footer {
@@ -685,6 +703,7 @@
     .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); transition:width 0.4s ease; }
     .bar.v > span { background:var(--v-green); }
     .bar.bang > span { background:var(--bang-yellow); }
+    .bar.p > span { background:var(--prog); }
     .bar.x > span { background:var(--locked); }
     .tile-bar { margin-top:8px; height:4px; }
     .completion-box { flex-direction:column; align-items:stretch !important; gap:12px; }
@@ -694,10 +713,11 @@
     .seg-bar > span { border-radius:0; }
     .seg-bar > .seg-v { background:var(--v-green); }
     .seg-bar > .seg-bang { background:var(--bang-yellow); }
+    .seg-bar > .seg-p { background:var(--prog); }
     .completion-legend { display:flex; flex-wrap:wrap; gap:6px 22px; font-size:0.85rem; color:var(--text-muted); }
     .completion-legend b { color:var(--text-main); font-weight:800; margin-right:3px; }
     .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; vertical-align:-1px; }
-    .dot-v { background:var(--v-green); } .dot-bang { background:var(--bang-yellow); } .dot-x { background:var(--locked); }
+    .dot-v { background:var(--v-green); } .dot-bang { background:var(--bang-yellow); } .dot-p { background:var(--prog); } .dot-x { background:var(--locked); }
 
     /* Spotlight stats */
     .stat-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:14px; }
@@ -808,11 +828,12 @@
         <div class="label">Best stances unlocked</div>
         <div class="completion-num" id="completionText">0 / 70</div>
       </div>
-      <div class="bar seg-bar"><span class="seg-v" id="completionBar" style="width:0%"></span><span class="seg-bang" id="bangBar" style="width:0%"></span></div>
+      <div class="bar seg-bar"><span class="seg-v" id="completionBar" style="width:0%"></span><span class="seg-bang" id="bangBar" style="width:0%"></span><span class="seg-p" id="progBar" style="width:0%"></span></div>
       <div class="completion-legend">
         <span><i class="dot dot-v"></i><b id="countV">0</b> best stance</span>
         <span><i class="dot dot-bang"></i><b id="countBang">0</b> standard stance only</span>
-        <span><i class="dot dot-x"></i><b id="countX">0</b> locked</span>
+        <span><i class="dot dot-p"></i><b id="countP">0</b> played, no stance yet</span>
+        <span><i class="dot dot-x"></i><b id="countX">0</b> locked (not played / not owned)</span>
       </div>
     </div>
   </div>
@@ -825,7 +846,8 @@
         <button class="secondary active" id="filterAll" onclick="setStatusFilter('ALL')">All</button>
         <button class="secondary" id="filterV" onclick="setStatusFilter('v')"><i class="dot dot-v"></i>Best</button>
         <button class="secondary" id="filterBang" onclick="setStatusFilter('!')"><i class="dot dot-bang"></i>Standard</button>
-        <button class="secondary" id="filterX" onclick="setStatusFilter('x')"><i class="dot dot-x"></i>Locked</button>
+        <button class="secondary" id="filterP" onclick="setStatusFilter('p')"><i class="dot dot-p"></i>In progress</button>
+        <button class="secondary" id="filterX" onclick="setStatusFilter('x')" title="Not played or not owned"><i class="dot dot-x"></i>Locked</button>
       </div>
       <select id="sortSelect" aria-label="Sort" onchange="renderAll()">
         <option value="order">Sort: Champ select order</option>
@@ -859,7 +881,7 @@
               <th>Legend</th>
               <th>Lvl</th>
               <th>Status</th>
-              <th>Target Best Stance (v)</th>
+              <th>Best Stance</th>
               <th>Standard Alternative (!)</th>
               <th>Stance Order (3 / 4 / 6 / 8 • 11 / 13 / 15 / 17)</th>
             </tr>
@@ -903,28 +925,19 @@
   <script src="summary.js"></script>
   <script src="shareimage.js"></script>
   <script>
-    let playerLevels = JSON.parse(localStorage.getItem('bh_levels_v1') || '{}');
-    let improvementsLog = JSON.parse(localStorage.getItem('bh_improvements_v1') || '[]');
-    let savedBhId = localStorage.getItem('bh_player_id_v1') || '';
-    let legendStats = JSON.parse(localStorage.getItem('bh_legend_stats_v1') || '{}');
-    let playerProfile = JSON.parse(localStorage.getItem('bh_profile_v1') || 'null');
+    // core.js loads and checks the saved data; this page keeps its own references to it
+    let playerLevels, improvementsLog, savedBhId, legendStats, playerProfile;
+    function takeTrackerState() {
+      ({ levels: playerLevels, log: improvementsLog, id: savedBhId, stats: legendStats, profile: playerProfile } = Tracker.state);
+    }
+    takeTrackerState();
 
     function esc(str) {
       return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
-    // Legend portraits listed in portraits/index.json (same files as Legend Select and the Stance Lab)
-    const portraitSlug = name => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    // Legend portraits listed in portraits/index.json (shared with the Stance Lab through core.js)
+    const portraitSlug = Tracker.portraitSlug;
     let portraits = {};
-    async function loadPortraits() {
-      try {
-        const res = await fetch('portraits/index.json', { cache: 'no-cache' });
-        if (!res.ok) return;
-        const files = await res.json();
-        if (!Array.isArray(files)) return;
-        files.filter(f => typeof f === 'string' && /^[a-z0-9-]+\.(png|jpe?g|webp|avif)$/i.test(f))
-          .forEach(f => { portraits[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
-      } catch (err) { /* no portraits folder, or opened as a file */ }
-    }
     // Tiles use the mini icon in portraits/mini/ and fall back to the full image if it's missing.
     // Icons fade in the first time they load; after that, re-renders show them straight away.
     const artLoaded = new Set();
@@ -987,21 +1000,22 @@
       return playerLevels[name] || 1;
     }
 
+    // 'v' best, '!' standard, 'p' played but no stance yet, 'x' locked (not played / not owned)
     function computeStatus(legend, level) {
-      if (level >= legend.vLvl) return 'v';
-      if (level >= legend.bangLvl) return '!';
-      return 'x';
+      return Tracker.statusOf(legend, level);
     }
 
     function getStatusClass(status) {
       if (status === 'v') return 'status-v';
       if (status === '!') return 'status-bang';
+      if (status === 'p') return 'status-p';
       return 'status-x';
     }
 
-    // Words and symbols for the v / ! / x statuses
-    const STATUS_WORD = { v: 'Best stance unlocked', '!': 'Standard stance unlocked', x: 'Locked' };
-    const STATUS_ICON = { v: '✓', '!': '!', x: '🔒' };
+    // Words and symbols for the v / ! / p / x statuses
+    const STATUS_WORD = { v: 'Best stance unlocked', '!': 'Standard stance unlocked', p: 'Played, no stance yet', x: 'Locked (not played / not owned)' };
+    const STATUS_ICON = { v: '✓', '!': '!', p: '…', x: '🔒' };
+    const STATUS_SHORT = { v: 'best', '!': 'standard', p: 'in progress', x: 'locked' };
     function statusBadge(status, cls, style = '') {
       return `<span class="${cls} ${getStatusClass(status)}" title="${STATUS_WORD[status]}" aria-label="${STATUS_WORD[status]}"${style ? ` style="${style}"` : ''}>${STATUS_ICON[status]}</span>`;
     }
@@ -1009,6 +1023,7 @@
     function getTileStatusClass(status) {
       if (status === 'v') return 'tile-v';
       if (status === '!') return 'tile-bang';
+      if (status === 'p') return 'tile-p';
       return 'tile-x';
     }
 
@@ -1047,8 +1062,8 @@
       const status = computeStatus(legend, lvl);
 
       let nextNeededText = 'Best stance unlocked ✓';
-      if (status === 'x') {
-        nextNeededText = `Standard stance at Lv ${legend.bangLvl} (${legend.bangLvl - lvl} to go) · best stance at Lv ${legend.vLvl}`;
+      if (status === 'x' || status === 'p') {
+        nextNeededText = `${status === 'x' ? 'Not played yet · ' : ''}Standard stance at Lv ${legend.bangLvl} (${legend.bangLvl - lvl} to go) · best stance at Lv ${legend.vLvl}`;
       } else if (status === '!') {
         nextNeededText = `Best stance at Lv ${legend.vLvl} (${legend.vLvl - lvl} to go)`;
       }
@@ -1186,11 +1201,11 @@
           <div class="next-item" tabindex="0" role="button" data-order="${o.l.order}">
             <div>
               <strong>${esc(o.l.name)}</strong>
-              <div class="sub">Lv.${o.lvl} → ${o.next.lvl} · ${esc(o.next.what)} (${o.next.status})</div>
+              <div class="sub">Lv.${o.lvl} → ${o.next.lvl} · ${esc(o.next.what)} (${STATUS_SHORT[o.next.status]})</div>
             </div>
             <span class="need">${need} lvl${need === 1 ? '' : 's'}</span>
           </div>`;
-      }).join('') : `<div style="color:var(--v-green);font-size:0.82rem;font-weight:700">Every target stance unlocked! 🎉</div>`;
+      }).join('') : `<div style="color:var(--v-green);font-size:0.82rem;font-weight:700">Every best stance unlocked! 🎉</div>`;
     }
 
     let renderTimer = null;
@@ -1200,19 +1215,22 @@
     }
 
     function renderAll() {
-      let vCount = 0, bangCount = 0, xCount = 0;
+      let vCount = 0, bangCount = 0, pCount = 0, xCount = 0;
       LEGENDS_DB.forEach(l => {
         const st = computeStatus(l, getLegendLevel(l.name));
         if (st === 'v') vCount++;
         else if (st === '!') bangCount++;
+        else if (st === 'p') pCount++;
         else xCount++;
       });
       document.getElementById('countV').textContent = vCount;
       document.getElementById('countBang').textContent = bangCount;
+      document.getElementById('countP').textContent = pCount;
       document.getElementById('countX').textContent = xCount;
       document.getElementById('completionText').textContent = `${vCount} / ${LEGENDS_DB.length}`;
       document.getElementById('completionBar').style.width = `${(vCount / LEGENDS_DB.length) * 100}%`;
       document.getElementById('bangBar').style.width = `${(bangCount / LEGENDS_DB.length) * 100}%`;
+      document.getElementById('progBar').style.width = `${(pCount / LEGENDS_DB.length) * 100}%`;
 
       const query = document.getElementById('searchInput').value.trim().toLowerCase();
       const sortBy = document.getElementById('sortSelect').value;
@@ -1309,7 +1327,7 @@
           <div class="next-item goal" tabindex="0" role="button" data-order="${l.order}">
             <div style="flex:1;min-width:0">
               <strong>★ ${esc(name)}</strong>
-              <div class="sub">${next ? `Lv.${lvl} → ${next.lvl} · ${esc(next.what)} (${next.status})` : `Lv.${lvl} · target stance unlocked ✓`}</div>
+              <div class="sub">${next ? `Lv.${lvl} → ${next.lvl} · ${esc(next.what)} (${STATUS_SHORT[next.status]})` : `Lv.${lvl} · best stance unlocked ✓`}</div>
               <div class="bar tile-bar ${st === '!' ? 'bang' : st}"><span style="width:${Math.round(progressToNext(l, lvl) * 100)}%"></span></div>
             </div>
             ${next ? `<span class="need">${next.lvl - lvl}</span>` : ''}
@@ -1349,13 +1367,13 @@
         return `
           <div class="log-entry ${cls}">
             <div>
-              <strong>${item.legend}</strong>
+              <strong>${esc(item.legend)}</strong>
               <div style="font-size:0.75rem;color:var(--text-muted)">
-                Lv.${item.oldLvl} ➔ Lv.${item.newLvl} • ${item.stanceUnlocked}
+                Lv.${item.oldLvl} ➔ Lv.${item.newLvl} • ${esc(item.stanceUnlocked)}
               </div>
             </div>
-            <div class="tile-badge ${getStatusClass(item.newStatus)}">
-              ${statusChanged ? `${item.oldStatus}➔${item.newStatus}` : item.newStatus}
+            <div class="tile-badge ${getStatusClass(item.newStatus)}" title="${STATUS_WORD[item.newStatus]}">
+              ${statusChanged ? `${STATUS_ICON[item.oldStatus]}➔${STATUS_ICON[item.newStatus]}` : STATUS_ICON[item.newStatus]}
             </div>
           </div>
         `;
@@ -1409,7 +1427,16 @@
       const pin = e.target.closest('[data-pin]');
       if (pin) togglePin(pin.dataset.pin);
     });
-    window.addEventListener('storage', e => { if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); } });
+    window.addEventListener('storage', e => {
+      if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); }
+      // Another tab synced or changed levels: pick that up so this tab doesn't save over it
+      if (Tracker.isDataKey(e.key)) {
+        Tracker.reload();
+        takeTrackerState();
+        if (document.activeElement !== document.getElementById('brawlhallaIdInput')) document.getElementById('brawlhallaIdInput').value = savedBhId;
+        renderAll();
+      }
+    });
     ['champGrid', 'sheetBody', 'nextList', 'goalsList'].forEach(id => {
       document.getElementById(id).addEventListener('click', handlePick);
       document.getElementById(id).addEventListener('keydown', handlePick);
@@ -1466,10 +1493,11 @@
 
     function setStatusFilter(filter) {
       statusFilter = filter;
-      ['All', 'V', 'Bang', 'X'].forEach(id => document.getElementById('filter' + id).classList.remove('active'));
+      ['All', 'V', 'Bang', 'P', 'X'].forEach(id => document.getElementById('filter' + id).classList.remove('active'));
       if (filter === 'ALL') document.getElementById('filterAll').classList.add('active');
       if (filter === 'v') document.getElementById('filterV').classList.add('active');
       if (filter === '!') document.getElementById('filterBang').classList.add('active');
+      if (filter === 'p') document.getElementById('filterP').classList.add('active');
       if (filter === 'x') document.getElementById('filterX').classList.add('active');
       renderAll();
     }
@@ -1509,15 +1537,20 @@
           : 'Please enter your numerical Brawlhalla ID first.';
         return;
       }
-      savedBhId = bhId;
+      // core.js owns fetching and merging; hand it this page's current data first
+      Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
+      if (Tracker.wouldReplace(bhId) && !confirm(Tracker.replaceWarning(bhId))) {
+        document.getElementById('brawlhallaIdInput').value = savedBhId;
+        statusEl.textContent = 'Sync cancelled. Your saved levels were kept.';
+        return;
+      }
       statusEl.textContent = 'Syncing player stats…';
 
-      const beforeLevels = { ...playerLevels };
-      // core.js owns fetching and merging; hand it this page's current data and take the result back
+      // A different player starts fresh, so there are no earlier levels to compare goals against
+      const beforeLevels = playerProfile && playerProfile.id !== bhId ? {} : { ...playerLevels };
       Tracker.setId(bhId);
-      Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
       const r = await Tracker.sync();
-      ({ levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile } = Tracker.state);
+      takeTrackerState();
       if (r.error) {
         statusEl.textContent = `Sync failed: ${r.error}`;
         return;
@@ -1629,6 +1662,7 @@
       const now = Date.now();
 
       const games = await fetchTotalGames(bhId);
+      if (!liveState) return; // Live was turned off while waiting
       liveState.lastCheck = now;
       let newGames = 0;
       if (games !== null) {
@@ -1645,6 +1679,7 @@
       if (now >= liveState.nextLevelSync) {
         liveState.nextLevelSync = now + LEVEL_POLL_MS;
         const result = await syncFromApi({ live: true });
+        if (!liveState) return;
         if (result) announceUnlocks(result.unlocks);
       }
       renderActivity();
@@ -1652,7 +1687,7 @@
 
     async function toggleLive() {
       const btn = document.getElementById('liveBtn');
-      if (liveTimer) {
+      if (liveState) {
         clearInterval(liveTimer);
         liveTimer = null;
         liveState = null;
@@ -1671,12 +1706,14 @@
       }
       btn.classList.add('active');
       localStorage.setItem('bh_live_v1', '1');
-      liveState = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() };
-      renderActivity();
       // First sync sets the baseline; unlocks found here are already logged, not announced
-      liveState.nextLevelSync = Date.now() + LEVEL_POLL_MS;
+      const session = liveState = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + LEVEL_POLL_MS };
+      renderActivity();
       await syncFromApi({ live: true });
+      // Live may have been turned off (or off and on again) while the first checks ran
+      if (liveState !== session) return;
       await liveTick();
+      if (liveState !== session) return;
       liveTimer = setInterval(liveTick, ACTIVITY_POLL_MS);
     }
 
@@ -1696,17 +1733,21 @@
       reader.onload = ev => {
         try {
           const parsed = JSON.parse(ev.target.result);
-          if (parsed.playerLevels) playerLevels = parsed.playerLevels;
-          if (parsed.improvementsLog) improvementsLog = parsed.improvementsLog;
-          if (parsed.legendStats) { legendStats = parsed.legendStats; localStorage.setItem('bh_legend_stats_v1', JSON.stringify(legendStats)); }
-          if (parsed.playerProfile) { playerProfile = parsed.playerProfile; localStorage.setItem('bh_profile_v1', JSON.stringify(playerProfile)); }
-          if (parsed.savedBhId) {
-            savedBhId = parsed.savedBhId;
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not a backup');
+          // Only checked values are kept (see Tracker.clean)
+          const { clean } = Tracker;
+          if (parsed.playerLevels) playerLevels = clean.levels(parsed.playerLevels);
+          if (parsed.improvementsLog) improvementsLog = clean.log(parsed.improvementsLog);
+          if (parsed.legendStats) { legendStats = clean.stats(parsed.legendStats); localStorage.setItem('bh_legend_stats_v1', JSON.stringify(legendStats)); }
+          if (parsed.playerProfile && clean.profile(parsed.playerProfile)) { playerProfile = clean.profile(parsed.playerProfile); localStorage.setItem('bh_profile_v1', JSON.stringify(playerProfile)); }
+          if (clean.id(parsed.savedBhId)) {
+            savedBhId = clean.id(parsed.savedBhId);
             localStorage.setItem('bh_player_id_v1', savedBhId);
             document.getElementById('brawlhallaIdInput').value = savedBhId;
           }
           localStorage.setItem('bh_levels_v1', JSON.stringify(playerLevels));
           localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+          Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile, id: savedBhId });
           renderAll();
         } catch (err) {
           alert('Invalid backup JSON file.');
@@ -1716,8 +1757,8 @@
     }
 
     renderAll();
-    loadPortraits().then(() => { if (Object.keys(portraits).length) renderAll(); });
-    // Links like index.html#legend-12 (from the stance matrix) open that legend
+    Tracker.loadPortraits().then(p => { portraits = p; if (Object.keys(portraits).length) renderAll(); });
+    // Links like index.html#legend-12 open that legend
     function openLegendFromHash() {
       const m = location.hash.match(/^#legend-(\d+)$/);
       if (m && LEGENDS_DB.some(l => l.order === Number(m[1]))) selectLegend(Number(m[1]));
@@ -1728,10 +1769,16 @@
     (function startup() {
       const linkId = new URLSearchParams(location.search).get('id');
       if (linkId && /^\d+$/.test(linkId)) {
-        document.getElementById('brawlhallaIdInput').value = linkId;
         history.replaceState(null, '', location.pathname);
-        syncFromApi();
-        return;
+        // syncFromApi asks before a share link for someone else replaces this device's saved data
+        if (linkId !== savedBhId) {
+          document.getElementById('brawlhallaIdInput').value = linkId;
+          syncFromApi();
+          return;
+        }
+      }
+      if (!savedBhId) {
+        document.getElementById('syncStatus').textContent = 'New here? Enter your Brawlhalla ID (the number on your in-game profile) and press Sync to load your levels.';
       }
       let live = false;
       try { live = localStorage.getItem('bh_live_v1') === '1'; } catch (err) { /* storage unavailable */ }

@@ -15,14 +15,21 @@
       --str: #f87171; --dex: #fbbf24; --def: #60a5fa; --spd: #34d399;
       --pip-off: rgba(148,163,184,0.16);
       --main: #fbbf24; --pocket: #22d3ee; --learning: #c084fc;
+      /* Same header title and main button colors as the tracker page */
+      --title-grad: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
+      --btn-grad: linear-gradient(135deg, #3b82f6, #06b6d4); --on-accent: #fff;
       color-scheme: dark;
     }
     :root[data-theme="valhalla"] {
       --bg: #120c1f; --panel: #1d1430; --card: #2a1d45; --line: #4a3470; --text: #fdf6e3; --muted: #b8a9d4; --accent: #f5c542;
+      --title-grad: linear-gradient(90deg, #ffe08a, #f5c542, #ff9f43);
+      --btn-grad: linear-gradient(135deg, #d99a1e, #f5c542); --on-accent: #1a1027;
     }
     :root[data-theme="daylight"] {
       --bg: #f4f6fb; --panel: #ffffff; --card: #eef2f8; --line: #d5dce8; --text: #0f172a; --muted: #5b6678; --accent: #0e7490;
-      --str: #b91c1c; --dex: #92400e; --def: #1d4ed8; --spd: #166534; --pip-off: rgba(15,23,42,0.1);
+      --str: #b91c1c; --dex: #a16207; --def: #1d4ed8; --spd: #166534; --pip-off: rgba(15,23,42,0.1); /* gold DEX, so it doesn't read as STR's red */
+      --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
+      --btn-grad: linear-gradient(135deg, #2563eb, #0e7490); --on-accent: #fff;
       --main: #92400e; --pocket: #0e7490; --learning: #7e22ce; --shadow: rgba(15,23,42,0.12);
       color-scheme: light;
     }
@@ -33,21 +40,27 @@
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .wrap { max-width: 1480px; margin: 0 auto; }
 
-    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px 28px; margin-bottom: 26px; }
-    h1 { font-size: 1.8rem; font-weight: 900; letter-spacing: 0.2px; }
-    .lead { color: var(--muted); margin-top: 4px; max-width: 640px; }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 28px; margin-bottom: 26px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 30px; box-shadow: 0 8px 24px var(--shadow); }
+    h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+      background: var(--title-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .lead { color: var(--muted); font-size: 0.86rem; margin-top: 2px; max-width: 640px; }
+    .nav { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .nav a { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--accent);
+      font-size: 0.82rem; font-weight: 700; text-decoration: none; }
+    .nav a:hover { border-color: var(--accent); }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     .input, .select { padding: 9px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); outline: none; }
     .input:focus, .select:focus { border-color: var(--accent); }
     .btn { padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 700; }
     .btn:hover { border-color: var(--accent); }
-    .btn.primary { background: var(--accent); border-color: var(--accent); color: #04141a; }
-    :root[data-theme="daylight"] .btn.primary { color: #fff; }
+    .btn.primary { background: var(--btn-grad); border-color: transparent; color: var(--on-accent); }
     .btn[disabled] { opacity: 0.6; cursor: progress; }
     .status { color: var(--muted); font-size: 0.86rem; min-height: 1.4em; margin: -12px 0 20px; }
 
     /* summary */
     .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 26px; }
+    .summary[hidden] { display: none; }
     .sum { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
     .sum .k { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 800; }
     .sum .v { font-size: 1.5rem; font-weight: 900; margin-top: 2px; }
@@ -97,6 +110,7 @@
     :root[data-theme="daylight"] .chip.eq { color: #fff; }
     .chip.locked { opacity: 0.55; }
     .chip small { font-weight: 600; opacity: 0.8; margin-left: 3px; }
+    .chip.more { border-style: dashed; color: var(--muted); }
 
     .notes { font-size: 0.82rem; color: var(--muted); background: var(--card); border-radius: 10px; padding: 9px 11px; white-space: pre-wrap; word-break: break-word; }
     .card-acts { display: flex; gap: 8px; margin-top: auto; }
@@ -137,6 +151,11 @@
       .grid { grid-template-columns: 1fr; gap: 14px; }
       .cmp-grid { grid-template-columns: 1fr; }
       .actions { width: 100%; } .actions .input { flex: 1; }
+      header { padding: 18px; }
+      .summary { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .sum { padding: 12px 14px; }
+      .sum .v { font-size: 1.2rem; }
+      .sum.wide { grid-column: 1 / -1; }
     }
   </style>
 </head>
@@ -144,8 +163,9 @@
   <div class="wrap">
     <header>
       <div>
-        <h1>🧪 Stance Lab</h1>
+        <h1>Stance Lab</h1>
         <p class="lead">What every stance does to each legend's stats. Hover or tap a stance to preview it, then save your pick, role and notes.</p>
+        <nav class="nav" aria-label="Pages"><a href="index.html?view=auto">← Stance tracker</a><a href="app.html?view=mobile">📱 Mobile view</a></nav>
       </div>
       <div class="actions">
         <input class="input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" aria-label="Brawlhalla ID" autocomplete="off" />
@@ -195,6 +215,7 @@
     const STAT_NAME = { str: 'Strength', dex: 'Dexterity', def: 'Defense', spd: 'Speed' };
     const STAT_SHORT = { str: 'STR', dex: 'DEX', def: 'DEF', spd: 'SPD' };
     const ROLE = { main: 'Main', pocket: 'Pocket', learning: 'Learning' };
+    const STATUS_WORD = { v: 'Best ✓', '!': 'Standard', p: 'In progress', x: 'Locked 🔒' };
     const ROLE_ORDER = { main: 0, pocket: 1, learning: 2, none: 3 };
     const KEY = 'bh_stance_lab_v1';
     // The API spells weapons like "RocketLance"; show them as "Rocket Lance"
@@ -203,7 +224,11 @@
 
     // ---------- saved picks: { [legend]: { equipped: 'base'|'str'|...|'super_str'|..., role: 'main'|'pocket'|'learning'|'none', notes } } ----------
     let picks = {};
-    try { const v = JSON.parse(localStorage.getItem(KEY) || '{}'); if (v && typeof v === 'object') picks = v; } catch (err) { picks = {}; }
+    function loadPicks() {
+      picks = {};
+      try { const v = JSON.parse(localStorage.getItem(KEY) || '{}'); if (v && typeof v === 'object' && !Array.isArray(v)) picks = v; } catch (err) { /* keep empty */ }
+    }
+    loadPicks();
     const savePicks = () => { try { localStorage.setItem(KEY, JSON.stringify(picks)); } catch (err) { /* storage unavailable */ } };
     const pickOf = name => ({ equipped: 'base', role: 'none', notes: '', ...(picks[name] || {}) });
 
@@ -240,20 +265,10 @@
     }
 
     // ---------- portraits ----------
-    // Same as Legend Select: images you add to portraits/ and list in portraits/index.json replace
-    // the crest for that legend. None are bundled (the art belongs to Blue Mammoth).
-    const slug = name => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    // Images in portraits/ (listed in portraits/index.json, loaded by core.js) replace the crest
+    // for that legend; legends without one keep the crest.
+    const slug = Tracker.portraitSlug;
     let portraits = {};
-    async function loadPortraits() {
-      try {
-        const res = await fetch('portraits/index.json', { cache: 'no-cache' });
-        if (!res.ok) return;
-        const files = await res.json();
-        if (!Array.isArray(files)) return;
-        files.filter(f => typeof f === 'string' && /^[a-z0-9-]+\.(png|jpe?g|webp|avif)$/i.test(f))
-          .forEach(f => { portraits[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
-      } catch (err) { /* no portraits folder */ }
-    }
     function avatarHtml(l, st) {
       const src = portraits[slug(l.name)];
       return src
@@ -267,6 +282,7 @@
 
     // ---------- render ----------
     const hovered = {};
+    const expanded = new Set(); // cards showing every locked stance
     function pipsHtml(name, key) {
       const base = LEGEND_STANCES[name].base, s = statsFor(name, key);
       return STATS.map(k => {
@@ -297,11 +313,19 @@
         <div class="preview-label">${show === p.equipped ? `Equipped: <b>${stanceLabel(p.equipped)}</b>` : `Preview: <b>${stanceLabel(show)}</b> · equipped ${stanceLabel(p.equipped)}`}</div>
         <div class="stats">${pipsHtml(l.name, show)}</div>
         <div class="stances" role="group" aria-label="Stances">
-          ${stanceKeys(l).map(k => {
+          ${(() => {
+            // Unlocked stances, the equipped one and the next two to unlock; the rest wait behind "+N more"
+            const keys = stanceKeys(l);
+            const nextLocked = keys.filter(k => lvl < lv[k]).slice(0, 2);
+            const shown = expanded.has(l.name) ? keys : keys.filter(k => lvl >= lv[k] || k === p.equipped || nextLocked.includes(k));
+            const hidden = keys.length - shown.length;
+            return shown.map(k => {
             const locked = lvl < lv[k];
             return `<button class="chip${k === p.equipped ? ' eq' : ''}${locked ? ' locked' : ''}" data-stance="${k}" aria-pressed="${k === p.equipped}"
               title="${stanceLabel(k)}${k === 'base' ? '' : ` · unlocks at level ${lv[k]}`}${locked ? ' (locked)' : ''}">${locked ? '🔒 ' : ''}${k === 'base' ? 'Base' : (k.startsWith('super_') ? 'S-' : '') + STAT_SHORT[k.replace('super_', '')]}<small>${k === 'base' ? '' : lv[k]}</small></button>`;
-          }).join('')}
+          }).join('') + (hidden ? `<button class="chip more" data-act="more" aria-label="Show ${hidden} more locked stances">+${hidden} more</button>`
+            : expanded.has(l.name) ? `<button class="chip more" data-act="less">Show less</button>` : '');
+          })()}
         </div>
         ${p.notes ? `<div class="notes">${esc(p.notes)}</div>` : ''}
         <div class="card-acts">
@@ -318,12 +342,14 @@
       tracked.forEach(l => { const e = pickOf(l.name).equipped; eqCounts[e] = (eqCounts[e] || 0) + 1; });
       const fav = Object.entries(eqCounts).sort((a, b) => b[1] - a[1])[0];
       const mains = tracked.filter(l => pickOf(l.name).role === 'main');
+      // Nothing tracked yet: the cards would only show zeros, so skip them
+      $('summary').hidden = !tracked.length;
       const avg = k => mains.length ? (mains.reduce((n, l) => n + statsFor(l.name, pickOf(l.name).equipped)[k], 0) / mains.length).toFixed(1) : '–';
       $('summary').innerHTML = `
         <div class="sum"><div class="k">Tracked legends</div><div class="v">${tracked.length}<small>of ${LEGENDS_DB.length}</small></div></div>
         <div class="sum"><div class="k">Main / Pocket / Learning</div><div class="v">${count('main')} · ${count('pocket')} · ${count('learning')}</div></div>
         <div class="sum"><div class="k">Most picked stance</div><div class="v">${fav ? esc(stanceLabel(fav[0])) : '–'}${fav ? `<small>×${fav[1]}</small>` : ''}</div></div>
-        <div class="sum"><div class="k">Mains' average stats</div><div class="v" style="font-size:1.05rem">${STATS.map(k => `${STAT_SHORT[k]} ${avg(k)}`).join(' · ')}</div></div>`;
+        <div class="sum wide"><div class="k">Mains' average stats</div><div class="v" style="font-size:1.05rem">${STATS.map(k => `${STAT_SHORT[k]} ${avg(k)}`).join(' · ')}</div></div>`;
     }
 
     function renderGrid() {
@@ -421,7 +447,7 @@
         <div style="margin-top:18px">
           ${STATS.map(k => `<div class="cmp-row"><span class="a ${sa[k] > sb[k] ? 'win' : ''}">${sa[k]}</span><span class="k">${STAT_NAME[k]}</span><span class="b ${sb[k] > sa[k] ? 'win' : ''}">${sb[k]}</span></div>`).join('')}
           <div class="cmp-row"><span class="a">${Tracker.getLevel(a)}</span><span class="k">Level</span><span class="b">${Tracker.getLevel(b)}</span></div>
-          <div class="cmp-row"><span class="a">${Tracker.statusOf(la, Tracker.getLevel(a))}</span><span class="k">Status</span><span class="b">${Tracker.statusOf(lb, Tracker.getLevel(b))}</span></div>
+          <div class="cmp-row"><span class="a">${STATUS_WORD[Tracker.statusOf(la, Tracker.getLevel(a))]}</span><span class="k">Status</span><span class="b">${STATUS_WORD[Tracker.statusOf(lb, Tracker.getLevel(b))]}</span></div>
         </div>
         <div class="dialog-acts"><button class="btn primary" data-act="close">Close</button></div>`;
       $('dialog').setAttribute('aria-label', `Compare ${a} and ${b}`);
@@ -438,6 +464,10 @@
       const act = e.target.closest('[data-act]');
       if (act && act.dataset.act === 'edit') return openEdit(name);
       if (act && act.dataset.act === 'cmp') return toggleCmp(name);
+      if (act && (act.dataset.act === 'more' || act.dataset.act === 'less')) {
+        if (act.dataset.act === 'more') expanded.add(name); else expanded.delete(name);
+        return rerenderCard(name);
+      }
     });
     // Hover (or keyboard focus) on a stance previews it; only one card previews at a time
     const clearPreviews = except => {
@@ -487,6 +517,11 @@
     async function doSync() {
       const id = $('idInput').value.trim();
       if (!/^\d+$/.test(id)) { $('status').textContent = 'Enter your numeric Brawlhalla ID to see which stances you have unlocked.'; return; }
+      if (Tracker.wouldReplace(id) && !confirm(Tracker.replaceWarning(id))) {
+        $('idInput').value = state.id;
+        $('status').textContent = 'Sync cancelled. Your saved levels were kept.';
+        return;
+      }
       Tracker.setId(id);
       $('syncBtn').disabled = true;
       $('status').textContent = 'Syncing levels…';
@@ -496,6 +531,12 @@
       render();
     }
     $('syncBtn').addEventListener('click', doSync);
+    // Another tab synced, changed levels or edited picks: show that instead of stale data
+    window.addEventListener('storage', e => {
+      if (Tracker.isDataKey(e.key)) { Tracker.reload(); if (document.activeElement !== $('idInput')) $('idInput').value = state.id; }
+      if (e.key === KEY || e.key == null) loadPicks();
+      if (Tracker.isDataKey(e.key) || e.key === KEY) render();
+    });
     $('idInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSync(); });
 
     // ---------- start ----------
@@ -503,7 +544,7 @@
     $('weapon').innerHTML = '<option value="ALL">All</option>' + weapons.map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join('');
     $('idInput').value = state.id;
     render();
-    loadPortraits().then(() => { if (Object.keys(portraits).length) render(); });
+    Tracker.loadPortraits().then(p => { portraits = p; if (Object.keys(portraits).length) render(); });
     if (state.profile) $('status').textContent = `Showing ${state.profile.name}'s levels · locked stances are marked 🔒`;
     if (state.id && (!state.profile || Date.now() - state.profile.syncedAt > 10 * 60 * 1000)) doSync();
   </script>

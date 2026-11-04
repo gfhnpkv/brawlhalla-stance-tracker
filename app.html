@@ -28,10 +28,12 @@
       --v-bg: rgba(34, 197, 94, 0.16);
       --bang: #f59e0b;
       --bang-bg: rgba(245, 158, 11, 0.16);
-      --x: #f87171;
-      --x-bg: rgba(239, 68, 68, 0.16);
-      --header-bg: linear-gradient(180deg, rgba(11,16,29,0.98), rgba(11,16,29,0.92));
-      --tabbar-bg: rgba(19,27,46,0.97);
+      --x: #94a3b8;
+      --x-bg: rgba(100, 116, 139, 0.18);
+      --p: #60a5fa;
+      --p-bg: rgba(59, 130, 246, 0.16);
+      --header-bg: #0b101d;
+      --tabbar-bg: #131b2e;
       --avatar-grad: linear-gradient(135deg, #3b82f6, #a78bfa);
       --on-accent: #fff;
       --toast-bg: #111827;
@@ -50,8 +52,8 @@
     :root[data-theme="valhalla"] {
       --bg: #120c1f; --panel: #1d1430; --card: #2a1d45; --card-2: #36265a; --line: #4a3470;
       --text: #fdf6e3; --muted: #b8a9d4; --blue: #d99a1e; --cyan: #f5c542;
-      --header-bg: linear-gradient(180deg, rgba(18,12,31,0.98), rgba(18,12,31,0.92));
-      --tabbar-bg: rgba(29,20,48,0.97);
+      --header-bg: #120c1f;
+      --tabbar-bg: #1d1430;
       --avatar-grad: linear-gradient(135deg, #f5c542, #c2410c);
       --on-accent: #1a1027;
       --toast-bg: #1d1430;
@@ -63,9 +65,9 @@
       --text: #0f172a; --muted: #5b6678; --blue: #2563eb; --cyan: #0e7490;
       --v: #15803d; --v-bg: rgba(21,128,61,0.12);
       --bang: #b45309; --bang-bg: rgba(180,83,9,0.12);
-      --x: #b91c1c; --x-bg: rgba(185,28,28,0.1);
-      --header-bg: linear-gradient(180deg, rgba(244,246,251,0.98), rgba(244,246,251,0.92));
-      --tabbar-bg: rgba(255,255,255,0.97);
+      --x: #64748b; --x-bg: rgba(100,116,139,0.12); --p: #2563eb; --p-bg: rgba(37,99,235,0.12);
+      --header-bg: #f4f6fb;
+      --tabbar-bg: #ffffff;
       --toast-bg: #ffffff;
       --chip-bg: rgba(37,99,235,0.1); --chip-border: rgba(37,99,235,0.35); --chip-text: #1e40af;
       --track: rgba(15,23,42,0.1);
@@ -91,8 +93,7 @@
     .header {
       position: sticky; top: 0; z-index: 20;
       padding: calc(12px + var(--safe-t)) 16px 12px;
-      background: var(--header-bg);
-      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      background: var(--header-bg); /* solid, so content scrolling underneath doesn't show through */
       border-bottom: 1px solid var(--line);
     }
     .who { display: flex; align-items: center; gap: 12px; }
@@ -116,6 +117,7 @@
     .bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--cyan)); transition: width 0.4s ease; }
     .bar.v > span { background: var(--v); }
     .bar.bang > span { background: var(--bang); }
+    .bar.p > span { background: var(--p); }
     .bar.x > span { background: var(--x); }
     .bar.thin { height: 4px; }
     .counts { display: flex; gap: 8px; margin-top: 10px; }
@@ -123,6 +125,7 @@
     .count small { display: block; font-size: 0.66rem; font-weight: 700; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.4px; }
     .count.v { background: var(--v-bg); color: var(--v); }
     .count.bang { background: var(--bang-bg); color: var(--bang); }
+    .count.p { background: var(--p-bg); color: var(--p); }
     .count.x { background: var(--x-bg); color: var(--x); }
     .status-line { font-size: 0.78rem; color: var(--muted); margin-top: 8px; min-height: 1em; }
     .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #6b7280; margin-right: 6px; vertical-align: middle; }
@@ -154,7 +157,8 @@
     .row:active { transform: scale(0.985); background: var(--card-2); }
     .row.v { border-left: 4px solid var(--v); }
     .row.bang { border-left: 4px solid var(--bang); }
-    .row.x { border-left: 4px solid var(--x); }
+    .row.p { border-left: 4px solid var(--p); }
+    .row.x { border-left: 4px solid var(--x); opacity: 0.65; } /* not played / not owned */
     .row-main { flex: 1; min-width: 0; }
     .row-title { display: flex; align-items: baseline; gap: 8px; }
     .row-name { font-weight: 800; font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -168,6 +172,7 @@
     }
     .badge.v { background: var(--v-bg); color: var(--v); }
     .badge.bang { background: var(--bang-bg); color: var(--bang); }
+    .badge.p { background: var(--p-bg); color: var(--p); }
     .badge.x { background: var(--x-bg); color: var(--x); }
     .need { font-weight: 900; color: var(--cyan); font-size: 1.05rem; }
     .need small { display: block; font-size: 0.65rem; color: var(--muted); font-weight: 700; }
@@ -212,7 +217,7 @@
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
       display: grid; grid-template-columns: repeat(4, 1fr);
       height: calc(var(--tabbar-h) + var(--safe-b)); padding-bottom: var(--safe-b);
-      background: var(--tabbar-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      background: var(--tabbar-bg);
       border-top: 1px solid var(--line);
     }
     .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); font-size: 0.7rem; font-weight: 700; }
@@ -238,6 +243,7 @@
     .big-badge { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-weight: 900; font-size: 1.4rem; flex: none; }
     .big-badge.v { background: var(--v-bg); color: var(--v); border: 2px solid var(--v); }
     .big-badge.bang { background: var(--bang-bg); color: var(--bang); border: 2px solid var(--bang); }
+    .big-badge.p { background: var(--p-bg); color: var(--p); border: 2px solid var(--p); }
     .big-badge.x { background: var(--x-bg); color: var(--x); border: 2px solid var(--x); }
     .pin { width: 48px; height: 48px; border-radius: 14px; font-size: 1.35rem; background: var(--bg); border: 2px solid var(--line); color: var(--muted); flex: none; }
     .pin[aria-pressed="true"] { color: #facc15; border-color: #facc15; }
@@ -285,13 +291,14 @@
         <button class="sync-btn" id="syncBtn" aria-label="Sync now"><span>⟳</span></button>
       </div>
       <div class="progress-row">
-        <div class="progress-label"><span>Target stances unlocked</span><b id="completionText">0 / 70</b></div>
+        <div class="progress-label"><span>Best stances unlocked</span><b id="completionText">0 / 70</b></div>
         <div class="bar v"><span id="completionBar" style="width:0%"></span></div>
       </div>
       <div class="counts">
-        <div class="count v"><span id="countV">0</span><small>v target</small></div>
-        <div class="count bang"><span id="countBang">0</span><small>! standard</small></div>
-        <div class="count x"><span id="countX">0</span><small>x locked</small></div>
+        <div class="count v"><span id="countV">0</span><small>Best</small></div>
+        <div class="count bang"><span id="countBang">0</span><small>Standard</small></div>
+        <div class="count p"><span id="countP">0</span><small>Playing</small></div>
+        <div class="count x" title="Not played or not owned"><span id="countX">0</span><small>Locked</small></div>
       </div>
       <div class="status-line" id="statusLine"></div>
     </div>
@@ -312,9 +319,10 @@
       </div>
       <div class="chips" id="filterChips">
         <button class="chip active" data-filter="ALL">All</button>
-        <button class="chip" data-filter="v">v Target</button>
+        <button class="chip" data-filter="v">✓ Best</button>
         <button class="chip" data-filter="!">! Standard</button>
-        <button class="chip" data-filter="x">x Locked</button>
+        <button class="chip" data-filter="p">… In progress</button>
+        <button class="chip" data-filter="x">🔒 Locked</button>
       </div>
       <div class="list" id="legendList"></div>
     </section>
@@ -429,15 +437,13 @@
     function save(key, value) {
       try { localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value)); } catch (err) { /* storage unavailable */ }
     }
-    function loadId() {
-      try { return localStorage.getItem(KEYS.id) || ''; } catch (err) { return ''; }
-    }
 
-    let playerLevels = load(KEYS.levels, {});
-    let improvementsLog = load(KEYS.log, []);
-    let legendStats = load(KEYS.stats, {});
-    let playerProfile = load(KEYS.profile, null);
-    let savedBhId = loadId();
+    // core.js loads and checks the saved data; this page keeps its own references to it
+    let playerLevels, improvementsLog, legendStats, playerProfile, savedBhId;
+    function takeTrackerState() {
+      ({ levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile, id: savedBhId } = Tracker.state);
+    }
+    takeTrackerState();
     let statusFilter = 'ALL';
     let openLegend = null;
 
@@ -449,12 +455,13 @@
       return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
     const getLevel = name => playerLevels[name] || 1;
-    function statusOf(legend, lvl) {
-      if (lvl >= legend.vLvl) return 'v';
-      if (lvl >= legend.bangLvl) return '!';
-      return 'x';
-    }
+    // 'v' best, '!' standard, 'p' played but no stance yet, 'x' locked (not played / not owned)
+    const statusOf = (legend, lvl) => Tracker.statusOf(legend, lvl);
     const cls = st => (st === '!' ? 'bang' : st);
+    // Same words and symbols as the desktop page
+    const STATUS_ICON = { v: '✓', '!': '!', p: '…', x: '🔒' };
+    const STATUS_WORD = { v: 'Best stance unlocked', '!': 'Standard stance unlocked', p: 'Played, no stance yet', x: 'Locked (not played / not owned)' };
+    const STATUS_SHORT = { v: 'best', '!': 'standard', p: 'in progress', x: 'locked' };
     function nextTarget(legend, lvl) {
       if (lvl < legend.bangLvl) return { lvl: legend.bangLvl, status: '!', what: legend.alt };
       if (lvl < legend.vLvl) return { lvl: legend.vLvl, status: 'v', what: legend.target };
@@ -482,10 +489,11 @@
 
     // ---------- rendering ----------
     function renderHeader() {
-      let v = 0, b = 0, x = 0;
-      LEGENDS_DB.forEach(l => { const st = statusOf(l, getLevel(l.name)); st === 'v' ? v++ : st === '!' ? b++ : x++; });
+      let v = 0, b = 0, inProg = 0, x = 0;
+      LEGENDS_DB.forEach(l => { const st = statusOf(l, getLevel(l.name)); st === 'v' ? v++ : st === '!' ? b++ : st === 'p' ? inProg++ : x++; });
       $('countV').textContent = v;
       $('countBang').textContent = b;
+      $('countP').textContent = inProg;
       $('countX').textContent = x;
       $('completionText').textContent = `${v} / ${LEGENDS_DB.length}`;
       $('completionBar').style.width = `${(v / LEGENDS_DB.length) * 100}%`;
@@ -518,7 +526,7 @@
           </div>
           <div class="row-side">
             <div class="row-lvl"><small>LV</small>${lvl}</div>
-            <span class="badge ${cls(st)}">${st}</span>
+            <span class="badge ${cls(st)}" title="${STATUS_WORD[st]}" aria-label="${STATUS_WORD[st]}">${STATUS_ICON[st]}</span>
           </div>
         </button>`;
     }
@@ -564,12 +572,12 @@
           <button class="row ${cls(o.next.status)}" data-order="${o.l.order}">
             <div class="row-main">
               <div class="row-title"><span class="row-name">${esc(o.l.name)}</span></div>
-              <div class="row-sub">Lv.${o.lvl} → ${o.next.lvl} · ${esc(o.next.what)} (${o.next.status})</div>
+              <div class="row-sub">Lv.${o.lvl} → ${o.next.lvl} · ${esc(o.next.what)} (${STATUS_SHORT[o.next.status]})</div>
               <div class="bar thin ${cls(o.next.status)}"><span style="width:${Math.round(progressToNext(o.l, o.lvl) * 100)}%"></span></div>
             </div>
             <div class="row-side need">${n}<small>lvl${n === 1 ? '' : 's'}</small></div>
           </button>`;
-      }).join('') : `<div class="empty">Every target stance unlocked! 🎉</div>`;
+      }).join('') : `<div class="empty">Every best stance unlocked! 🎉</div>`;
     }
 
     function renderSummary() {
@@ -595,7 +603,7 @@
               <div class="row-sub" style="margin:2px 0 0">Lv.${e.oldLvl} → Lv.${e.newLvl} · ${esc(e.stanceUnlocked)}</div>
               <div class="when">${new Date(e.ts).toLocaleString()}</div>
             </div>
-            <span class="badge ${cls(e.newStatus)}" style="margin:0;width:auto;padding:0 8px">${changed ? `${e.oldStatus}→${e.newStatus}` : e.newStatus}</span>
+            <span class="badge ${cls(e.newStatus)}" style="margin:0;width:auto;padding:0 8px">${changed ? `${STATUS_ICON[e.oldStatus]}→${STATUS_ICON[e.newStatus]}` : STATUS_ICON[e.newStatus]}</span>
           </div>`;
       }).join('') : `<div class="empty">No improvements yet. Sync or level up a legend to start your log.</div>`;
     }
@@ -641,7 +649,7 @@
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button class="pin" data-pin aria-pressed="${Goals.has(legend.name)}" aria-label="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}">${Goals.has(legend.name) ? '★' : '☆'}</button>
-            <div class="big-badge ${cls(st)}">${st}</div>
+            <div class="big-badge ${cls(st)}" title="${STATUS_WORD[st]}" aria-label="${STATUS_WORD[st]}">${STATUS_ICON[st]}</div>
           </div>
         </div>
 
@@ -650,10 +658,10 @@
           <input type="number" id="lvlInput" inputmode="numeric" min="1" max="100" value="${lvl}" aria-label="Level" />
           <button data-step="1" aria-label="Level up">+</button>
         </div>
-        <div class="hint">${next ? `${next.lvl - lvl} more level${next.lvl - lvl === 1 ? '' : 's'} for ${esc(next.what)} (${next.status})` : 'Target stance unlocked ✓'}</div>
+        <div class="hint">${next ? `${next.lvl - lvl} more level${next.lvl - lvl === 1 ? '' : 's'} for ${esc(next.what)} (${STATUS_SHORT[next.status]})` : 'Best stance unlocked ✓'}</div>
 
-        <div class="stance v"><div class="k"><span>Target (v)</span><span>Lv.${legend.vLvl}</span></div><div class="n">${esc(legend.target)}</div></div>
-        <div class="stance bang"><div class="k"><span>Standard (!)</span><span>Lv.${legend.bangLvl}</span></div><div class="n">${esc(legend.alt)}</div></div>
+        <div class="stance v"><div class="k"><span>Best stance</span><span>Lv.${legend.vLvl}</span></div><div class="n">${esc(legend.target)}</div></div>
+        <div class="stance bang"><div class="k"><span>Standard stance</span><span>Lv.${legend.bangLvl}</span></div><div class="n">${esc(legend.alt)}</div></div>
 
         ${s ? `
         <div class="section-title" style="margin-top:14px">Your stats</div>
@@ -727,16 +735,24 @@
         return null;
       }
       if (syncing) return null;
+      // core.js owns fetching and merging; hand it this page's current data first
+      Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
+      if (Tracker.wouldReplace(bhId) && !confirm(Tracker.replaceWarning(bhId))) {
+        savedBhId = playerProfile.id;
+        save(KEYS.id, savedBhId);
+        $('statusLine').textContent = 'Sync cancelled. Your saved levels were kept.';
+        renderAll();
+        return null;
+      }
       syncing = true;
       $('syncBtn').classList.add('spinning');
       if (!quiet) $('statusLine').textContent = 'Syncing…';
 
-      const beforeLevels = { ...playerLevels };
-      // core.js owns fetching and merging; hand it this page's current data and take the result back
+      // A different player starts fresh, so there are no earlier levels to compare goals against
+      const beforeLevels = playerProfile && playerProfile.id !== bhId ? {} : { ...playerLevels };
       Tracker.setId(bhId);
-      Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
       const r = await Tracker.sync();
-      ({ levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile } = Tracker.state);
+      takeTrackerState();
       syncing = false;
       $('syncBtn').classList.remove('spinning');
       if (r.error) {
@@ -831,6 +847,7 @@
       if (!live) return;
       const now = Date.now();
       const games = await fetchGames(savedBhId);
+      if (!live) return; // Live was turned off while waiting
       live.lastCheck = now;
       if (games !== null) {
         if (live.games !== null && games > live.games) {
@@ -843,6 +860,7 @@
       if (now >= live.nextLevelSync) {
         live.nextLevelSync = now + 5 * 60 * 1000;
         const r = await sync({ quiet: true });
+        if (!live) return;
         if (r) announce(r.unlocks);
       }
       renderActivity();
@@ -861,10 +879,13 @@
         return;
       }
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
-      live = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + 5 * 60 * 1000 };
+      const session = live = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + 5 * 60 * 1000 };
       renderActivity();
       await sync({ quiet: true });
+      // Live may have been turned off (or off and on again) while the first checks ran
+      if (live !== session) return;
       await liveTick();
+      if (live !== session) return;
       liveTimer = setInterval(liveTick, 60 * 1000);
     }
 
@@ -880,7 +901,11 @@
       const tab = e.target.closest('.tab');
       if (tab) showTab(tab.dataset.view);
     });
-    window.addEventListener('storage', e => { if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); } });
+    window.addEventListener('storage', e => {
+      if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); }
+      // Another tab synced or changed levels: pick that up so this tab doesn't save over it
+      if (Tracker.isDataKey(e.key)) { Tracker.reload(); takeTrackerState(); renderAll(); }
+    });
     ['legendList', 'nextList', 'pinList'].forEach(id => $(id).addEventListener('click', e => {
       const row = e.target.closest('[data-order]');
       if (row) openSheet(Number(row.dataset.order));
@@ -963,11 +988,15 @@
       reader.onload = ev => {
         try {
           const p = JSON.parse(ev.target.result);
-          if (p.playerLevels) { playerLevels = p.playerLevels; save(KEYS.levels, playerLevels); }
-          if (p.improvementsLog) { improvementsLog = p.improvementsLog; save(KEYS.log, improvementsLog); }
-          if (p.legendStats) { legendStats = p.legendStats; save(KEYS.stats, legendStats); }
-          if (p.playerProfile) { playerProfile = p.playerProfile; save(KEYS.profile, playerProfile); }
-          if (p.savedBhId) { savedBhId = p.savedBhId; save(KEYS.id, savedBhId); }
+          if (!p || typeof p !== 'object' || Array.isArray(p)) throw new Error('not a backup');
+          // Only checked values are kept (see Tracker.clean)
+          const { clean } = Tracker;
+          if (p.playerLevels) { playerLevels = clean.levels(p.playerLevels); save(KEYS.levels, playerLevels); }
+          if (p.improvementsLog) { improvementsLog = clean.log(p.improvementsLog); save(KEYS.log, improvementsLog); }
+          if (p.legendStats) { legendStats = clean.stats(p.legendStats); save(KEYS.stats, legendStats); }
+          if (clean.profile(p.playerProfile)) { playerProfile = clean.profile(p.playerProfile); save(KEYS.profile, playerProfile); }
+          if (clean.id(p.savedBhId)) { savedBhId = clean.id(p.savedBhId); save(KEYS.id, savedBhId); }
+          Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile, id: savedBhId });
           renderAll();
           toast('Backup imported', 'Your levels and log are restored.');
         } catch (err) {
@@ -1001,12 +1030,15 @@
       try { tab = sessionStorage.getItem('bh_app_tab') || 'legends'; } catch (err) { /* ignore */ }
       const linkId = new URLSearchParams(location.search).get('id');
       if (linkId && /^\d+$/.test(linkId)) {
-        savedBhId = linkId;
-        save(KEYS.id, linkId);
         history.replaceState(null, '', location.pathname);
-        showTab('legends');
-        sync();
-        return;
+        // sync() asks before a share link for someone else replaces this device's saved data
+        if (linkId !== savedBhId) {
+          savedBhId = linkId;
+          save(KEYS.id, linkId);
+          showTab('legends');
+          sync();
+          return;
+        }
       }
       showTab(savedBhId ? tab : 'me');
       if (load(KEYS.live, 0) === 1 && savedBhId) { setLive(true); return; }

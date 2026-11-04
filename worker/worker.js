@@ -1,13 +1,11 @@
 // Cloudflare Worker: relays Brawlhalla player data for the tracker page.
 // dair.gg doesn't reliably send CORS headers, so browsers can't call it directly.
-// Only numeric player IDs are relayed (not an open proxy), and only the tracker's origins get CORS.
+// Only numeric player IDs are relayed (not an open proxy), and only requests from the tracker's
+// origins are answered; anything else (other sites, scripts, sandboxed pages) gets a 403.
 //   GET /dair/{id}    -> https://api.dair.gg/v1/brawlhalla/players/{id}   (has legend levels)
 //   GET /player/{id}  -> https://api.brawlhalla.com/v1/player/stats?...    (official, fresh games count)
 
-const ALLOWED_ORIGINS = [
-  'https://gfhnpkv.github.io',
-  'null', // index.html opened directly from disk
-];
+const ALLOWED_ORIGINS = ['https://gfhnpkv.github.io'];
 const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 const ROUTES = {
@@ -15,9 +13,10 @@ const ROUTES = {
   player: { url: id => `https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${id}&mode=all`, cacheTtl: 30 },
 };
 
+const isAllowed = origin => !!origin && (ALLOWED_ORIGINS.includes(origin) || LOCAL_ORIGIN.test(origin));
+
 function corsHeaders(origin) {
-  const ok = origin && (ALLOWED_ORIGINS.includes(origin) || LOCAL_ORIGIN.test(origin));
-  return ok
+  return isAllowed(origin)
     ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Vary': 'Origin' }
     : { 'Vary': 'Origin' };
 }
@@ -31,7 +30,9 @@ function json(status, payload, headers) {
 
 export default {
   async fetch(request) {
-    const cors = corsHeaders(request.headers.get('Origin'));
+    const origin = request.headers.get('Origin');
+    const cors = corsHeaders(origin);
+    if (!isAllowed(origin)) return json(403, { error: 'Only the Brawlhalla Stance Tracker can use this relay' }, cors);
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     if (request.method !== 'GET') return json(405, { error: 'Method not allowed' }, cors);
 

@@ -13,9 +13,12 @@ const ShareImage = (() => {
     const levels = read('bh_levels_v1', {});
     const profile = read('bh_profile_v1', null);
     const goals = read('bh_goals_v1', []);
+    const stats = read('bh_legend_stats_v1', {});
     const lvl = name => levels[name] || 1;
-    const status = l => (lvl(l.name) >= l.vLvl ? 'v' : lvl(l.name) >= l.bangLvl ? '!' : 'x');
-    const counts = { v: 0, '!': 0, x: 0 };
+    // Same rule as Tracker.statusOf: played = a level above 1 or synced games
+    const played = name => lvl(name) > 1 || !!(stats && stats[name] && stats[name].games > 0);
+    const status = l => (lvl(l.name) >= l.vLvl ? 'v' : lvl(l.name) >= l.bangLvl ? '!' : played(l.name) ? 'p' : 'x');
+    const counts = { v: 0, '!': 0, p: 0, x: 0 };
     LEGENDS_DB.forEach(l => counts[status(l)]++);
     const top = LEGENDS_DB.map(l => ({ name: l.name, level: lvl(l.name) }))
       .sort((a, b) => b.level - a.level || a.name.localeCompare(b.name)).slice(0, 5);
@@ -77,12 +80,12 @@ const ShareImage = (() => {
     ctx.textAlign = 'left';
 
     // status chips
-    [['v', 'Target', '#22c55e'], ['!', 'Standard', '#f59e0b'], ['x', 'Locked', '#f87171']].forEach(([k, label, col], i) => {
-      const x = 450 + i * 235, y = 215;
-      roundRect(ctx, x, y, 215, 84, 16); ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill();
+    [['v', 'Target', '#22c55e'], ['!', 'Standard', '#f59e0b'], ['p', 'Playing', '#60a5fa'], ['x', 'Locked', '#94a3b8']].forEach(([k, label, col], i) => {
+      const x = 450 + i * 180, y = 215;
+      roundRect(ctx, x, y, 165, 84, 16); ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill();
       ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = col; ctx.font = font(900, 40); ctx.fillText(String(d.counts[k]), x + 22, y + 56);
-      ctx.fillStyle = '#cbd5e1'; ctx.font = font(700, 20); ctx.fillText(`${k}  ${label}`, x + 92, y + 52);
+      ctx.fillStyle = col; ctx.font = font(900, 36); ctx.fillText(String(d.counts[k]), x + 18, y + 46);
+      ctx.fillStyle = '#cbd5e1'; ctx.font = font(700, 17); ctx.fillText(label, x + 18, y + 72);
     });
 
     // top legends

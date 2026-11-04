@@ -11,24 +11,75 @@ const Tracker = (() => {
   function load(key, fallback) {
     try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch (err) { return fallback; }
   }
+
+  // Saved and imported data is checked before use, so a broken or hand-edited backup can't
+  // crash the pages or put its own markup on them.
+  const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+  const legendNamed = name => (typeof name === 'string' ? LEGENDS_DB.find(l => l.name === name) : undefined);
+  const toLevel = v => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 1 ? Math.min(100, n) : null; };
+  const toNum = v => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const clean = {
+    levels(v) {
+      const out = {};
+      if (isObj(v)) Object.keys(v).forEach(name => { const lvl = toLevel(v[name]); if (legendNamed(name) && lvl) out[name] = lvl; });
+      return out;
+    },
+    // Entries are rebuilt from legends.js, so only the legend, levels and time come from the data
+    log(v) {
+      if (!Array.isArray(v)) return [];
+      return v.filter(e => isObj(e) && legendNamed(e.legend) && toLevel(e.oldLvl) && toLevel(e.newLvl) && toNum(e.ts) != null)
+        .map(e => ({ ...logEntry(legendNamed(e.legend), toLevel(e.oldLvl), toLevel(e.newLvl)), ts: e.ts }));
+    },
+    stats(v) {
+      const out = {};
+      if (isObj(v)) Object.keys(v).forEach(name => {
+        const s = v[name];
+        if (!legendNamed(name) || !isObj(s)) return;
+        out[name] = {
+          games: toNum(s.games) || 0, wins: toNum(s.wins) || 0, time: toNum(s.time) || 0, kos: toNum(s.kos), xpPct: toNum(s.xpPct),
+          weapons: Array.isArray(s.weapons) ? s.weapons.filter(w => typeof w === 'string') : []
+        };
+      });
+      return out;
+    },
+    profile(v) {
+      if (!isObj(v) || !/^\d+$/.test(String(v.id))) return null;
+      return {
+        id: String(v.id), name: typeof v.name === 'string' ? v.name : 'Player', level: toNum(v.level),
+        games: toNum(v.games), wins: toNum(v.wins), time: toNum(v.time), syncedAt: toNum(v.syncedAt) || 0
+      };
+    },
+    id: v => (/^\d+$/.test(String(v || '')) ? String(v) : '')
+  };
   function save(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* storage unavailable */ }
   }
 
-  const state = {
-    levels: load(KEYS.levels, {}),
-    log: load(KEYS.log, []),
-    stats: load(KEYS.stats, {}),
-    profile: load(KEYS.profile, null),
-    id: (() => { try { return localStorage.getItem(KEYS.id) || ''; } catch (err) { return ''; } })()
-  };
+  const state = {};
+  // (Re)reads everything from localStorage; pages call it when another tab saves
+  function reload() {
+    Object.assign(state, {
+      levels: clean.levels(load(KEYS.levels, {})),
+      log: clean.log(load(KEYS.log, [])),
+      stats: clean.stats(load(KEYS.stats, {})),
+      profile: clean.profile(load(KEYS.profile, null)),
+      id: clean.id((() => { try { return localStorage.getItem(KEYS.id); } catch (err) { return ''; } })())
+    });
+  }
+  const isDataKey = key => key == null || Object.values(KEYS).includes(key);
 
   const normalizeName = str => (str || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
   const getLevel = name => state.levels[name] || 1;
+  // A legend counts as played once it has games in the synced stats or a level above 1.
+  // The API can't tell owned from not owned, so an unplayed legend is shown as locked either way.
+  function hasPlayed(name, lvl = getLevel(name)) {
+    return lvl > 1 || !!(state.stats[name] && state.stats[name].games > 0);
+  }
+  // 'v' best stance, '!' standard stance, 'p' played but no stance yet, 'x' locked (not played / not owned)
   function statusOf(legend, lvl) {
     if (lvl >= legend.vLvl) return 'v';
     if (lvl >= legend.bangLvl) return '!';
-    return 'x';
+    return hasPlayed(legend.name, lvl) ? 'p' : 'x';
   }
   function nextTarget(legend, lvl) {
     if (lvl < legend.bangLvl) return { lvl: legend.bangLvl, status: '!', what: legend.alt };
@@ -53,6 +104,34 @@ const Tracker = (() => {
       stanceUnlocked: newStatus === 'v' ? legend.target : (newStatus === '!' ? legend.alt : 'Level Up'),
       ts: Date.now()
     };
+  }
+
+  reload();
+
+  // Syncing a different player replaces the saved levels, stats and log. True when that would
+  // throw away something, so pages can ask first.
+  function wouldReplace(bhId) {
+    return !!state.profile && state.profile.id !== bhId && (Object.keys(state.levels).length > 0 || state.log.length > 0);
+  }
+  function replaceWarning(bhId) {
+    const who = state.profile ? `${state.profile.name} (#${state.profile.id})` : 'the saved player';
+    return `Sync player #${bhId}?\n\nThis replaces the levels and history saved for ${who} on this device. ` +
+      'Export a backup first if you want to keep them.';
+  }
+
+  // Legend portraits listed in portraits/index.json, keyed by slug ("lord-vraxx")
+  const portraitSlug = name => name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  async function loadPortraits() {
+    const out = {};
+    try {
+      const res = await fetch('portraits/index.json', { cache: 'no-cache' });
+      if (!res.ok) return out;
+      const files = await res.json();
+      if (!Array.isArray(files)) return out;
+      files.filter(f => typeof f === 'string' && /^[a-z0-9-]+\.(png|jpe?g|webp|avif)$/i.test(f))
+        .forEach(f => { out[f.replace(/\.[a-z]+$/i, '').toLowerCase()] = `portraits/${f}`; });
+    } catch (err) { /* no portraits folder, or opened as a file */ }
+    return out;
   }
 
   function setLevel(name, value) {
@@ -188,5 +267,8 @@ const Tracker = (() => {
     return { updated, missing, unlocks };
   }
 
-  return { state, getLevel, statusOf, nextTarget, progressToNext, setLevel, setId, sync };
+  return {
+    KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits,
+    getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync
+  };
 })();

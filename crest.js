@@ -21,7 +21,7 @@ const Crest = (() => {
     Chakram: 'M12 6 A6 6 0 1 0 12.01 6 M12 9 A3 3 0 1 0 12.01 9 M12 2 L12 6 M12 18 L12 22 M2 12 L6 12 M18 12 L22 12'
   };
   const STANCE_COLOR = { Strength: '#e5484d', Dexterity: '#a855f7', Defense: '#3b82f6', Speed: '#f5a524' };
-  const FRAME = { v: ['#f3cf7a', '#b9842a'], '!': ['#b8c7e0', '#5d6f8f'], x: ['#5b6478', '#2c3344'] };
+  const FRAME = { v: ['#f3cf7a', '#b9842a'], '!': ['#b8c7e0', '#5d6f8f'], p: ['#7c9bd1', '#34507f'], x: ['#5b6478', '#2c3344'] };
   const SHIELD = 'M50 4 L92 16 L92 50 C92 78 72 94 50 104 C28 94 8 78 8 50 L8 16 Z';
 
   function hueOf(name) {
@@ -47,7 +47,7 @@ const Crest = (() => {
     </g>`;
   }
 
-  // legend: an entry from LEGENDS_DB; status: 'v' | '!' | 'x'.
+  // legend: an entry from LEGENDS_DB; status: 'v' | '!' | 'p' | 'x'.
   // opts.banner: false leaves off the initials banner (for places that already show the name)
   function svg(legend, status = 'x', opts = {}) {
     const banner = opts.banner !== false;

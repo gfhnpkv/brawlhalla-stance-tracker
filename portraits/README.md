@@ -10,7 +10,7 @@ Legend art belongs to Blue Mammoth Games / Ubisoft. The images in this folder we
    ["bodvar.png", "lord-vraxx.png", "queen-nai.webp"]
    ```
 
-Legends without a portrait show an emblem with their initials. Tall images (about 3:4) look best;
+Legends without a portrait show their crest in the Stance Lab and a plain tile on the main page. Tall images (about 3:4) look best;
 they are cropped from the top.
 
 The tracker (`index.html`) shows the full image behind the selected legend and a small icon from

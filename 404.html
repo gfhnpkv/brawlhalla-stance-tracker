@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page not found · Stance Tracker</title>
+  <meta name="theme-color" content="#0b101d" />
+  <!-- GitHub Pages serves this for any missing path, so links are absolute -->
+  <script src="/brawlhalla-stance-tracker/theme-boot.js"></script>
+  <link rel="icon" href="/brawlhalla-stance-tracker/icon.svg" type="image/svg+xml" />
+  <style>
+    :root { --bg: #0b101d; --panel: #131b2e; --line: #2a395c; --text: #f1f5f9; --muted: #94a3b8; --accent: #06b6d4;
+      --title-grad: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa); color-scheme: dark; }
+    :root[data-theme="valhalla"] { --bg: #120c1f; --panel: #1d1430; --line: #4a3470; --text: #fdf6e3; --muted: #b8a9d4; --accent: #f5c542;
+      --title-grad: linear-gradient(90deg, #ffe08a, #f5c542, #ff9f43); }
+    :root[data-theme="daylight"] { --bg: #f4f6fb; --panel: #ffffff; --line: #d5dce8; --text: #0f172a; --muted: #5b6678; --accent: #0e7490;
+      --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed); color-scheme: light; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; line-height: 1.5;
+      min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+    main { width: min(520px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; }
+    h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+      background: var(--title-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    p { color: var(--muted); margin: 8px 0 18px; }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    a { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); color: var(--accent); font-weight: 700; text-decoration: none; }
+    a:hover { border-color: var(--accent); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Page not found</h1>
+    <p>This page doesn't exist. The card collection, stance matrix, roadmap, compare, legend select and terminal pages were removed; the tracker, its mobile view and the stance lab are still here.</p>
+    <nav aria-label="Pages">
+      <a href="/brawlhalla-stance-tracker/index.html?view=auto">Stance tracker</a>
+      <a href="/brawlhalla-stance-tracker/app.html?view=mobile">📱 Mobile view</a>
+      <a href="/brawlhalla-stance-tracker/stances.html">Stance lab</a>
+    </nav>
+  </main>
+</body>
+</html>

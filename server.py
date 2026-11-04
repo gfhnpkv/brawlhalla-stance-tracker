@@ -1,6 +1,7 @@
 import http.server
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -21,15 +22,24 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=BASE_DIR, **kwargs)
 
-    def end_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        super().end_headers()
+    # Only the site's own files are served (no CORS headers, since the pages call /api on the same
+    # origin), so other websites open in the browser can't read the repo, .git or local secrets.
+    PUBLIC_FILE = re.compile(r'\.(html|js|json|svg|png|jpe?g|webp|avif|webmanifest|css|ico)$', re.I)
+    PRIVATE_DIRS = {'worker', 'tools'}
 
-    def do_OPTIONS(self):
-        self.send_response(204)
-        self.end_headers()
+    def is_public(self, path):
+        parts = [p for p in urllib.parse.unquote(path).split('/') if p]
+        if not parts:
+            return True  # / serves index.html
+        if any(p.startswith('.') for p in parts) or parts[0] in self.PRIVATE_DIRS:
+            return False
+        return bool(self.PUBLIC_FILE.search(parts[-1]))
+
+    def do_HEAD(self):
+        if not self.is_public(urllib.parse.urlparse(self.path).path):
+            self.send_error(404)
+            return
+        super().do_HEAD()
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -48,6 +58,9 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
                                 lambda b: b.get('legends'))
             return
 
+        if not self.is_public(parsed.path):
+            self.send_error(404)
+            return
         super().do_GET()
 
     def relay_json(self, url, bh_id, has_player):

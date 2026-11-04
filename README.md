@@ -3,7 +3,8 @@
 Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **v**: target (best) stance unlocked
 - **!**: standard alternative stance unlocked
-- **x**: still locked
+- **…**: played, but no stance unlocked yet
+- **🔒**: locked: you haven't played this legend or don't own it (the API can't tell those apart)
 
 ## Use it
 - **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (works from any computer or phone)
@@ -11,11 +12,14 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **Stance lab:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stances.html (what each stance does to every legend's stats, with your picks and notes)
 - **Locally:** `python3 server.py`, then open http://localhost:8000
 
+The card collection, stance matrix, roadmap, compare, legend select and terminal pages were removed in
+November 2026. Old links to them show a "page not found" page that links to the three pages above.
+
 ## How data is fetched
 dair.gg doesn't reliably allow direct browser requests, so it goes through a relay:
 - locally, `server.py` (`/api/dair/{id}`, `/api/player/{id}`)
 - online, the Cloudflare Worker in `worker/` (https://brawlhalla-tracker-relay.gfhnpkv.workers.dev). It only relays
-  numeric player IDs and only allows requests from the GitHub Pages site and localhost.
+  numeric player IDs and only answers requests from the GitHub Pages site and localhost (anything else gets a 403).
 
 To redeploy the Worker after changing it: `cd worker && npx wrangler@4 deploy`
 
