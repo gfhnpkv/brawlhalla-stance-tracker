@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0a1430" />
+  <title>Stance Tracker · Broadcast</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="preload" href="fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <style>
+    /* Barlow Condensed (SIL Open Font License, fonts/OFL.txt), self-hosted */
+    @font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-display: swap; src: url('fonts/barlow-condensed-latin-600-normal.woff2') format('woff2'); }
+    @font-face { font-family: 'Barlow Condensed'; font-weight: 800; font-display: swap; src: url('fonts/barlow-condensed-latin-800-normal.woff2') format('woff2'); }
+
+    :root {
+      color-scheme: dark;
+      /* Deep navy shell, three layers */
+      --ground: #0a1430;
+      --panel: #101d42;
+      --raised: #182a58;
+      --line: #263c74;
+      --text: #eef2ff;
+      --muted: #a9b8dc;
+      /* Broadcast gold: the live bar, the score bug, focus and selection */
+      --gold: #ffc53d;
+      --gold-ink: #0a1430;
+      /* States (same meaning as index.html) */
+      --best: #4fdb8d;
+      --standard: #ff9d57;
+      --prog: #8fb0ee;
+      --locked: #8e9cc0;
+      --win: #4fdb8d;
+      --loss: #ff7385;
+      --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+      --body: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --radius: 6px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    * { box-sizing: border-box; }
+    html { scrollbar-color: var(--line) var(--ground); }
+    body {
+      margin: 0; background: var(--ground); color: var(--text);
+      font: 400 0.9375rem/1.5 var(--body); caret-color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+    ::selection { background: var(--gold); color: var(--gold-ink); }
+    a { color: var(--text); text-underline-offset: 3px; }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+    [hidden] { display: none !important; }
+    .icon { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.125em; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: 0.01em; margin: 0; line-height: 1.1; }
+    h2 { font-size: 1.5rem; text-transform: uppercase; }
+
+    /* ---------- standard controls ---------- */
+    button, input, select { font: inherit; color: inherit; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 40px; padding: 0 16px; border-radius: var(--radius); cursor: pointer;
+      background: var(--raised); border: 1px solid var(--line); font-weight: 650;
+      transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
+    }
+    .btn:hover { background: #20366d; border-color: #3a5598; }
+    .btn:disabled { opacity: 0.55; cursor: progress; }
+    .btn.primary { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
+    .btn.primary:hover { background: #ffd469; }
+    .field {
+      min-height: 40px; padding: 0 12px; border-radius: var(--radius);
+      background: var(--ground); border: 1px solid var(--line);
+    }
+    .field::placeholder { color: #8d9cc4; }
+    .field:hover { border-color: #3a5598; }
+    select.field { padding-right: 8px; }
+
+    /* ---------- top bar ---------- */
+    .topbar {
+      display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+      padding: 12px 24px; background: var(--panel); border-bottom: 1px solid var(--line);
+    }
+    .brand { font-family: var(--display); font-weight: 800; font-size: 1.375rem; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+    .brand span { color: var(--gold); }
+    .nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nav a { padding: 8px 10px; border-radius: var(--radius); color: var(--muted); text-decoration: none; font-weight: 600; }
+    .nav a:hover { color: var(--text); background: var(--raised); }
+    .idform { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+    .idform .field { width: 170px; }
+    .sync-status { padding: 6px 24px; min-height: 1.5em; color: var(--muted); font-size: 0.8125rem; background: var(--panel); }
+    .sync-status:empty { display: none; }
+
+    /* ---------- live bar ---------- */
+    .livebar {
+      display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 24px;
+      padding: 16px 24px; background: var(--raised); border-bottom: 1px solid var(--line);
+      transition: background-color 200ms var(--ease);
+    }
+    .livebar.on { background: var(--gold); color: var(--gold-ink); border-bottom-color: var(--gold); }
+    .live-switch {
+      display: inline-flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 18px 0 10px;
+      border-radius: 999px; cursor: pointer; font-weight: 750; border: 1px solid var(--line);
+      background: var(--ground); color: var(--text);
+    }
+    .live-switch .track { width: 44px; height: 26px; border-radius: 999px; background: var(--line); position: relative; transition: background-color 150ms var(--ease); }
+    .live-switch .track::after {
+      content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--text); transition: transform 200ms var(--ease);
+    }
+    .live-switch[aria-checked="true"] .track { background: var(--gold); }
+    .live-switch[aria-checked="true"] .track::after { transform: translateX(18px); background: var(--gold-ink); }
+    .livebar.on .live-switch { background: var(--gold-ink); color: var(--text); border-color: var(--gold-ink); }
+    .livebar.on .live-switch:focus-visible { outline-color: var(--gold-ink); }
+    .live-state { min-width: 0; }
+    .live-state .headline { font-family: var(--display); font-weight: 800; font-size: 2.25rem; line-height: 1; text-transform: uppercase; display: flex; align-items: center; gap: 12px; }
+    .live-state .detail { margin-top: 4px; font-size: 0.875rem; color: var(--muted); }
+    .livebar.on .live-state .detail { color: #22305a; }
+    .pulse { width: 14px; height: 14px; border-radius: 50%; background: var(--locked); flex: none; }
+    .livebar.on .pulse { background: var(--gold-ink); }
+    .livebar.playing .pulse { background: #c8102e; box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.25); }
+
+    /* Signature: the score bug */
+    .scorebug {
+      display: grid; grid-template-columns: auto auto auto; align-items: stretch;
+      background: var(--ground); color: var(--text); border-radius: var(--radius); overflow: hidden;
+      box-shadow: 0 6px 18px rgba(4, 9, 24, 0.45);
+    }
+    .scorebug .side { display: grid; place-items: center; padding: 6px 16px; min-width: 72px; }
+    .scorebug .num { font-family: var(--display); font-weight: 800; font-size: 2.75rem; line-height: 1; display: block; }
+    .scorebug .lab { font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .scorebug .w .num { color: var(--win); }
+    .scorebug .l .num { color: var(--loss); }
+    .scorebug .mid { background: var(--raised); padding: 6px 16px; display: grid; align-content: center; gap: 2px; min-width: 132px; text-align: center; }
+    .scorebug .mid .games { font-family: var(--display); font-weight: 800; font-size: 1.25rem; text-transform: uppercase; line-height: 1.1; }
+    .scorebug .mid .last { font-size: 0.75rem; color: var(--muted); white-space: nowrap; }
+    .scorebug .flag { grid-column: 1 / -1; background: var(--gold); color: var(--gold-ink); text-align: center; font-family: var(--display); font-weight: 800; font-size: 0.875rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; }
+    .livebar.on .scorebug .flag { background: var(--gold-ink); color: var(--gold); }
+    /* A match landing: the numbers roll in and the flag reads FINAL */
+    .scorebug.landed .num, .scorebug.landed .games { animation: roll 220ms var(--ease); }
+    @keyframes roll { from { transform: translateY(-45%); opacity: 0.2; } to { transform: none; opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+
+    /* ---------- page grid ---------- */
+    main { max-width: 1440px; margin: 0 auto; padding: 24px; display: grid; gap: 32px; }
+    .top-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 12px; }
+    .panel-head .meta { color: var(--muted); font-size: 0.8125rem; }
+
+    /* NEXT UP */
+    .nextup { overflow: hidden; }
+    .nextup-hero { display: grid; grid-template-columns: 220px 1fr; gap: 0; border-top: 1px solid var(--line); }
+    .nextup-art { background: var(--raised); min-height: 220px; position: relative; overflow: hidden; }
+    .nextup-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+    .nextup-art .initial { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 6rem; color: var(--line); }
+    .nextup-body { padding: 20px 24px; display: grid; gap: 12px; align-content: center; }
+    .nextup-name { font-size: 3.25rem; text-transform: uppercase; }
+    .nextup-levels { display: flex; align-items: baseline; gap: 12px; font-family: var(--display); font-weight: 800; }
+    .nextup-levels .now { font-size: 2.25rem; }
+    .nextup-levels .arrow { color: var(--muted); font-size: 1.5rem; }
+    .nextup-levels .to { font-size: 2.25rem; color: var(--gold); }
+    .nextup-levels .unit { font-size: 1rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .nextup-what { font-weight: 650; }
+    .meter { height: 10px; background: var(--ground); border-radius: 999px; overflow: hidden; }
+    .meter > span { display: block; height: 100%; background: var(--gold); border-radius: inherit; transition: width 250ms var(--ease); }
+    .then { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+    .then li + li { border-top: 1px solid var(--line); }
+    .then button {
+      width: 100%; display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: center;
+      padding: 10px 20px; background: none; border: 0; text-align: left; cursor: pointer;
+    }
+    .then button:hover { background: var(--raised); }
+    .then img, .then .ph { width: 40px; height: 40px; border-radius: 4px; object-fit: cover; object-position: center 15%; background: var(--raised); }
+    .then .sub { color: var(--muted); font-size: 0.8125rem; }
+    .then .need { font-family: var(--display); font-weight: 800; font-size: 1.25rem; white-space: nowrap; }
+
+    /* History */
+    .history .today { padding: 0 20px 12px; font-weight: 650; }
+    .history .note { padding: 0 20px 8px; color: var(--muted); font-size: 0.75rem; }
+    .hist-list { border-top: 1px solid var(--line); max-height: 420px; overflow: auto; }
+    .hist-row { display: grid; grid-template-columns: auto 32px 1fr auto 52px; gap: 10px; align-items: center; padding: 8px 20px; }
+    .hist-row + .hist-row { border-top: 1px solid var(--line); }
+    .hist-when { color: var(--muted); font-size: 0.8125rem; white-space: nowrap; min-width: 4.5em; }
+    .hist-art { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; object-position: center 15%; }
+    .hist-result { font-family: var(--display); font-weight: 800; font-size: 1.125rem; min-width: 2.5ch; text-align: center; padding: 0 6px; border-radius: 4px; }
+    .hist-result.win { color: var(--win); }
+    .hist-result.loss { color: var(--loss); }
+    .hist-result.mixed { color: var(--text); }
+    .hist-lvl { color: var(--muted); font-size: 0.8125rem; text-align: right; }
+    .hist-empty { padding: 20px; color: var(--muted); }
+    .hist-more { margin: 12px 20px 16px; }
+
+    /* Roster */
+    .roster-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+    .counts { display: flex; gap: 20px; color: var(--muted); font-size: 0.875rem; }
+    .counts b { font-family: var(--display); font-size: 1.375rem; color: var(--text); margin-right: 4px; }
+    .toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+    .toolbar .search { position: relative; flex: 1 1 220px; max-width: 320px; }
+    .toolbar .search .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+    .toolbar .search .field { width: 100%; padding-left: 36px; }
+    .tabs { display: inline-flex; background: var(--ground); border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; gap: 2px; flex-wrap: wrap; }
+    .tabs button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 4px; background: none; color: var(--muted); font-weight: 650; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .tabs button:hover { color: var(--text); }
+    .tabs button[aria-pressed="true"] { background: var(--raised); color: var(--text); }
+    .roster-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; align-items: start; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 10px; }
+    .tile {
+      position: relative; display: grid; grid-template-rows: 96px auto; padding: 0; overflow: hidden; text-align: left;
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+      transition: border-color 150ms var(--ease), transform 150ms var(--ease);
+    }
+    .tile:hover { border-color: #3a5598; }
+    .tile[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+    .tile .art { display: block; height: 96px; background: var(--raised); position: relative; overflow: hidden; }
+    .tile .info, .tile .bar { position: relative; z-index: 1; background: var(--panel); }
+    .tile .art img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; display: block; }
+    .tile.st-x .art img { filter: grayscale(1); opacity: 0.55; }
+    .tile .art .initial { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 2.5rem; color: var(--line); }
+    .tile .info { padding: 6px 8px 8px; display: grid; gap: 2px; min-width: 0; }
+    .tile .name { font-family: var(--display); font-weight: 800; font-size: 1.0625rem; text-transform: uppercase; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tile .lvl { font-size: 0.75rem; color: var(--muted); }
+    .tile .badge { position: absolute; top: 6px; right: 6px; }
+    .badge { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--ground); font-size: 0.875rem; }
+    .st-v .badge, .c-v { color: var(--best); }
+    .st-\! .badge, .c-\! { color: var(--standard); }
+    .st-p .badge, .c-p { color: var(--prog); }
+    .st-x .badge, .c-x { color: var(--locked); }
+    .tile .bar { display: block; height: 3px; background: var(--ground); }
+    .tile .bar span { display: block; height: 100%; }
+    .tile .name, .tile .lvl { display: block; }
+    .tile.st-v .bar span { background: var(--best); }
+    .tile.st-\! .bar span { background: var(--standard); }
+    .tile.st-p .bar span { background: var(--prog); }
+    .empty-grid { padding: 32px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: var(--radius); }
+
+    /* Legend details */
+    .details { position: sticky; top: 16px; overflow: hidden; }
+    .details-art { height: 180px; position: relative; background: var(--raised); overflow: hidden; }
+    .details-art img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; }
+    .details-body { padding: 16px 20px 20px; display: grid; gap: 16px; }
+    .details-title { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+    .details-title h3 { font-size: 2rem; text-transform: uppercase; }
+    .details-title .sub { color: var(--muted); font-size: 0.8125rem; }
+    .pin { width: 40px; padding: 0; }
+    .pin[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+    .pin[aria-pressed="true"] .icon { fill: currentColor; }
+    .status-line { display: inline-flex; gap: 8px; align-items: center; font-weight: 650; }
+    .stepper { display: flex; align-items: center; gap: 8px; }
+    .stepper .lvlnum { font-family: var(--display); font-weight: 800; font-size: 1.75rem; margin-right: auto; }
+    .stepper .btn { width: 40px; padding: 0; }
+    .stepper .field { width: 64px; text-align: center; }
+    .stance-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stance-card { background: var(--raised); border-radius: var(--radius); padding: 10px 12px; }
+    .stance-card .k { font-size: 0.75rem; font-weight: 700; display: flex; justify-content: space-between; gap: 6px; }
+    .stance-card .v { font-weight: 700; margin-top: 2px; }
+    .next-note { color: var(--muted); font-size: 0.875rem; }
+    .order { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+    .order li { display: grid; grid-template-columns: 44px 1fr 16px; gap: 6px; align-items: center; font-size: 0.875rem; padding: 4px 0; color: var(--muted); }
+    .order li.got { color: var(--text); }
+    .order li .lv { font-family: var(--display); font-weight: 800; color: var(--muted); }
+    .order li.got .icon { color: var(--best); }
+    .details h4 { margin: 0 0 6px; font-size: 0.8125rem; font-weight: 700; color: var(--muted); }
+
+    /* Pop-ups */
+    .toasts { position: fixed; right: 20px; bottom: 20px; z-index: 50; display: grid; gap: 10px; width: min(380px, calc(100vw - 32px)); pointer-events: none; }
+    .toast {
+      pointer-events: auto; background: var(--panel); border: 1px solid var(--gold); border-radius: var(--radius);
+      padding: 14px 16px; box-shadow: 0 10px 30px rgba(4, 9, 24, 0.6); display: grid; gap: 6px;
+      animation: toast-in 200ms var(--ease);
+    }
+    @keyframes toast-in { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .toast strong { font-family: var(--display); font-weight: 800; font-size: 1.25rem; text-transform: uppercase; line-height: 1.15; }
+    .toast > span { color: var(--muted); font-size: 0.875rem; }
+    .toast .row { display: flex; gap: 8px; margin-top: 4px; }
+
+    footer { max-width: 1440px; margin: 0 auto; padding: 8px 24px 40px; color: var(--muted); font-size: 0.8125rem; }
+
+    /* ---------- phone ---------- */
+    @media (max-width: 1100px) {
+      .roster-wrap { grid-template-columns: 1fr; }
+      .details { position: static; }
+    }
+    @media (max-width: 860px) {
+      .top-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .topbar { padding: 10px 16px; gap: 10px; }
+      .nav { order: 3; width: 100%; }
+      .idform { margin-left: 0; width: 100%; order: 2; }
+      .idform .field { flex: 1; width: auto; min-width: 0; }
+      .sync-status { padding: 6px 16px; }
+      .livebar { grid-template-columns: 1fr auto; padding: 14px 16px; gap: 12px 16px; }
+      .livebar .scorebug { grid-column: 1 / -1; grid-template-columns: 1fr 1.4fr 1fr; }
+      .live-state { grid-column: 1; grid-row: 1; }
+      .live-switch { grid-column: 2; grid-row: 1; }
+      .live-state .headline { font-size: 1.75rem; }
+      main { padding: 16px; gap: 24px; }
+      .nextup-hero { grid-template-columns: 112px 1fr; }
+      .nextup-art { min-height: 150px; }
+      .nextup-body { padding: 14px 16px; gap: 8px; }
+      .nextup-name { font-size: 2.25rem; }
+      .nextup-levels .now, .nextup-levels .to { font-size: 1.75rem; }
+      .panel-head { padding: 14px 16px 10px; }
+      .then button { padding: 10px 16px; }
+      .hist-row { grid-template-columns: auto 28px 1fr auto 44px; gap: 8px; padding: 8px 16px; }
+      .hist-art { width: 28px; height: 28px; }
+      .history .today, .history .note { padding-left: 16px; padding-right: 16px; }
+      .toolbar .search { max-width: none; flex-basis: 100%; }
+      .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .tile .art { height: 84px; }
+      .tile .name { font-size: 1rem; }
+      .order { grid-template-columns: 1fr; }
+      .toasts { right: 16px; bottom: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+    <symbol id="i-bang" viewBox="0 0 24 24"><path d="M12 5v9" /><path d="M12 19h.01" /></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01" /></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4-4" /></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z" /></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-14 5.3M4 12a8 8 0 0 1 14-5.3" /><path d="M18 3v4h-4M6 21v-4h4" /></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14" /></symbol>
+    <symbol id="i-unlock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 7.5-2" /></symbol>
+  </svg>
+
+  <header class="topbar">
+    <div class="brand">Stance <span>Tracker</span></div>
+    <nav class="nav" aria-label="Pages">
+      <a href="index.html?view=desktop">Current tracker</a>
+      <a href="stances.html">Stance lab</a>
+      <a href="stats.html">Stats</a>
+    </nav>
+    <form class="idform" id="idForm" autocomplete="off">
+      <label class="sr-only" for="idInput">Brawlhalla ID</label>
+      <input class="field" id="idInput" inputmode="numeric" placeholder="Brawlhalla ID" />
+      <button class="btn primary" id="syncBtn" type="submit"><svg class="icon"><use href="#i-sync" /></svg>Sync</button>
+    </form>
+  </header>
+  <div class="sync-status" id="syncStatus" role="status"></div>
+
+  <section class="livebar" id="liveBar" aria-label="Live mode">
+    <button class="live-switch" id="liveSwitch" type="button" role="switch" aria-checked="false">
+      <span class="track" aria-hidden="true"></span><span>Live</span>
+    </button>
+    <div class="live-state" aria-live="polite">
+      <div class="headline"><span class="pulse" aria-hidden="true"></span><span id="liveHeadline">Live is off</span></div>
+      <div class="detail" id="liveDetail">Turn on Live while you play: it checks for finished matches every minute and calls out new stances.</div>
+    </div>
+    <div class="scorebug" id="scoreBug" aria-label="This session">
+      <div class="side w"><span class="num" id="bugW">0</span><span class="lab">Wins</span></div>
+      <div class="mid"><span class="games" id="bugGames">0 games</span><span class="last" id="bugLast">No match yet</span></div>
+      <div class="side l"><span class="num" id="bugL">0</span><span class="lab">Losses</span></div>
+      <div class="flag" id="bugFlag">Session</div>
+    </div>
+  </section>
+
+  <main>
+    <div class="top-grid">
+      <section class="panel nextup" aria-labelledby="nextUpTitle">
+        <div class="panel-head"><h2 id="nextUpTitle">Next up</h2><span class="meta">Closest to the next stance</span></div>
+        <div id="nextUp"></div>
+        <ul class="then" id="thenList" aria-label="Also close"></ul>
+      </section>
+
+      <section class="panel history" aria-labelledby="histTitle">
+        <div class="panel-head"><h2 id="histTitle">Game history</h2></div>
+        <div id="history"></div>
+      </section>
+    </div>
+
+    <section aria-labelledby="rosterTitle">
+      <div class="roster-head">
+        <h2 id="rosterTitle">Roster</h2>
+        <div class="counts" id="counts"></div>
+      </div>
+      <div class="toolbar">
+        <div class="search">
+          <svg class="icon"><use href="#i-search" /></svg>
+          <label class="sr-only" for="search">Search legends</label>
+          <input class="field" id="search" type="search" placeholder="Search legend, stance or weapon" />
+        </div>
+        <div class="tabs" id="filters" role="group" aria-label="Status filter"></div>
+        <label class="sr-only" for="sort">Sort</label>
+        <select class="field" id="sort">
+          <option value="order">Champ select order</option>
+          <option value="needed">Closest to next unlock</option>
+          <option value="level_desc">Level, high to low</option>
+          <option value="level_asc">Level, low to high</option>
+          <option value="recent">Recent improvements</option>
+          <option value="alpha">Alphabetical (A–Z)</option>
+        </select>
+      </div>
+      <div class="roster-wrap">
+        <div class="grid" id="grid"></div>
+        <aside class="panel details" id="details" aria-label="Legend details"></aside>
+      </div>
+    </section>
+  </main>
+  <footer>Levels come from dair.gg and the official Brawlhalla API. Alternative design preview: the <a href="index.html?view=desktop">current tracker</a> keeps working as before.</footer>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <script src="legends.js"></script>
+  <script src="core.js"></script>
+  <script src="goals.js"></script>
+  <script src="history.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const esc = str => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}" /></svg>`;
+    const S = Tracker.state;
+    const lvlOf = name => Tracker.getLevel(name);
+    const statusOf = l => Tracker.statusOf(l, lvlOf(l.name));
+
+    // Status copy from index.html
+    const STATUS_WORD = { v: 'Best stance unlocked', '!': 'Standard stance unlocked', p: 'Played, no stance yet', x: 'Locked (not played / not owned)' };
+    const STATUS_SHORT = { v: 'best', '!': 'standard', p: 'in progress', x: 'locked' };
+    const STATUS_ICON = { v: 'check', '!': 'bang', p: 'dots', x: 'lock' };
+    const FILTERS = [['ALL', 'All'], ['v', 'Best'], ['!', 'Standard'], ['p', 'In progress'], ['x', 'Locked']];
+    const badge = st => `<span class="badge" title="${STATUS_WORD[st]}">${icon(STATUS_ICON[st])}<span class="sr-only">${STATUS_WORD[st]}</span></span>`;
+
+    let portraits = {};
+    const portraitOf = name => portraits[Tracker.portraitSlug(name)] || '';
+    const art = (name, cls = '') => {
+      const src = portraitOf(name);
+      return src ? `<img class="${cls}" src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()" />` : `<span class="initial" aria-hidden="true">${esc(name[0])}</span>`;
+    };
+
+    let selected = null, filter = 'ALL', historyLimit = 20;
+
+    // ---------- next up ----------
+    function nextList() {
+      return LEGENDS_DB.map(l => ({ l, lvl: lvlOf(l.name) }))
+        .map(o => ({ ...o, next: Tracker.nextTarget(o.l, o.lvl) }))
+        .filter(o => o.next)
+        .sort((a, b) => (a.next.lvl - a.lvl) - (b.next.lvl - b.lvl) || Tracker.progressToNext(b.l, b.lvl) - Tracker.progressToNext(a.l, a.lvl))
+        .slice(0, 5);
+    }
+    function renderNextUp() {
+      const items = nextList();
+      if (!items.length) {
+        $('nextUp').innerHTML = `<div class="nextup-body">Every best stance unlocked.</div>`;
+        $('thenList').innerHTML = '';
+        return;
+      }
+      const [top, ...rest] = items;
+      const need = top.next.lvl - top.lvl;
+      $('nextUp').innerHTML = `
+        <div class="nextup-hero">
+          <div class="nextup-art">${art(top.l.name)}</div>
+          <div class="nextup-body">
+            <h3 class="nextup-name">${esc(top.l.name)}</h3>
+            <div class="nextup-levels" aria-label="Level ${top.lvl} to ${top.next.lvl}">
+              <span class="unit">Lv</span><span class="now">${top.lvl}</span><span class="arrow" aria-hidden="true">→</span><span class="to">${top.next.lvl}</span>
+              <span class="unit">${need} lvl${need === 1 ? '' : 's'} to go</span>
+            </div>
+            <div class="meter" role="progressbar" aria-label="Progress to level ${top.next.lvl}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Tracker.progressToNext(top.l, top.lvl) * 100)}"><span style="width:${Tracker.progressToNext(top.l, top.lvl) * 100}%"></span></div>
+            <div class="nextup-what"><span class="c-${top.next.status === 'v' ? 'v' : '!'}">${esc(top.next.what)}</span> (${STATUS_SHORT[top.next.status]})</div>
+            <div><button class="btn" type="button" data-pick="${esc(top.l.name)}">Open details</button></div>
+          </div>
+        </div>`;
+      $('thenList').innerHTML = rest.map(o => {
+        const n = o.next.lvl - o.lvl;
+        const src = portraitOf(o.l.name);
+        return `<li><button type="button" data-pick="${esc(o.l.name)}">
+          ${src ? `<img src="${esc(src)}" alt="" loading="lazy" />` : '<span class="ph"></span>'}
+          <span><strong>${esc(o.l.name)}</strong><div class="sub">Lv.${o.lvl} → ${o.next.lvl} · ${esc(o.next.what)} (${STATUS_SHORT[o.next.status]})</div></span>
+          <span class="need">${n} lvl${n === 1 ? '' : 's'}</span>
+        </button></li>`;
+      }).join('');
+    }
+
+    // ---------- history ----------
+    function renderHistory() {
+      const box = $('history');
+      if (!S.id) {
+        box.innerHTML = `<div class="hist-empty">Enter your Brawlhalla ID and Sync to start recording games.</div>`;
+        return;
+      }
+      box.innerHTML = MatchHistory.html(S.id, { limit: historyLimit, portraitOf });
+      // Wrap the rows so the list scrolls on its own; the summary stays put
+      const rows = [...box.querySelectorAll('.hist-row, .hist-empty')];
+      if (rows.length) {
+        const list = document.createElement('div');
+        list.className = 'hist-list';
+        rows[0].before(list);
+        rows.forEach(r => list.appendChild(r));
+      }
+      box.querySelector('.hist-today').className = 'today';
+      box.querySelector('.hist-note').className = 'note';
+      const more = box.querySelector('[data-hist-more]');
+      if (more) more.className = 'btn hist-more';
+    }
+
+    // ---------- roster ----------
+    function renderFilters() {
+      const counts = { v: 0, '!': 0, p: 0, x: 0 };
+      LEGENDS_DB.forEach(l => counts[statusOf(l)]++);
+      $('filters').innerHTML = FILTERS.map(([key, label]) =>
+        `<button type="button" data-filter="${key}" aria-pressed="${filter === key}">${key === 'ALL' ? '' : `<span class="c-${key}">${icon(STATUS_ICON[key])}</span>`}${label}</button>`).join('');
+      $('counts').innerHTML = `<span><b>${counts.v}</b>best</span><span><b>${counts['!']}</b>standard</span><span><b>${counts.p}</b>in progress</span><span><b>${counts.x}</b>locked</span>`;
+    }
+    function renderGrid() {
+      const q = $('search').value.trim().toLowerCase();
+      const sortBy = $('sort').value;
+      const latest = {};
+      S.log.forEach(e => { if (!latest[e.legend] || e.ts > latest[e.legend]) latest[e.legend] = e.ts; });
+      const remaining = l => { const v = lvlOf(l.name); return v >= l.vLvl ? 999 : v >= l.bangLvl ? l.vLvl - v : l.bangLvl - v; };
+      const list = LEGENDS_DB.filter(l => {
+        if (filter !== 'ALL' && statusOf(l) !== filter) return false;
+        if (!q) return true;
+        const weapons = ((S.stats[l.name] && S.stats[l.name].weapons) || []).join(' ');
+        return `${l.name} ${l.target} ${l.alt} ${l.title} ${weapons}`.toLowerCase().includes(q);
+      }).sort((a, b) => {
+        const A = lvlOf(a.name), B = lvlOf(b.name);
+        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
+        if (sortBy === 'level_desc') return B - A || a.order - b.order;
+        if (sortBy === 'level_asc') return A - B || a.order - b.order;
+        if (sortBy === 'recent') return (latest[b.name] || 0) - (latest[a.name] || 0) || a.order - b.order;
+        if (sortBy === 'needed') return remaining(a) - remaining(b) || a.order - b.order;
+        return a.order - b.order;
+      });
+      $('grid').innerHTML = list.length ? list.map(l => {
+        const lvl = lvlOf(l.name), st = statusOf(l);
+        const pct = st === 'v' ? 100 : Tracker.progressToNext(l, lvl) * 100;
+        return `<button type="button" class="tile st-${st}" data-pick="${esc(l.name)}" aria-pressed="${selected === l.name}"
+            aria-label="${esc(l.name)}, level ${lvl}, ${STATUS_WORD[st]}">
+          <span class="art">${art(l.name)}</span>
+          ${badge(st)}
+          <span class="info"><span class="name">${esc(l.name)}</span><span class="lvl">Lv ${lvl}</span></span>
+          <span class="bar"><span style="width:${pct}%"></span></span>
+        </button>`;
+      }).join('') : `<div class="empty-grid">No legends match. Clear the search or pick another status.</div>`;
+    }
+
+    // ---------- legend details ----------
+    function renderDetails() {
+      const l = LEGENDS_DB.find(x => x.name === selected) || nextList()[0]?.l || LEGENDS_DB[0];
+      const lvl = lvlOf(l.name), st = statusOf(l);
+      const pinned = Goals.has(l.name);
+      let next = 'Best stance unlocked';
+      if (st === 'x' || st === 'p') next = `${st === 'x' ? 'Not played yet · ' : ''}Standard stance at Lv ${l.bangLvl} (${l.bangLvl - lvl} to go) · best stance at Lv ${l.vLvl}`;
+      else if (st === '!') next = `Best stance at Lv ${l.vLvl} (${l.vLvl - lvl} to go)`;
+      const order = [3, 4, 6, 8, 11, 13, 15, 17].map(n => [n, l.stances[n]]).concat([[40, 'Challenge Stance'], [100, 'Gold Name']]);
+      $('details').innerHTML = `
+        <div class="details-art">${art(l.name)}</div>
+        <div class="details-body">
+          <div class="details-title">
+            <div><h3>${esc(l.name)}</h3><div class="sub">${esc(l.title)}</div></div>
+            <button class="btn pin" type="button" data-pin="${esc(l.name)}" aria-pressed="${pinned}" aria-label="${pinned ? 'Unpin goal' : 'Pin as a goal'}" title="${pinned ? 'Unpin goal' : 'Pin as a goal'}">${icon('star')}</button>
+          </div>
+          <div class="status-line c-${st}">${icon(STATUS_ICON[st])}${STATUS_WORD[st]}</div>
+          <div class="stepper">
+            <span class="lvlnum">Level ${lvl}</span>
+            <button class="btn" type="button" data-step="-1" aria-label="Level down" ${lvl <= 1 ? 'disabled' : ''}>${icon('minus')}</button>
+            <label class="sr-only" for="lvlInput">Level</label>
+            <input class="field" id="lvlInput" type="number" min="1" max="100" value="${lvl}" />
+            <button class="btn" type="button" data-step="1" aria-label="Level up" ${lvl >= 100 ? 'disabled' : ''}>${icon('plus')}</button>
+          </div>
+          <div class="next-note">${next}</div>
+          <div class="stance-pair">
+            <div class="stance-card"><div class="k c-v"><span>Best stance</span><span>Lv ${l.vLvl}</span></div><div class="v">${esc(l.target)}</div></div>
+            <div class="stance-card"><div class="k c-!"><span>Standard stance</span><span>Lv ${l.bangLvl}</span></div><div class="v">${esc(l.alt)}</div></div>
+          </div>
+          <div>
+            <h4>Stance order</h4>
+            <ul class="order">${order.map(([n, name]) => `<li class="${lvl >= n ? 'got' : ''}"><span class="lv">Lv ${n}</span><span>${esc(name)}</span>${icon(lvl >= n ? 'check' : 'lock')}</li>`).join('')}</ul>
+          </div>
+        </div>`;
+    }
+    function pick(name) {
+      selected = name;
+      renderGrid();
+      renderDetails();
+      const d = $('details');
+      if (getComputedStyle(d).position !== 'sticky') d.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }
+    function setLevel(value) {
+      const l = LEGENDS_DB.find(x => x.name === selected) || nextList()[0]?.l || LEGENDS_DB[0];
+      selected = l.name;
+      Tracker.setLevel(l.name, value);
+      renderAll();
+    }
+
+    function renderAll() {
+      renderNextUp();
+      renderHistory();
+      renderFilters();
+      renderGrid();
+      renderDetails();
+    }
+
+    // ---------- pop-ups ----------
+    function toast(title, body, action) {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.setAttribute('role', 'status');
+      t.innerHTML = `<strong></strong><span></span>`;
+      t.querySelector('strong').textContent = title;
+      t.querySelector('span').textContent = body;
+      if (action) {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<button class="btn primary toast-btn" type="button">${icon('check')}<span></span></button><button class="btn" type="button">Later</button>`;
+        row.querySelector('.toast-btn span').textContent = action.label;
+        row.children[0].addEventListener('click', () => { action.run(); t.remove(); });
+        row.children[1].addEventListener('click', () => t.remove());
+        t.appendChild(row);
+      }
+      $('toasts').appendChild(t);
+      setTimeout(() => t.remove(), action ? 60000 : 12000);
+    }
+    function notify(title, body, action) {
+      toast(title, body, action);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(title, { body }); } catch (err) { /* ignore */ }
+      }
+    }
+    function chime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [660, 880, 1320].forEach((f, i) => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+          const t0 = ctx.currentTime + i * 0.14;
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
+          o.start(t0); o.stop(t0 + 0.32);
+        });
+      } catch (err) { /* audio not available */ }
+    }
+    // "Done" means the player switched to the best stance unlocked now
+    const doneAction = name => ({ label: 'Done', run: () => Tracker.confirmStance(name) });
+    // One reminder per legend per Live session
+    function remindStances(names) {
+      const due = [...new Set(names)].filter(n => !live.reminded.has(n)).map(Tracker.pendingStance).filter(Boolean);
+      due.forEach(p => {
+        live.reminded.add(p.legend);
+        notify(`Did you switch ${p.legend} to ${p.stance}?`, `It's ${p.legend}'s ${p.kind} stance. Press Done once it's equipped in-game.`, doneAction(p.legend));
+      });
+      if (due.length) chime();
+    }
+    function announceUnlocks(unlocks) {
+      if (!unlocks.length) return;
+      chime();
+      unlocks.forEach(u => {
+        if (u.stance) notify(`${u.legend} hit level ${u.lvl}: switch to ${u.stance} (${u.kind} stance)`, 'Switch it in-game, then press Done.', doneAction(u.legend));
+        else notify(`${u.legend} unlocked ${u.what}`, `Reached level ${u.lvl}.`);
+      });
+    }
+
+    // ---------- sync ----------
+    async function sync(opts = {}) {
+      const bhId = $('idInput').value.trim();
+      const status = $('syncStatus');
+      if (!/^\d+$/.test(bhId)) {
+        status.textContent = bhId ? 'Brawlhalla ID must be a number (find it in-game under your profile).' : 'Please enter your numerical Brawlhalla ID first.';
+        return null;
+      }
+      if (Tracker.wouldReplace(bhId) && !confirm(Tracker.replaceWarning(bhId))) {
+        $('idInput').value = S.id;
+        status.textContent = 'Sync cancelled. Your saved levels were kept.';
+        return null;
+      }
+      const btn = $('syncBtn');
+      btn.disabled = true;
+      status.textContent = 'Syncing player stats…';
+      const beforeLevels = S.profile && S.profile.id !== bhId ? {} : { ...S.levels };
+      Tracker.setId(bhId);
+      const r = await Tracker.sync();
+      btn.disabled = false;
+      if (r.error) {
+        status.textContent = `Sync failed: ${r.error}`;
+        return null;
+      }
+      const counts = MatchHistory.fromStats(S.stats);
+      MatchHistory.record(bhId, counts, Tracker.getLevel);
+      MatchHistory.fillLevels(bhId, counts, Tracker.getLevel);
+      status.textContent = r.updated
+        ? `Synced ${S.profile.name} (#${bhId}). ${r.updated} legends updated.`
+        : `Found ${S.profile.name} (#${bhId}), but no legend levels came back (dair.gg may be down). Set levels with + / −, or try again later.`;
+      if (r.updated && r.missing) status.textContent += ` (${r.missing} had no level data.)`;
+      if (opts.live) status.textContent += ` Last checked ${new Date().toLocaleTimeString()}.`;
+      renderAll();
+      const goalAlerts = Goals.alerts(beforeLevels, S.levels);
+      goalAlerts.forEach(a => notify(a.type === 'reached' ? `Goal reached: ${a.legend}` : `${a.legend} is 1 level away`,
+        a.type === 'reached' ? `${a.what} unlocked at level ${a.lvl}.` : `One more level unlocks ${a.what}.`));
+      if (goalAlerts.length && opts.live) chime();
+      const reached = new Set(goalAlerts.filter(a => a.type === 'reached').map(a => `${a.legend}:${a.lvl}`));
+      return { unlocks: r.unlocks.filter(u => !reached.has(`${u.legend}:${u.lvl}`)) };
+    }
+
+    // ---------- Live mode (same polling as index.html) ----------
+    const ACTIVITY_POLL_MS = 60 * 1000;
+    const LEVEL_POLL_MS = 5 * 60 * 1000;
+    const PLAYING_WINDOW_MS = 15 * 60 * 1000;
+    let live = null, liveTimer = null;
+    const sumWins = g => Object.values(g.wins || {}).reduce((a, b) => a + b, 0);
+
+    function renderLive(landed) {
+      const bar = $('liveBar');
+      const now = Date.now();
+      const playing = !!(live && live.lastGameTs && now - live.lastGameTs < PLAYING_WINDOW_MS);
+      bar.classList.toggle('on', !!live);
+      bar.classList.toggle('playing', playing);
+      $('liveSwitch').setAttribute('aria-checked', String(!!live));
+      if (!live) {
+        $('liveHeadline').textContent = 'Live is off';
+        $('liveDetail').textContent = 'Turn on Live while you play: it checks for finished matches every minute and calls out new stances.';
+      } else {
+        const checked = live.lastCheck ? new Date(live.lastCheck).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'checking…';
+        $('liveHeadline').textContent = playing ? 'Playing now' : 'Not playing';
+        $('liveDetail').textContent = `${playing ? 'Match in the last 15 min' : 'Waiting for a match'} · checks every minute · last checked ${checked}`;
+      }
+      const s = live || { sessionGames: 0, sessionWins: 0, lastGameTs: null };
+      $('bugW').textContent = s.sessionWins;
+      $('bugL').textContent = Math.max(0, s.sessionGames - s.sessionWins);
+      $('bugGames').textContent = `${s.sessionGames} game${s.sessionGames === 1 ? '' : 's'}`;
+      if (s.lastGameTs) {
+        const mins = Math.round((now - s.lastGameTs) / 60000);
+        $('bugLast').textContent = `Last match ${mins ? mins + ' min ago' : 'just now'}`;
+      } else $('bugLast').textContent = live ? 'No match yet' : 'Live is off';
+      $('bugFlag').textContent = landed ? 'Final' : playing ? 'Live session' : 'Session';
+      if (landed) {
+        const bug = $('scoreBug');
+        bug.classList.remove('landed');
+        void bug.offsetWidth; // restart the roll
+        bug.classList.add('landed');
+      }
+    }
+
+    async function liveTick() {
+      const bhId = $('idInput').value.trim();
+      if (!live || !/^\d+$/.test(bhId)) return;
+      const now = Date.now();
+      const games = await Tracker.fetchGames(bhId);
+      if (!live) return; // Live was turned off while waiting
+      live.lastCheck = now;
+      let landed = false;
+      if (games !== null) {
+        if (MatchHistory.record(bhId, MatchHistory.fromGames(games)).length) renderHistory();
+        if (live.games !== null && games.games > live.games.games) {
+          live.sessionGames += games.games - live.games.games;
+          live.sessionWins += Math.max(0, sumWins(games) - sumWins(live.games));
+          live.lastGameTs = now;
+          landed = true;
+          // Re-check levels soon after a match (dair.gg may need a few minutes to update)
+          live.nextLevelSync = Math.min(live.nextLevelSync, now + 2 * 60 * 1000);
+          remindStances(Tracker.playedSince(live.games, games));
+        }
+        live.games = games;
+      }
+      if (now >= live.nextLevelSync) {
+        live.nextLevelSync = now + LEVEL_POLL_MS;
+        const result = await sync({ live: true });
+        if (!live) return;
+        if (result) announceUnlocks(result.unlocks);
+      }
+      renderLive(landed);
+    }
+
+    async function toggleLive() {
+      if (live) {
+        clearInterval(liveTimer);
+        liveTimer = null;
+        live = null;
+        try { localStorage.setItem('bh_live_v1', '0'); } catch (err) { /* storage unavailable */ }
+        renderLive();
+        return;
+      }
+      if (!/^\d+$/.test($('idInput').value.trim())) {
+        $('syncStatus').textContent = 'Enter your numeric Brawlhalla ID before turning on Live.';
+        $('idInput').focus();
+        return;
+      }
+      if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+      try { localStorage.setItem('bh_live_v1', '1'); } catch (err) { /* storage unavailable */ }
+      // First sync sets the baseline; unlocks found here are already logged, not announced
+      const session = live = { games: null, sessionGames: 0, sessionWins: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + LEVEL_POLL_MS, reminded: new Set() };
+      renderLive();
+      await sync({ live: true });
+      if (live !== session) return; // turned off (or off and on) meanwhile
+      await liveTick();
+      if (live !== session) return;
+      liveTimer = setInterval(liveTick, ACTIVITY_POLL_MS);
+    }
+
+    // ---------- events ----------
+    $('idForm').addEventListener('submit', e => { e.preventDefault(); sync(); });
+    $('liveSwitch').addEventListener('click', toggleLive);
+    $('search').addEventListener('input', renderGrid);
+    $('sort').addEventListener('change', renderGrid);
+    $('filters').addEventListener('click', e => {
+      const b = e.target.closest('[data-filter]');
+      if (!b) return;
+      filter = b.dataset.filter;
+      renderFilters();
+      renderGrid();
+    });
+    document.addEventListener('click', e => {
+      const p = e.target.closest('[data-pick]');
+      if (p) return pick(p.dataset.pick);
+      const pin = e.target.closest('[data-pin]');
+      if (pin) {
+        if (!Goals.toggle(pin.dataset.pin)) toast('Goal list is full', `Unpin a goal first (up to ${Goals.MAX}).`);
+        return renderDetails();
+      }
+      const step = e.target.closest('[data-step]');
+      if (step) return setLevel(lvlOf(selected) + Number(step.dataset.step));
+      if (e.target.closest('[data-hist-more]')) { historyLimit += 20; renderHistory(); }
+    });
+    $('details').addEventListener('change', e => { if (e.target.id === 'lvlInput') setLevel(e.target.value); });
+    // Another tab (the current tracker, say) saved: pick it up
+    window.addEventListener('storage', e => {
+      if (Tracker.isDataKey(e.key)) Tracker.reload();
+      if (MatchHistory.isKey(e.key)) MatchHistory.reload();
+      if (e.key === null || e.key === 'bh_goals_v1') Goals.reload();
+      renderAll();
+    });
+    setInterval(() => renderLive(), 30 * 1000);
+
+    // ---------- start ----------
+    $('idInput').value = S.id;
+    if (!S.id) $('syncStatus').textContent = 'New here? Enter your Brawlhalla ID (the number on your in-game profile) and press Sync to load your levels.';
+    renderAll();
+    renderLive();
+    Tracker.loadPortraits().then(p => { portraits = p; if (Object.keys(p).length) renderAll(); });
+    (() => {
+      let wasLive = false;
+      try { wasLive = localStorage.getItem('bh_live_v1') === '1'; } catch (err) { /* storage unavailable */ }
+      if (wasLive && S.id) return toggleLive();
+      if (S.id && (!S.profile || Date.now() - S.profile.syncedAt > 10 * 60 * 1000)) sync();
+    })();
+  </script>
+</body>
+</html>
