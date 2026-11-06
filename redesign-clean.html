@@ -251,8 +251,9 @@
     .sheet-body { padding: 0 24px 32px; overflow-y: auto; height: 100%; scrollbar-width: thin; }
     .sheet-top { position: sticky; top: 0; z-index: 1; display: flex; justify-content: flex-end; padding: 12px 0 0; margin-bottom: -48px; }
     .sheet-top .btn { background: rgba(22, 26, 33, 0.9); }
-    .sheet-art { margin: 0 -24px 16px; height: 220px; background: var(--bg); overflow: hidden; }
-    .sheet-art img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
+    /* The whole character, centered on the sheet's own ground, whether the art is tall or wide */
+    .sheet-art { margin: 0 -24px 16px; height: clamp(260px, 42vh, 380px); padding: 12px 24px 0; overflow: hidden; }
+    .sheet-art img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
     .sheet-art.blank { height: 64px; }
     .sheet h2 { font-size: var(--fs-3); font-weight: 700; letter-spacing: -0.01em; }
     .sheet .sub { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
@@ -446,15 +447,13 @@
     const chip = (st, long) => `<span class="chip ${STATUS[st].cls}">${icon(STATUS[st].icon)}${long ? STATUS[st].long : STATUS[st].short}</span>`;
 
     let portraits = {};
-    // Full art is only for the details sheet; everything else uses the small icons in portraits/mini/.
-    // Like index.html: a missing mini icon falls back to the full image, and a missing full image is removed.
+    // The details sheet uses the 720px AVIF; everything else the small AVIF icons. A failed AVIF
+    // falls back to its PNG (Tracker.portraitError), and a missing PNG is removed.
     const portraitOf = name => portraits[Tracker.portraitSlug(name)] || '';
-    const miniOf = name => portraitOf(name).replace('portraits/', 'portraits/mini/');
-    const artFallback = name => `if (this.src.includes('/mini/')) this.src='${esc(portraitOf(name))}'; else this.remove();`;
-    const avatar = (name, cls = 'avatar') => {
-      const src = portraitOf(name);
-      return src ? `<img class="${cls}" src="${esc(miniOf(name))}" alt="" loading="lazy" onerror="${artFallback(name)}" />` : `<span class="${cls}">${esc(name.slice(0, 2))}</span>`;
-    };
+    const miniOf = name => (portraitOf(name) ? Tracker.portraitSrc(name, 'mini') : '');
+    const avatar = (name, cls = 'avatar') => portraitOf(name)
+      ? `<img class="${cls}" src="${esc(miniOf(name))}" alt="" loading="lazy" decoding="async" onerror="if (!Tracker.portraitError(this)) this.remove();" />`
+      : `<span class="${cls}">${esc(name.slice(0, 2))}</span>`;
     // Weapon icons from weapons/ (legends.js uses the file names); shown with their in-game names
     const WEAPON_NAMES = { Pistol: 'Blasters', Fists: 'Gauntlets', Katar: 'Katars', RocketLance: 'Rocket Lance', Chakram: 'Chakrams' };
     const weaponsOf = name => (LEGEND_WEAPONS[name] || []).map(file => ({ file, label: WEAPON_NAMES[file] || file }));
@@ -729,11 +728,6 @@
       $('history').innerHTML = state.id
         ? MatchHistory.html(state.id, { limit: histLimit, portraitOf: miniOf })
         : '<p class="empty">Enter your Brawlhalla ID and sync to start recording games.</p>';
-      // MatchHistory's rows drop an image that fails; try the full one first, like everywhere else
-      $('history').querySelectorAll('img.hist-art').forEach(img => {
-        const full = img.getAttribute('src').replace('portraits/mini/', 'portraits/');
-        img.onerror = () => { if (img.src.includes('/mini/')) img.src = full; else img.remove(); };
-      });
       renderStrip();
     }
 
@@ -792,7 +786,7 @@
         const blank = `<span class="art blank" aria-hidden="true">${esc(l.name.slice(0, 2))}</span>`;
         const wpns = weaponsOf(l.name);
         return `<button class="tile${st === 'x' ? ' locked' : ''}" type="button" data-legend="${esc(l.name)}" aria-current="${sheetLegend === l.name}" aria-label="${esc(l.name)}, level ${Tracker.getLevel(l.name)}, ${STATUS[st].long}${wpns.length ? `, ${wpns.map(w => w.label).join(' and ')}` : ''}">
-          ${src ? `<img class="art" src="${esc(miniOf(l.name))}" alt="" loading="lazy" onerror="if (this.src.includes('/mini/')) this.src='${esc(src)}'; else this.outerHTML='${blank.replace(/"/g, '&quot;')}';" />` : blank}
+          ${src ? `<img class="art" src="${esc(miniOf(l.name))}" alt="" width="260" height="195" loading="lazy" decoding="async" onerror="if (!Tracker.portraitError(this)) this.outerHTML='${blank.replace(/"/g, '&quot;')}';" />` : blank}
           <span class="meta"><span class="nmrow"><span class="nm">${esc(l.name)}</span><span class="wpns">${wpns.map(weaponIcon).join('')}</span></span><span class="row"><span>Lv ${Tracker.getLevel(l.name)}</span>${chip(st)}</span></span>
         </button>`;
       }).join('') : `<div class="roster-empty">No legends match${q ? ` “${esc($('search').value.trim())}”` : ''}${filter !== 'ALL' ? ` in ${STATUS[filter].short}` : ''}. <button class="btn ghost" type="button" data-clear>Clear filters</button></div>`;
@@ -816,7 +810,7 @@
       const order = [3, 4, 6, 8, 11, 13, 15, 17].map(n => `<li class="${lvl >= n ? 'on' : ''}"><span class="lv">Lv ${n}</span>${esc(l.stances[n])}${icon(lvl >= n ? 'check' : 'lock')}</li>`).join('');
       $('sheet').innerHTML = `<div class="sheet-body">
         <div class="sheet-top"><button class="btn icon-only" type="button" data-close aria-label="Close details">${icon('close')}</button></div>
-        <div class="sheet-art${src ? '' : ' blank'}">${src ? `<img src="${esc(src)}" alt="" onerror="this.parentNode.classList.add('blank'); this.remove();" />` : ''}</div>
+        <div class="sheet-art${src ? '' : ' blank'}">${src ? `<img src="${esc(Tracker.portraitSrc(l.name, 'large'))}" alt="" width="598" height="720" decoding="async" onerror="if (!Tracker.portraitError(this)) { this.parentNode.classList.add('blank'); this.remove(); }" />` : ''}</div>
         <h2 id="sheetTitle">${esc(l.name)}</h2>
         <div class="sub">${esc(l.title)} · Legend #${l.order}</div>
         <div class="sheet-row">
@@ -941,6 +935,12 @@
       if (wasLive) { setLive(true); return; }
       if (!state.profile || Date.now() - state.profile.syncedAt > 10 * 60 * 1000) doSync();
     })();
+  </script>
+  <script>
+    // Offline support and cached pictures (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
   </script>
 </body>
 </html>
