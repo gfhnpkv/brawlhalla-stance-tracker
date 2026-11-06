@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brawlhalla Stance Tracker</title>
+  <meta name="description" content="Track your Brawlhalla legend levels and which stances you've unlocked." />
+  <meta name="theme-color" content="#0b101d" />
+  <script src="theme-boot.js" data-page="desktop"></script>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2360a5fa'/%3E%3Cstop offset='1' stop-color='%23a78bfa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M32 4 56 14v18c0 14-10 24-24 28C18 56 8 46 8 32V14z' fill='url(%23g)'/%3E%3Cpath d='m22 33 7 7 14-16' stroke='%230b101d' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      --bg-dark: #0b101d;
+      --bg-panel: #131b2e;
+      --bg-card: #1a2540;
+      --bg-card-hover: #233256;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --v-green: #22c55e;
+      --v-bg: rgba(34, 197, 94, 0.16);
+      --bang-yellow: #f59e0b;
+      --bang-bg: rgba(245, 158, 11, 0.16);
+      --x-red: #f87171;
+      --x-bg: rgba(239, 68, 68, 0.16);
+      --locked: #64748b;
+      --locked-bg: rgba(100, 116, 139, 0.16);
+      --prog: #60a5fa;
+      --prog-bg: rgba(59, 130, 246, 0.16);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --border-color: #2a395c;
+      --page-glow: #172544;
+      --title-grad: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
+      --avatar-grad: linear-gradient(135deg, #3b82f6, #a78bfa);
+      --on-accent: #fff;
+      --toast-bg: #111827;
+      --toast-text: #f9fafb;
+      --chip-bg: rgba(59,130,246,0.15);
+      --chip-border: rgba(59,130,246,0.4);
+      --chip-text: #bfdbfe;
+      --soft: rgba(255, 255, 255, 0.03);
+      --hairline: rgba(255, 255, 255, 0.06);
+      --track: rgba(148,163,184,0.18);
+      --active-bg: rgba(6, 182, 212, 0.2);
+      --shadow: rgba(0, 0, 0, 0.35);
+      color-scheme: dark;
+    }
+
+    /* Themes: Valhalla (purple and gold) and Daylight (light) */
+    :root[data-theme="valhalla"] {
+      --bg-dark: #120c1f; --bg-panel: #1d1430; --bg-card: #2a1d45; --bg-card-hover: #36265a;
+      --accent-blue: #d99a1e; --accent-cyan: #f5c542;
+      --text-main: #fdf6e3; --text-muted: #b8a9d4; --border-color: #4a3470;
+      --page-glow: #3a2064;
+      --title-grad: linear-gradient(90deg, #ffe08a, #f5c542, #ff9f43);
+      --avatar-grad: linear-gradient(135deg, #f5c542, #c2410c);
+      --on-accent: #1a1027;
+      --toast-bg: #1d1430; --toast-text: #fdf6e3;
+      --chip-bg: rgba(245,197,66,0.14); --chip-border: rgba(245,197,66,0.45); --chip-text: #ffe8a3;
+      --active-bg: rgba(245,197,66,0.2);
+    }
+    :root[data-theme="daylight"] {
+      --bg-dark: #f4f6fb; --bg-panel: #ffffff; --bg-card: #eef2f8; --bg-card-hover: #e2e8f3;
+      --accent-blue: #2563eb; --accent-cyan: #0e7490;
+      --v-green: #166534; --v-bg: rgba(21,128,61,0.12);
+      --bang-yellow: #92400e; --bang-bg: rgba(180,83,9,0.12);
+      --x-red: #b91c1c; --x-bg: rgba(185,28,28,0.1);
+      --locked: #64748b; --locked-bg: rgba(100,116,139,0.12); --prog: #2563eb; --prog-bg: rgba(37,99,235,0.12);
+      --text-main: #0f172a; --text-muted: #5b6678; --border-color: #d5dce8;
+      --page-glow: #dfe7fb;
+      --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
+      --toast-bg: #ffffff; --toast-text: #0f172a;
+      --chip-bg: rgba(37,99,235,0.1); --chip-border: rgba(37,99,235,0.35); --chip-text: #1e40af;
+      --soft: rgba(15,23,42,0.03); --hairline: rgba(15,23,42,0.08);
+      --track: rgba(15,23,42,0.1);
+      --active-bg: rgba(14,116,144,0.12);
+      --shadow: rgba(15,23,42,0.12);
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at top, var(--page-glow) 0%, var(--bg-dark) 70%);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: clamp(16px, 3vw, 44px);
+      line-height: 1.5;
+    }
+
+    /* Center the layout on very wide screens */
+    body > .top-bar, body > .stats-strip, body > .toolbar, body > .workspace { max-width: 1560px; margin-left: auto; margin-right: auto; }
+
+    /* Header & API Bar */
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px 28px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px 30px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 24px var(--shadow);
+    }
+
+    .brand h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: var(--title-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .api-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="text"], input[type="number"], select {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus, input[type="number"]:focus, select:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+      color: var(--on-accent);
+      font-weight: 700;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: transform 0.12s, opacity 0.15s;
+    }
+
+    button:hover {
+      opacity: 0.93;
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    button.secondary.active {
+      border-color: var(--accent-cyan);
+      background: var(--active-bg);
+    }
+
+    /* Summary Stats Strip */
+    .stats-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .stat-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stat-box .label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .stat-box .val {
+      font-size: 1.45rem;
+      font-weight: 800;
+    }
+
+    /* Filter Bar */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px 20px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 16px 22px;
+      margin-bottom: 28px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    #searchInput { width:300px; max-width:100%; }
+    /* Segmented controls: one bordered group instead of loose buttons */
+    .seg { display:inline-flex; padding:3px; gap:2px; border-radius:10px; background:var(--bg-dark); border:1px solid var(--border-color); }
+    .seg > button { border:1px solid transparent; background:none; padding:6px 12px; border-radius:7px; }
+    .seg > button.active { border-color:var(--accent-cyan); background:var(--active-bg); }
+    .seg .dot { width:8px; height:8px; margin-right:6px; vertical-align:0; }
+
+    /* Main Workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: 380px 1fr 330px;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 1280px) {
+      .workspace {
+        grid-template-columns: 340px 1fr;
+      }
+      .log-panel {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Spotlight Panel */
+    .spotlight-panel {
+      background: var(--bg-panel);
+      border: 2px solid var(--border-color);
+      border-radius: 16px;
+      padding: 26px;
+      position: sticky;
+      top: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    }
+
+    .spotlight-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .spotlight-title .order-tag {
+      font-size: 0.78rem;
+      color: var(--accent-cyan);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .spotlight-title h2 {
+      font-size: 1.65rem;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .spotlight-title .sub-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: 2px;
+    }
+
+    .status-pill-lg {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+      border: 2px solid transparent;
+    }
+
+    .status-v {
+      background: var(--v-bg);
+      color: var(--v-green);
+      border-color: var(--v-green);
+    }
+
+    .status-bang {
+      background: var(--bang-bg);
+      color: var(--bang-yellow);
+      border-color: var(--bang-yellow);
+    }
+
+    .status-p {
+      background: var(--prog-bg);
+      color: var(--prog);
+      border-color: var(--prog);
+    }
+
+    .status-x {
+      background: var(--locked-bg);
+      color: var(--locked);
+      border-color: var(--locked);
+    }
+
+    .level-control {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+
+    .level-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .level-btns button {
+      padding: 6px 12px;
+      font-size: 1rem;
+    }
+
+    .stance-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+
+    .stance-box .stance-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stance-box .stance-name {
+      font-size: 1.02rem;
+      font-weight: 800;
+    }
+
+    /* Progression Track */
+    .track-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 14px 0 8px;
+    }
+
+    .track-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .track-item {
+      background: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 7px;
+      padding: 6px 9px;
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .track-item.unlocked {
+      border-color: rgba(34, 197, 94, 0.55);
+      background: rgba(34, 197, 94, 0.1);
+    }
+
+    .track-item .lvl-num {
+      font-weight: 800;
+      color: var(--accent-cyan);
+      margin-right: 6px;
+    }
+
+    /* Champ Select Grid */
+    .champ-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+      gap: 16px;
+    }
+
+    .champ-tile {
+      background: var(--bg-card);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s, border-color 0.12s, background 0.12s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 124px;
+      user-select: none;
+    }
+
+    /* Only on devices with a real pointer: touch screens keep :hover on the last tapped tile */
+    @media (hover: hover) {
+      .champ-tile:hover {
+        transform: translateY(-3px);
+        background: var(--bg-card-hover);
+      }
+    }
+
+    /* Highlight the selected legend only while its details drawer is open */
+    :where(body.drawer-open) .champ-tile.selected {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.35);
+    }
+
+    .champ-tile.tile-v {
+      border-bottom: 4px solid var(--v-green);
+    }
+
+    .champ-tile.tile-bang {
+      border-bottom: 4px solid var(--bang-yellow);
+    }
+
+    .champ-tile.tile-p {
+      border-bottom: 4px solid var(--prog);
+    }
+
+    /* Not played (or not owned): dimmed until hovered or selected */
+    .champ-tile.tile-x {
+      border-bottom: 4px solid var(--border-color);
+      opacity: 0.6;
+    }
+    .champ-tile.tile-x:hover, .champ-tile.tile-x.selected, .champ-tile.tile-x:focus-visible { opacity: 1; }
+
+    .tile-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tile-order {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .tile-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.95rem;
+    }
+
+    .tile-name {
+      font-size: 0.98rem;
+      font-weight: 800;
+      margin: 6px 0 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Legend art: the mini icon in a band across the top of each tile, the full image behind the spotlight */
+    .champ-tile.has-art { overflow:hidden; min-height:176px; }
+    .tile-art { position:absolute; top:0; left:0; width:100%; height:104px; object-fit:cover; object-position:center 30%;
+      -webkit-mask-image:linear-gradient(to bottom, #000 40%, transparent); mask-image:linear-gradient(to bottom, #000 40%, transparent);
+      filter:grayscale(1) sepia(1) hue-rotate(175deg) saturate(2.2) brightness(0.95); /* one blue tone for every legend */
+      opacity:0; pointer-events:none; transition:opacity 0.35s, transform 0.2s, filter 0.2s; }
+    .tile-art.loaded { opacity:1; }
+    .champ-tile.has-art > :not(.tile-art) { position:relative; }
+    .champ-tile.has-art .tile-name { margin-top:44px; text-shadow:0 1px 2px var(--bg-card), 0 0 10px var(--bg-card), 0 0 4px var(--bg-card); }
+    .champ-tile.has-art .tile-order { padding:2px 7px; border-radius:6px; background:color-mix(in srgb, var(--bg-card) 80%, transparent); }
+    .champ-tile.has-art .tile-badge { backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); background-color:color-mix(in srgb, var(--bg-card) 70%, transparent); }
+    /* The light art washes out the badges, so give them a solid backing in Daylight */
+    :root[data-theme="daylight"] .champ-tile.has-art .tile-badge { background-color:var(--bg-card); box-shadow:0 1px 4px rgba(15,23,42,0.3); }
+    @media (hover: hover) { .champ-tile.has-art:hover .tile-art { transform:scale(1.05); filter:none; } } /* real colors on hover */
+    :where(body.drawer-open) .champ-tile.has-art.selected .tile-art { filter:none; } /* and on the selected legend while its spotlight shows */
+    .spotlight-panel.has-art { overflow:hidden; }
+    .spotlight-art { position:absolute; top:0; left:0; right:0; height:460px; pointer-events:none;
+      -webkit-mask-image:linear-gradient(to bottom, #000 45%, transparent); mask-image:linear-gradient(to bottom, #000 45%, transparent); }
+    .spotlight-art img { width:100%; height:100%; object-fit:contain; object-position:top right; opacity:0; transition:opacity 0.4s; }
+    .spotlight-art img.loaded { opacity:0.45; }
+    .spotlight-panel.has-art > :not(.spotlight-art) { position:relative; }
+    .spotlight-panel.has-art .spotlight-title h2 { text-shadow:0 2px 8px var(--bg-panel); }
+
+    .tile-stance {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      line-height: 1.2;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      min-height: 2.4em; /* always two lines, so names and footers line up across a row */
+    }
+
+    .tile-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      padding-top: 5px;
+      border-top: 1px solid var(--hairline);
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+
+    /* Full Sheet Table View */
+    .sheet-wrapper {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow-x: auto;
+      display: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background: var(--bg-dark);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.4px;
+    }
+
+    tr:hover {
+      background: var(--soft);
+      cursor: pointer;
+    }
+
+    /* Improvements Log Panel */
+    .log-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      position: sticky;
+      top: 24px;
+      max-height: calc(100vh - 48px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .log-header h3 {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .log-entry {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-cyan);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .log-entry.log-v {
+      border-left-color: var(--v-green);
+    }
+
+    .log-entry.log-bang {
+      border-left-color: var(--bang-yellow);
+    }
+
+    .sync-msg {
+      font-size: 0.8rem;
+      color: var(--accent-cyan);
+      margin-top: 4px;
+    }
+    .live-row[hidden] { display:none; }
+    .live-row { display:flex; align-items:center; gap:10px; margin-top:6px; font-size:0.82rem; flex-wrap:wrap; }
+    .live-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#6b7280; margin-right:6px; vertical-align:middle; }
+    .live-dot.on { background:#22c55e; box-shadow:0 0 8px #22c55e; animation: livePulse 1.6s infinite; }
+    @keyframes livePulse { 50% { opacity:0.45; } }
+    #liveBtn.active { background:#22c55e; color:#04130a; border-color:#22c55e; }
+    .toast-stack { position:fixed; right:16px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:1000; max-width:min(360px, calc(100vw - 32px)); }
+    .toast { background:var(--toast-bg); color:var(--toast-text); border:1px solid #22c55e; border-left-width:5px; border-radius:10px; padding:12px 14px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.45); font-size:0.88rem; animation: toastIn 0.25s ease-out; }
+    .toast strong { display:block; font-size:0.95rem; margin-bottom:2px; }
+    .toast .toast-btn { display:block; margin-top:10px; padding:6px 14px; font-size:0.85rem; }
+    .theme-select { padding:7px 10px; }
+
+    /* "Side panels" shows the right column (goals, progress, log); hidden by default so the grid gets
+       the full width. Legend details never take a column: clicking a legend opens them as a drawer. */
+    body.minimal .log-panel { display:none; }
+    body:not(.minimal) #optionsFab { border-color:var(--accent-cyan); background:var(--active-bg); }
+    .workspace { grid-template-columns:1fr 330px; }
+    body.minimal .workspace { grid-template-columns:1fr; }
+    @media (max-width: 1280px) { .workspace { grid-template-columns:1fr; } }
+    body:not(.drawer-open) .spotlight-panel { display:none; }
+    body.drawer-open .spotlight-panel {
+      display:block; position:fixed; top:16px; right:16px; bottom:16px; width:min(430px, calc(100vw - 32px));
+      overflow-y:auto; overscroll-behavior:contain; z-index:41; animation:drawerIn 0.22s ease-out;
+    }
+    @keyframes drawerIn { from { transform:translateX(24px); opacity:0; } }
+    .drawer-backdrop { display:none; position:fixed; inset:0; z-index:40; background:rgba(4,8,18,0.62); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
+    body.drawer-open .drawer-backdrop { display:block; }
+    .drawer-close { display:none; position:fixed; z-index:42; top:26px; right:min(430px, calc(100vw - 32px)); margin-right:-6px;
+      width:36px; height:36px; padding:0; border-radius:50%; font-size:1rem; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); }
+    body.drawer-open .drawer-close { display:block; }
+    @media (prefers-reduced-motion: reduce) { body.drawer-open .spotlight-panel { animation:none; } }
+    .brand-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; margin-top:6px; }
+    .brand-row p { margin:0 !important; }
+    .menu { position:relative; }
+    .menu > summary { list-style:none; cursor:pointer; user-select:none; padding:8px 14px; border-radius:8px; font-weight:700; font-size:0.88rem;
+      background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); }
+    .brand-row .menu > summary { padding:4px 12px; font-size:0.82rem; color:var(--accent-cyan); }
+    .menu > summary::-webkit-details-marker { display:none; }
+    .menu[open] > summary { border-color:var(--accent-cyan); }
+    .menu-list { position:absolute; z-index:30; top:calc(100% + 8px); left:0; min-width:230px; display:flex; flex-direction:column; gap:2px;
+      padding:8px; border-radius:12px; background:var(--bg-panel); border:1px solid var(--border-color); box-shadow:0 16px 40px var(--shadow); }
+    .menu-right .menu-list { left:auto; right:0; }
+    .menu-list a, .menu-btn { display:block; text-align:left; padding:9px 12px; border-radius:8px; color:var(--text-main); text-decoration:none; font-weight:600; font-size:0.88rem;
+      background:none; border:none; width:100%; }
+    .menu-list a:hover, .menu-btn:hover { background:var(--bg-card); transform:none; opacity:1; }
+    .menu-field { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 12px 10px; font-size:0.82rem; color:var(--text-muted);
+      border-bottom:1px solid var(--border-color); margin-bottom:4px; }
+
+    /* Player card */
+    .player-card { display:flex; align-items:center; gap:12px; margin-top:10px; padding:10px 12px; background:var(--bg-card);
+      border:1px solid var(--border-color); border-radius:10px; max-width:560px; }
+    .player-card[hidden] { display:none; }
+    .player-avatar { width:42px; height:42px; flex:none; border-radius:10px; display:grid; place-items:center; font-weight:900; font-size:1.1rem;
+      background:var(--avatar-grad); color:#fff; }
+    .player-name { font-weight:800; font-size:1rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .player-meta { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
+    .player-meta b { color:var(--text-main); font-weight:700; }
+
+    /* Progress bars */
+    .bar { height:6px; border-radius:99px; background:var(--track); overflow:hidden; }
+    .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); transition:width 0.4s ease; }
+    .bar.v > span { background:var(--v-green); }
+    .bar.bang > span { background:var(--bang-yellow); }
+    .bar.p > span { background:var(--prog); }
+    .bar.x > span { background:var(--locked); }
+    .tile-bar { margin-top:8px; height:4px; }
+    .completion-box { flex-direction:column; align-items:stretch !important; gap:12px; }
+    .completion-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+    .completion-num { font-size:1.45rem; font-weight:900; }
+    .seg-bar { height:10px; display:flex; }
+    .seg-bar > span { border-radius:0; }
+    .seg-bar > .seg-v { background:var(--v-green); }
+    .seg-bar > .seg-bang { background:var(--bang-yellow); }
+    .seg-bar > .seg-p { background:var(--prog); }
+    .completion-legend { display:flex; flex-wrap:wrap; gap:6px 22px; font-size:0.85rem; color:var(--text-muted); }
+    .completion-legend b { color:var(--text-main); font-weight:800; margin-right:3px; }
+    .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; vertical-align:-1px; }
+    .dot-v { background:var(--v-green); } .dot-bang { background:var(--bang-yellow); } .dot-p { background:var(--prog); } .dot-x { background:var(--locked); }
+
+    /* Spotlight stats */
+    .stat-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; margin-bottom:14px; }
+    .mini-stat { background:var(--bg-dark); border:1px solid var(--border-color); border-radius:8px; padding:8px 10px; }
+    .mini-stat .k { font-size:0.68rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted); font-weight:700; }
+    .mini-stat .v { font-size:1rem; font-weight:800; margin-top:2px; }
+    .weapon-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+    .chip { font-size:0.75rem; font-weight:700; padding:4px 10px; border-radius:99px; background:var(--chip-bg); border:1px solid var(--chip-border); color:var(--chip-text); }
+    .xp-row { margin-bottom:14px; }
+    .xp-row .xp-label { display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:5px; }
+
+    /* Closest to unlock */
+    .next-box { margin-bottom:30px; }
+    .next-item { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; cursor:pointer;
+      background:var(--bg-card); border:1px solid var(--border-color); margin-bottom:8px; font-size:0.82rem; }
+    .next-item:hover, .next-item:focus-visible { border-color:var(--accent-cyan); outline:none; }
+    .next-item .need { font-weight:800; color:var(--accent-cyan); white-space:nowrap; }
+    .next-item .sub { font-size:0.72rem; color:var(--text-muted); }
+    .pin-btn { width:38px; height:38px; border-radius:10px; font-size:1.15rem; padding:0; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-muted); }
+    .pin-btn.on { color:#facc15; border-color:#facc15; }
+    .goal .unpin { background:none; border:none; color:var(--text-muted); font-size:1.1rem; padding:2px 6px; }
+    .goal .unpin:hover { color:var(--x-red); transform:none; }
+    .goal-empty { font-size:0.8rem; color:var(--text-muted); }
+    .tile-star { color:#facc15; margin-left:4px; }
+    .sum-row { display:flex; justify-content:space-between; gap:12px; padding:11px 14px; border-radius:10px; background:var(--bg-card); border:1px solid var(--border-color); margin-bottom:8px; font-size:0.8rem; }
+    .sum-row span { color:var(--text-muted); white-space:nowrap; }
+    .sum-row b { text-align:right; }
+    .sum-top { font-size:0.75rem; color:var(--text-muted); padding:2px 2px 0; }
+    .sum-top b { color:var(--accent-cyan); }
+    .section-title { font-size:0.75rem; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); font-weight:800; margin-bottom:12px; }
+    /* Game history (markup from history.js) */
+    .hist-today { font-size:0.8rem; padding:11px 14px; border-radius:10px; background:var(--bg-card); border:1px solid var(--border-color); margin-bottom:6px; }
+    .hist-today b { color:var(--accent-cyan); }
+    .hist-note, .hist-empty { font-size:0.72rem; color:var(--text-muted); margin-bottom:10px; }
+    .hist-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--hairline); font-size:0.8rem; }
+    .hist-when { color:var(--text-muted); font-size:0.72rem; min-width:44px; }
+    .hist-art { width:22px; height:22px; border-radius:6px; object-fit:cover; flex:none; }
+    .hist-legend { flex:1; min-width:0; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hist-result { font-weight:800; padding:1px 7px; border-radius:6px; background:var(--prog-bg); color:var(--prog); white-space:nowrap; }
+    .hist-result.win { background:var(--v-bg); color:var(--v-green); }
+    .hist-result.loss { background:var(--x-bg); color:var(--x-red); }
+    .hist-lvl { color:var(--text-muted); font-size:0.72rem; min-width:40px; text-align:right; }
+    .hist-more { margin-top:10px; width:100%; padding:6px; font-size:0.75rem; }
+
+    kbd { font-size:0.7rem; padding:1px 5px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-dark); color:var(--text-muted); }
+    .champ-tile:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--accent-cyan); outline-offset:2px; }
+    .tile-games { font-size:0.7rem; color:var(--text-muted); }
+
+    @media (min-width: 861px) {
+      .spotlight-panel { position:sticky; top:16px; align-self:start; max-height:calc(100vh - 32px); overflow-y:auto; }
+    }
+    @media (max-width: 640px) {
+      body { padding:10px; }
+      .top-bar { padding:12px 14px; }
+      .api-controls { width:100%; }
+      .api-controls #brawlhallaIdInput { flex:1 1 100%; width:auto !important; }
+      .api-controls button { flex:1 1 auto; }
+      .stat-box { padding:10px 12px; }
+      .toolbar .filter-group { width:100%; }
+      #searchInput { flex:1 1 100%; }
+      .champ-grid { grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation:none !important; transition:none !important; }
+    }
+    @keyframes toastIn { from { transform:translateY(12px); opacity:0; } }
+  </style>
+</head>
+<body class="minimal">
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+  <button class="drawer-close" id="drawerClose" aria-label="Close details" onclick="closeDrawer()">✕</button>
+
+  <!-- Top Header & Brawlhalla API Sync -->
+  <div class="top-bar">
+    <div class="brand">
+      <h1>Brawlhalla Stance Tracker</h1>
+      <div class="brand-row">
+        <p>All 70 legends, and which stances you've unlocked</p>
+        <details class="menu" id="viewsMenu">
+          <summary>Views ▾</summary>
+          <div class="menu-list">
+            <a href="app.html?view=mobile">📱 Mobile view</a>
+            <a href="stances.html">🧪 Stance lab</a>
+            <a href="stats.html">📊 Player stats</a>
+          </div>
+        </details>
+      </div>
+      <div class="player-card" id="playerCard" hidden></div>
+      <div id="syncStatus" class="sync-msg"></div>
+      <div class="live-row" id="liveRow" hidden>
+        <span id="activityStatus"></span>
+      </div>
+    </div>
+    <div class="api-controls">
+      <input type="text" id="brawlhallaIdInput" aria-label="Brawlhalla ID" inputmode="numeric" placeholder="Your Brawlhalla ID" style="width:175px" />
+      <button id="syncBtn" onclick="syncFromApi()">Sync</button>
+      <button class="secondary" id="liveBtn" onclick="toggleLive()" title="Auto-check every minute and notify on new unlocks">● Live</button>
+      <details class="menu menu-right" id="moreMenu">
+        <summary aria-label="More options">⋯ More</summary>
+        <div class="menu-list">
+          <label class="menu-field">Theme
+            <select id="themeSelect" class="theme-select" aria-label="Theme" onchange="setTheme(this.value)">
+              <option value="midnight">🌙 Midnight</option>
+              <option value="valhalla">⚔️ Valhalla</option>
+              <option value="daylight">☀️ Daylight</option>
+            </select>
+          </label>
+          <button class="menu-btn" onclick="copyShareLink()" title="Copy a link that opens this tracker for your ID">🔗 Copy share link</button>
+          <button class="menu-btn" onclick="shareImage()">📸 Save an image</button>
+          <button class="menu-btn" onclick="exportBackup()">⬇️ Export backup (JSON)</button>
+          <button class="menu-btn" onclick="document.getElementById('importFile').click()">⬆️ Import backup</button>
+        </div>
+      </details>
+      <input type="file" id="importFile" style="display:none" accept=".json" onchange="importBackup(event)" />
+    </div>
+  </div>
+
+  <!-- Summary Progress -->
+  <div class="stats-strip">
+    <div class="stat-box completion-box">
+      <div class="completion-head">
+        <div class="label">Best stances unlocked</div>
+        <div class="completion-num" id="completionText">0 / 70</div>
+      </div>
+      <div class="bar seg-bar"><span class="seg-v" id="completionBar" style="width:0%"></span><span class="seg-bang" id="bangBar" style="width:0%"></span><span class="seg-p" id="progBar" style="width:0%"></span></div>
+      <div class="completion-legend">
+        <span><i class="dot dot-v"></i><b id="countV">0</b> best stance</span>
+        <span><i class="dot dot-bang"></i><b id="countBang">0</b> standard stance only</span>
+        <span><i class="dot dot-p"></i><b id="countP">0</b> played, no stance yet</span>
+        <span><i class="dot dot-x"></i><b id="countX">0</b> locked (not played / not owned)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter, Sort, & View Mode Toolbar -->
+  <div class="toolbar">
+    <div class="filter-group">
+      <input type="text" id="searchInput" aria-label="Search legends" placeholder="Search legends, stances, weapons  ( / )" oninput="scheduleRender()" />
+      <div class="seg" role="group" aria-label="Show">
+        <button class="secondary active" id="filterAll" onclick="setStatusFilter('ALL')">All</button>
+        <button class="secondary" id="filterV" onclick="setStatusFilter('v')"><i class="dot dot-v"></i>Best</button>
+        <button class="secondary" id="filterBang" onclick="setStatusFilter('!')"><i class="dot dot-bang"></i>Standard</button>
+        <button class="secondary" id="filterP" onclick="setStatusFilter('p')"><i class="dot dot-p"></i>In progress</button>
+        <button class="secondary" id="filterX" onclick="setStatusFilter('x')" title="Not played or not owned"><i class="dot dot-x"></i>Locked</button>
+      </div>
+      <select id="sortSelect" aria-label="Sort" onchange="renderAll()">
+        <option value="order">Sort: Champ select order</option>
+        <option value="recent">Recent Improvements (By Date)</option>
+        <option value="level_desc">My Level (High ➔ Low)</option>
+        <option value="level_asc">My Level (Low ➔ High)</option>
+        <option value="needed">Closest to Next Unlock</option>
+        <option value="alpha">Alphabetical (A–Z)</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <div class="seg" role="group" aria-label="Layout">
+        <button class="secondary active" id="viewGridBtn" onclick="setViewMode('grid')">▦ Grid</button>
+        <button class="secondary" id="viewSheetBtn" onclick="setViewMode('sheet')">☰ Table</button>
+      </div>
+      <button class="secondary" id="optionsFab" aria-expanded="false" onclick="toggleMinimal()" title="Show or hide the right column (pinned goals, progress, log)">◧ Side panels</button>
+    </div>
+  </div>
+
+  <!-- Main Workspace -->
+  <div class="workspace">
+    <div class="spotlight-panel" id="spotlightPanel"></div>
+
+    <div>
+      <div class="champ-grid" id="champGrid"></div>
+      <div class="sheet-wrapper" id="sheetWrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Legend</th>
+              <th>Lvl</th>
+              <th>Status</th>
+              <th>Best Stance</th>
+              <th>Standard Alternative (!)</th>
+              <th>Stance Order (3 / 4 / 6 / 8 • 11 / 13 / 15 / 17)</th>
+            </tr>
+          </thead>
+          <tbody id="sheetBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="next-box">
+        <div class="section-title">📌 Pinned goals</div>
+        <div id="goalsList"></div>
+      </div>
+      <div class="next-box">
+        <div class="section-title">Your progress</div>
+        <div class="sum-row"><span>Today</span><b id="sumToday">–</b></div>
+        <div class="sum-row"><span>Last 7 days</span><b id="sumWeek">–</b></div>
+        <div class="sum-top" id="sumTop"></div>
+      </div>
+      <div class="next-box">
+        <div class="section-title">Closest to next unlock</div>
+        <div id="nextList"></div>
+      </div>
+      <div class="next-box">
+        <div class="section-title">🎮 Game history</div>
+        <div id="historyList"></div>
+      </div>
+      <div class="log-header">
+        <h3>Improvements Log</h3>
+        <div style="display:flex;gap:6px">
+          <button class="secondary" id="logSortBtn" style="padding:4px 8px;font-size:0.75rem" onclick="toggleLogSort()">Newest First</button>
+          <button class="secondary" style="padding:4px 8px;font-size:0.75rem" onclick="clearImprovementsLog()">Clear</button>
+        </div>
+      </div>
+      <div class="log-list" id="improvementsList"></div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="legends.js"></script>
+  <script src="core.js"></script>
+  <script src="goals.js"></script>
+  <script src="history.js"></script>
+  <script src="summary.js"></script>
+  <script src="shareimage.js"></script>
+  <script>
+    // core.js loads and checks the saved data; this page keeps its own references to it
+    let playerLevels, improvementsLog, savedBhId, legendStats, playerProfile;
+    function takeTrackerState() {
+      ({ levels: playerLevels, log: improvementsLog, id: savedBhId, stats: legendStats, profile: playerProfile } = Tracker.state);
+    }
+    takeTrackerState();
+
+    function esc(str) {
+      return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    // Legend portraits listed in portraits/index.json (shared with the Stance Lab through core.js)
+    const portraitSlug = Tracker.portraitSlug;
+    let portraits = {};
+    // Tiles use the 180px portrait (260px on 2x screens), the spotlight the 720px one (Tracker.portraitHtml: AVIF, PNG fallback).
+    // Icons fade in the first time they load; after that, re-renders show them straight away.
+    const artLoaded = new Set();
+    window.markArtLoaded = (img, name) => { img.classList.add('loaded'); artLoaded.add(name); };
+    function tileArtHtml(name) {
+      if (!portraits[portraitSlug(name)]) return '';
+      return Tracker.portraitHtml(name, 'small', {
+        cls: `tile-art${artLoaded.has(name) ? ' loaded' : ''}`, width: 180, height: 180, x2: 'mini',
+        onload: `markArtLoaded(this, ${JSON.stringify(name)})`, fallback: "el.parentNode.classList.remove('has-art'); el.remove();"
+      });
+    }
+    function spotlightArtHtml(name) {
+      if (!portraits[portraitSlug(name)]) return '';
+      return `<div class="spotlight-art">${Tracker.portraitHtml(name, 'large', {
+        width: 598, height: 720, lazy: false, onload: "this.classList.add('loaded')",
+        fallback: "el.parentNode.parentNode.classList.remove('has-art'); el.parentNode.remove();"
+      })}</div>`;
+    }
+    function fmtHours(seconds) {
+      if (!seconds) return '0h';
+      const h = seconds / 3600;
+      return h >= 10 ? `${Math.round(h)}h` : `${h.toFixed(1)}h`;
+    }
+    function winRate(wins, games) {
+      return games ? `${Math.round((wins / games) * 100)}%` : '–';
+    }
+    function timeAgo(ts) {
+      const m = Math.round((Date.now() - ts) / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return `${m} min ago`;
+      const h = Math.round(m / 60);
+      return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
+    }
+    // Next level that changes the status (x -> ! -> v); null once v is reached
+    function nextTarget(legend, lvl) {
+      if (lvl < legend.bangLvl) return { lvl: legend.bangLvl, status: '!', what: legend.alt };
+      if (lvl < legend.vLvl) return { lvl: legend.vLvl, status: 'v', what: legend.target };
+      return null;
+    }
+    function progressToNext(legend, lvl) {
+      const next = nextTarget(legend, lvl);
+      if (!next) return 1;
+      const xpPct = (legendStats[legend.name] && legendStats[legend.name].xpPct) || 0;
+      return Math.min(1, Math.max(0, (lvl - 1 + xpPct) / Math.max(1, next.lvl - 1)));
+    }
+    let selectedOrder = 1;
+    let statusFilter = 'ALL';
+    let viewMode = 'grid';
+    let logSortNewest = true;
+
+    document.getElementById('brawlhallaIdInput').value = savedBhId;
+
+    function normalizeName(str) {
+      return (str || '')
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function getLegendLevel(name) {
+      return playerLevels[name] || 1;
+    }
+
+    // 'v' best, '!' standard, 'p' played but no stance yet, 'x' locked (not played / not owned)
+    function computeStatus(legend, level) {
+      return Tracker.statusOf(legend, level);
+    }
+
+    function getStatusClass(status) {
+      if (status === 'v') return 'status-v';
+      if (status === '!') return 'status-bang';
+      if (status === 'p') return 'status-p';
+      return 'status-x';
+    }
+
+    // Words and symbols for the v / ! / p / x statuses
+    const STATUS_WORD = { v: 'Best stance unlocked', '!': 'Standard stance unlocked', p: 'Played, no stance yet', x: 'Locked (not played / not owned)' };
+    const STATUS_ICON = { v: '✓', '!': '!', p: '…', x: '🔒' };
+    const STATUS_SHORT = { v: 'best', '!': 'standard', p: 'in progress', x: 'locked' };
+    function statusBadge(status, cls, style = '') {
+      return `<span class="${cls} ${getStatusClass(status)}" title="${STATUS_WORD[status]}" aria-label="${STATUS_WORD[status]}"${style ? ` style="${style}"` : ''}>${STATUS_ICON[status]}</span>`;
+    }
+
+    function getTileStatusClass(status) {
+      if (status === 'v') return 'tile-v';
+      if (status === '!') return 'tile-bang';
+      if (status === 'p') return 'tile-p';
+      return 'tile-x';
+    }
+
+    function updateLegendLevel(name, newLvl) {
+      const legend = LEGENDS_DB.find(l => l.name === name);
+      if (!legend) return;
+
+      const parsed = Math.max(1, Math.min(100, parseInt(newLvl, 10) || 1));
+      const oldLvl = getLegendLevel(name);
+      const oldStatus = computeStatus(legend, oldLvl);
+      const newStatus = computeStatus(legend, parsed);
+
+      playerLevels[name] = parsed;
+      localStorage.setItem('bh_levels_v1', JSON.stringify(playerLevels));
+
+      if (parsed > oldLvl || (oldStatus !== newStatus && (newStatus === 'v' || newStatus === '!'))) {
+        improvementsLog.push({
+          legend: name,
+          oldLvl,
+          newLvl: parsed,
+          oldStatus,
+          newStatus,
+          stanceUnlocked: newStatus === 'v' ? legend.target : (newStatus === '!' ? legend.alt : 'Level Up'),
+          ts: Date.now()
+        });
+        localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+      }
+
+      renderAll();
+    }
+
+
+    function renderSpotlight() {
+      const legend = LEGENDS_DB.find(l => l.order === selectedOrder) || LEGENDS_DB[0];
+      const lvl = getLegendLevel(legend.name);
+      const status = computeStatus(legend, lvl);
+
+      let nextNeededText = 'Best stance unlocked ✓';
+      if (status === 'x' || status === 'p') {
+        nextNeededText = `${status === 'x' ? 'Not played yet · ' : ''}Standard stance at Lv ${legend.bangLvl} (${legend.bangLvl - lvl} to go) · best stance at Lv ${legend.vLvl}`;
+      } else if (status === '!') {
+        nextNeededText = `Best stance at Lv ${legend.vLvl} (${legend.vLvl - lvl} to go)`;
+      }
+
+      const stanceLevels = [3, 4, 6, 8, 11, 13, 15, 17];
+      const stanceTrackHtml = stanceLevels.map(sLvl => {
+        const unlocked = lvl >= sLvl;
+        return `
+          <div class="track-item ${unlocked ? 'unlocked' : ''}">
+            <span><span class="lvl-num">Lv.${sLvl}</span>${legend.stances[sLvl]}</span>
+            <span>${unlocked ? '✓' : '🔒'}</span>
+          </div>
+        `;
+      }).join('');
+
+      const panel = document.getElementById('spotlightPanel');
+      panel.classList.toggle('has-art', !!portraits[portraitSlug(legend.name)]);
+      panel.innerHTML = `${spotlightArtHtml(legend.name)}
+        <div class="spotlight-header">
+          <div class="spotlight-title">
+            <div class="order-tag">Legend #${legend.order}</div>
+            <h2>${legend.name}</h2>
+            <div class="sub-title">${legend.title} · title at Lv 50</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="pin-btn${Goals.has(legend.name) ? ' on' : ''}" data-pin="${esc(legend.name)}" aria-pressed="${Goals.has(legend.name)}" aria-label="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}"
+              title="${Goals.has(legend.name) ? 'Unpin goal' : 'Pin as a goal'}">${Goals.has(legend.name) ? '★' : '☆'}</button>
+            ${statusBadge(status, 'status-pill-lg')}
+          </div>
+        </div>
+
+        <div class="level-control">
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700">Current Level</div>
+            <div style="font-size:1.35rem;font-weight:900">Level ${lvl}</div>
+          </div>
+          <div class="level-btns">
+            <button class="secondary" aria-label="Level down" onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl - 1})">-</button>
+            <input type="number" min="1" max="100" aria-label="Level" value="${lvl}" style="width:64px;text-align:center"
+              onchange="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', this.value)" />
+            <button aria-label="Level up" onclick="updateLegendLevel('${legend.name.replace(/'/g, "\\'")}', ${lvl + 1})">+</button>
+          </div>
+        </div>
+
+        <div style="font-size:0.8rem;color:var(--accent-cyan);margin-bottom:12px;font-weight:600">
+          ${nextNeededText}
+        </div>
+
+        <div class="stance-box" style="border-left: 4px solid var(--v-green)">
+          <div class="stance-header">
+            <span>Best stance</span>
+            <span style="color:var(--v-green)">Unlocks at Lv ${legend.vLvl}</span>
+          </div>
+          <div class="stance-name">${legend.target}</div>
+        </div>
+
+        <div class="stance-box" style="border-left: 4px solid var(--bang-yellow)">
+          <div class="stance-header">
+            <span>Standard stance</span>
+            <span style="color:var(--bang-yellow)">Unlocks at Lv ${legend.bangLvl}</span>
+          </div>
+          <div class="stance-name">${legend.alt}</div>
+        </div>
+
+        ${renderLegendStats(legend, lvl)}
+
+        <div class="track-title">Stance Progression (Lvls 3–17)</div>
+        <div class="track-grid">${stanceTrackHtml}</div>
+
+        <div class="track-title">Special Milestones</div>
+        <div class="track-grid">
+          <div class="track-item ${lvl >= 40 ? 'unlocked' : ''}">
+            <span><span class="lvl-num">Lv.40</span>Challenge Stance</span>
+            <span>${lvl >= 40 ? '✓' : '🔒'}</span>
+          </div>
+          <div class="track-item ${lvl >= 100 ? 'unlocked' : ''}">
+            <span><span class="lvl-num">Lv.100</span>Gold Name</span>
+            <span>${lvl >= 100 ? '✓' : '🔒'}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLegendStats(legend, lvl) {
+      const st = legendStats[legend.name];
+      if (!st) return '';
+      const xpPct = Math.round((st.xpPct || 0) * 100);
+      const weapons = (st.weapons || []).filter(Boolean);
+      return `
+        <div class="track-title">Your Stats</div>
+        <div class="stat-grid">
+          <div class="mini-stat"><div class="k">Games</div><div class="v">${(st.games || 0).toLocaleString()}</div></div>
+          <div class="mini-stat"><div class="k">Win rate</div><div class="v">${winRate(st.wins, st.games)}</div></div>
+          <div class="mini-stat"><div class="k">Time played</div><div class="v">${fmtHours(st.time)}</div></div>
+          <div class="mini-stat"><div class="k">KOs</div><div class="v">${st.kos != null ? st.kos.toLocaleString() : '–'}</div></div>
+        </div>
+        ${st.xpPct != null && lvl < 100 ? `
+        <div class="xp-row">
+          <div class="xp-label"><span>XP to level ${lvl + 1}</span><span>${xpPct}%</span></div>
+          <div class="bar"><span style="width:${xpPct}%"></span></div>
+        </div>` : ''}
+        ${weapons.length ? `<div class="weapon-chips">${weapons.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div>` : ''}
+      `;
+    }
+
+    function renderPlayerCard() {
+      const card = document.getElementById('playerCard');
+      if (!playerProfile) { card.hidden = true; return; }
+      const p = playerProfile;
+      card.hidden = false;
+      card.innerHTML = `
+        <div class="player-avatar">${esc((p.name || '?').replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase() || '?')}</div>
+        <div style="min-width:0">
+          <div class="player-name">${esc(p.name)} <span style="color:var(--text-muted);font-weight:600;font-size:0.8rem">#${esc(p.id)}</span></div>
+          <div class="player-meta">
+            ${p.level ? `<span>Level <b>${p.level}</b></span>` : ''}
+            ${p.games != null ? `<span><b>${p.games.toLocaleString()}</b> games</span>` : ''}
+            ${p.games ? `<span><b>${winRate(p.wins, p.games)}</b> wins</span>` : ''}
+            ${p.time ? `<span><b>${fmtHours(p.time)}</b> played</span>` : ''}
+            <span>synced ${timeAgo(p.syncedAt)}</span>
+          </div>
+        </div>`;
+    }
+
+    function renderNextList() {
+      const items = LEGENDS_DB
+        .map(l => ({ l, lvl: getLegendLevel(l.name) }))
+        .map(o => ({ ...o, next: nextTarget(o.l, o.lvl) }))
+        .filter(o => o.next)
+        .sort((a, b) => (a.next.lvl - a.lvl) - (b.next.lvl - b.lvl) || progressToNext(b.l, b.lvl) - progressToNext(a.l, a.lvl))
+        .slice(0, 5);
+      document.getElementById('nextList').innerHTML = items.length ? items.map(o => {
+        const need = o.next.lvl - o.lvl;
+        return `
+          <div class="next-item" tabindex="0" role="button" data-order="${o.l.order}">
+            <div>
+              <strong>${esc(o.l.name)}</strong>
+              <div class="sub">Lv.${o.lvl} → ${o.next.lvl} · ${esc(o.next.what)} (${STATUS_SHORT[o.next.status]})</div>
+            </div>
+            <span class="need">${need} lvl${need === 1 ? '' : 's'}</span>
+          </div>`;
+      }).join('') : `<div style="color:var(--v-green);font-size:0.82rem;font-weight:700">Every best stance unlocked! 🎉</div>`;
+    }
+
+    let renderTimer = null;
+    function scheduleRender() {
+      clearTimeout(renderTimer);
+      renderTimer = setTimeout(renderAll, 120);
+    }
+
+    function renderAll() {
+      let vCount = 0, bangCount = 0, pCount = 0, xCount = 0;
+      LEGENDS_DB.forEach(l => {
+        const st = computeStatus(l, getLegendLevel(l.name));
+        if (st === 'v') vCount++;
+        else if (st === '!') bangCount++;
+        else if (st === 'p') pCount++;
+        else xCount++;
+      });
+      document.getElementById('countV').textContent = vCount;
+      document.getElementById('countBang').textContent = bangCount;
+      document.getElementById('countP').textContent = pCount;
+      document.getElementById('countX').textContent = xCount;
+      document.getElementById('completionText').textContent = `${vCount} / ${LEGENDS_DB.length}`;
+      document.getElementById('completionBar').style.width = `${(vCount / LEGENDS_DB.length) * 100}%`;
+      document.getElementById('bangBar').style.width = `${(bangCount / LEGENDS_DB.length) * 100}%`;
+      document.getElementById('progBar').style.width = `${(pCount / LEGENDS_DB.length) * 100}%`;
+
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      const sortBy = document.getElementById('sortSelect').value;
+
+      let filtered = LEGENDS_DB.filter(l => {
+        const lvl = getLegendLevel(l.name);
+        const st = computeStatus(l, lvl);
+        if (statusFilter !== 'ALL' && st !== statusFilter) return false;
+        if (query) {
+          const weapons = ((legendStats[l.name] && legendStats[l.name].weapons) || []).join(' ');
+          const hay = `${l.name} ${l.target} ${l.alt} ${l.title} ${weapons}`.toLowerCase();
+          if (!hay.includes(query)) return false;
+        }
+        return true;
+      });
+
+      const latestTs = {};
+      improvementsLog.forEach(e => { if (!latestTs[e.legend] || e.ts > latestTs[e.legend]) latestTs[e.legend] = e.ts; });
+      filtered.sort((a, b) => {
+        const lvlA = getLegendLevel(a.name);
+        const lvlB = getLegendLevel(b.name);
+        if (sortBy === 'order') return a.order - b.order;
+        if (sortBy === 'alpha') return a.name.localeCompare(b.name);
+        if (sortBy === 'level_desc') return lvlB - lvlA || a.order - b.order;
+        if (sortBy === 'level_asc') return lvlA - lvlB || a.order - b.order;
+        if (sortBy === 'recent') {
+          return (latestTs[b.name] || 0) - (latestTs[a.name] || 0) || a.order - b.order;
+        }
+        if (sortBy === 'needed') {
+          const remA = lvlA >= a.vLvl ? 999 : (lvlA >= a.bangLvl ? a.vLvl - lvlA : a.bangLvl - lvlA);
+          const remB = lvlB >= b.vLvl ? 999 : (lvlB >= b.bangLvl ? b.vLvl - lvlB : b.bangLvl - lvlB);
+          return remA - remB || a.order - b.order;
+        }
+        return a.order - b.order;
+      });
+
+      const gridEl = document.getElementById('champGrid');
+      gridEl.innerHTML = filtered.map(l => {
+        const lvl = getLegendLevel(l.name);
+        const st = computeStatus(l, lvl);
+        return `
+          <div class="champ-tile ${getTileStatusClass(st)} ${l.order === selectedOrder ? 'selected' : ''} ${portraits[portraitSlug(l.name)] ? 'has-art' : ''}"
+               data-order="${l.order}" tabindex="0" role="button" aria-label="${esc(l.name)}, level ${lvl}, ${STATUS_WORD[st]}">
+            ${tileArtHtml(l.name)}
+            <div class="tile-top">
+              <span class="tile-order">#${l.order}${Goals.has(l.name) ? '<span class="tile-star" title="Pinned goal">★</span>' : ''}</span>
+              ${statusBadge(st, 'tile-badge')}
+            </div>
+            <div class="tile-name" title="${l.name}">${l.name}</div>
+            <div class="tile-stance">${l.target}</div>
+            <div class="tile-footer">
+              <span>Lv.${lvl}</span>
+              <span style="color:var(--text-muted)">${st === 'v' ? 'Best ✓' : `Best at Lv ${l.vLvl}`}</span>
+            </div>
+            <div class="bar tile-bar ${st === '!' ? 'bang' : st}"><span style="width:${Math.round(progressToNext(l, lvl) * 100)}%"></span></div>
+          </div>
+        `;
+      }).join('');
+
+      const sheetBody = document.getElementById('sheetBody');
+      sheetBody.innerHTML = filtered.map(l => {
+        const lvl = getLegendLevel(l.name);
+        const st = computeStatus(l, lvl);
+        const stOrder = `3:${l.stances[3]} | 4:${l.stances[4]} | 6:${l.stances[6]} | 8:${l.stances[8]} • 11:${l.stances[11]} | 13:${l.stances[13]} | 15:${l.stances[15]} | 17:${l.stances[17]}`;
+        return `
+          <tr data-order="${l.order}" style="cursor:pointer">
+            <td>#${l.order}</td>
+            <td style="font-weight:800">${l.name}</td>
+            <td>Lv.${lvl}</td>
+            <td>${statusBadge(st, 'tile-badge', 'display:inline-flex')}</td>
+            <td><strong>${l.target}</strong> <span style="color:var(--text-muted)">(Lv.${l.vLvl})</span></td>
+            <td>${l.alt} <span style="color:var(--text-muted)">(Lv.${l.bangLvl})</span></td>
+            <td style="font-size:0.76rem;color:var(--text-muted)">${stOrder}</td>
+          </tr>
+        `;
+      }).join('');
+
+      renderSpotlight();
+      renderImprovementsLog();
+      renderNextList();
+      renderPlayerCard();
+      renderSummary();
+      renderGoals();
+      renderHistory();
+    }
+
+    function renderGoals() {
+      const goals = Goals.list();
+      document.getElementById('goalsList').innerHTML = goals.length ? goals.map(name => {
+        const l = LEGENDS_DB.find(x => x.name === name);
+        const lvl = getLegendLevel(name);
+        const next = nextTarget(l, lvl);
+        const st = computeStatus(l, lvl);
+        return `
+          <div class="next-item goal" tabindex="0" role="button" data-order="${l.order}">
+            <div style="flex:1;min-width:0">
+              <strong>★ ${esc(name)}</strong>
+              <div class="sub">${next ? `Lv.${lvl} → ${next.lvl} · ${esc(next.what)} (${STATUS_SHORT[next.status]})` : `Lv.${lvl} · best stance unlocked ✓`}</div>
+              <div class="bar tile-bar ${st === '!' ? 'bang' : st}"><span style="width:${Math.round(progressToNext(l, lvl) * 100)}%"></span></div>
+            </div>
+            ${next ? `<span class="need">${next.lvl - lvl}</span>` : ''}
+            <button class="unpin" data-unpin="${esc(name)}" aria-label="Unpin ${esc(name)}" title="Unpin">×</button>
+          </div>`;
+      }).join('') : `<div class="goal-empty">Pin a legend with ☆ in its details to track it here (up to ${Goals.MAX}).</div>`;
+    }
+
+    function togglePin(name) {
+      if (!Goals.toggle(name)) showToast('Goals full', `You can pin up to ${Goals.MAX} legends. Unpin one first.`);
+      renderAll();
+    }
+
+    function renderSummary() {
+      const today = ProgressSummary.today(improvementsLog);
+      const week = ProgressSummary.week(improvementsLog);
+      document.getElementById('sumToday').textContent = ProgressSummary.describe(today);
+      document.getElementById('sumWeek').textContent = ProgressSummary.describe(week);
+      const top = week.top;
+      document.getElementById('sumTop').innerHTML = top
+        ? `Most improved this week: <b>${esc(top.legend)}</b> (+${top.levels})`
+        : 'Play some matches and sync to see your progress here.';
+    }
+
+    function renderImprovementsLog() {
+      const listEl = document.getElementById('improvementsList');
+      if (!improvementsLog.length) {
+        listEl.innerHTML = `<div style="color:var(--text-muted);font-size:0.82rem">No improvements logged yet. Sync your Brawlhalla ID or level up a Legend to track improvements!</div>`;
+        return;
+      }
+
+      const sorted = [...improvementsLog].sort((a, b) => logSortNewest ? (b.ts - a.ts) : (a.ts - b.ts));
+
+      listEl.innerHTML = sorted.map(item => {
+        const cls = item.newStatus === 'v' ? 'log-v' : (item.newStatus === '!' ? 'log-bang' : '');
+        const statusChanged = item.oldStatus !== item.newStatus;
+        return `
+          <div class="log-entry ${cls}">
+            <div>
+              <strong>${esc(item.legend)}</strong>
+              <div style="font-size:0.75rem;color:var(--text-muted)">
+                Lv.${item.oldLvl} ➔ Lv.${item.newLvl} • ${esc(item.stanceUnlocked)}
+              </div>
+            </div>
+            <div class="tile-badge ${getStatusClass(item.newStatus)}" title="${STATUS_WORD[item.newStatus]}">
+              ${statusChanged ? `${STATUS_ICON[item.oldStatus]}➔${STATUS_ICON[item.newStatus]}` : STATUS_ICON[item.newStatus]}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // The right column is hidden by default; the choice is remembered
+    function setMinimal(on) {
+      document.body.classList.toggle('minimal', on);
+      const fab = document.getElementById('optionsFab');
+      fab.textContent = on ? '☰ Side panels' : '✕ Hide side panels';
+      fab.setAttribute('aria-expanded', String(!on));
+      try { localStorage.setItem('bh_minimal_v1', on ? '1' : '0'); } catch (err) { /* storage unavailable */ }
+    }
+    function toggleMinimal() { setMinimal(!document.body.classList.contains('minimal')); }
+    function closeDrawer() {
+      if (!document.body.classList.contains('drawer-open')) return;
+      document.body.classList.remove('drawer-open');
+      const tile = document.querySelector('.champ-tile.selected');
+      if (tile && tile.focus) tile.focus();
+    }
+    try { setMinimal(localStorage.getItem('bh_minimal_v1') !== '0'); } catch (err) { setMinimal(true); }
+
+    function selectLegend(order) {
+      selectedOrder = order;
+      document.body.classList.add('drawer-open');
+      document.querySelectorAll('.champ-tile.selected').forEach(t => t.classList.remove('selected'));
+      const tile = document.querySelector(`.champ-tile[data-order="${order}"]`);
+      if (tile) tile.classList.add('selected');
+      renderSpotlight();
+    }
+
+    // One click/keyboard handler for tiles, table rows and the "closest to unlock" list
+    function handlePick(e) {
+      const unpin = e.target.closest('[data-unpin]');
+      if (unpin) {
+        if (e.type === 'click') { Goals.remove(unpin.dataset.unpin); renderAll(); }
+        return;
+      }
+      const el = e.target.closest('[data-order]');
+      if (!el) return;
+      if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.type === 'keydown') e.preventDefault();
+      selectLegend(Number(el.dataset.order));
+    }
+    document.getElementById('spotlightPanel').addEventListener('click', e => {
+      const pin = e.target.closest('[data-pin]');
+      if (pin) togglePin(pin.dataset.pin);
+    });
+    window.addEventListener('storage', e => {
+      if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); }
+      if (MatchHistory.isKey(e.key)) { MatchHistory.reload(); renderHistory(); }
+      // Another tab synced or changed levels: pick that up so this tab doesn't save over it
+      if (Tracker.isDataKey(e.key)) {
+        Tracker.reload();
+        takeTrackerState();
+        if (document.activeElement !== document.getElementById('brawlhallaIdInput')) document.getElementById('brawlhallaIdInput').value = savedBhId;
+        renderAll();
+      }
+    });
+    ['champGrid', 'sheetBody', 'nextList', 'goalsList'].forEach(id => {
+      document.getElementById(id).addEventListener('click', handlePick);
+      document.getElementById(id).addEventListener('keydown', handlePick);
+    });
+
+    document.addEventListener('keydown', e => {
+      const search = document.getElementById('searchInput');
+      if (e.key === '/' && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+        e.preventDefault();
+        search.focus();
+      } else if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
+        closeDrawer();
+      } else if (e.key === 'Escape' && document.activeElement === search) {
+        search.value = '';
+        search.blur();
+        renderAll();
+      }
+    });
+
+    const THEME_COLORS = { midnight: '#0b101d', valhalla: '#120c1f', daylight: '#f4f6fb' };
+    function setTheme(name) {
+      if (!THEME_COLORS[name]) name = 'midnight';
+      if (name === 'midnight') document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme', name);
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', THEME_COLORS[name]);
+      try { localStorage.setItem('bh_theme_v1', name); } catch (err) { /* storage unavailable */ }
+    }
+    document.getElementById('themeSelect').value = document.documentElement.getAttribute('data-theme') || 'midnight';
+
+    async function shareImage() {
+      try {
+        const r = await ShareImage.share();
+        if (r === 'downloaded') showToast('📸 Image saved', 'Check your downloads folder.');
+      } catch (err) {
+        showToast('Could not make the image', err.message || 'Try again.');
+      }
+    }
+
+    document.addEventListener('click', e => {
+      document.querySelectorAll('details.menu[open]').forEach(m => {
+        if (!m.contains(e.target) || e.target.closest('.menu-btn, .menu-list a')) m.removeAttribute('open');
+      });
+    });
+
+    function copyShareLink() {
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      const statusEl = document.getElementById('syncStatus');
+      if (!/^\d+$/.test(bhId)) { statusEl.textContent = 'Enter a Brawlhalla ID first to create a share link.'; return; }
+      const url = `${location.origin}${location.pathname}?id=${bhId}`;
+      const done = () => showToast('🔗 Link copied', url);
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(done, () => prompt('Copy this link:', url));
+      else prompt('Copy this link:', url);
+    }
+
+    function setStatusFilter(filter) {
+      statusFilter = filter;
+      ['All', 'V', 'Bang', 'P', 'X'].forEach(id => document.getElementById('filter' + id).classList.remove('active'));
+      if (filter === 'ALL') document.getElementById('filterAll').classList.add('active');
+      if (filter === 'v') document.getElementById('filterV').classList.add('active');
+      if (filter === '!') document.getElementById('filterBang').classList.add('active');
+      if (filter === 'p') document.getElementById('filterP').classList.add('active');
+      if (filter === 'x') document.getElementById('filterX').classList.add('active');
+      renderAll();
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.getElementById('viewGridBtn').classList.toggle('active', mode === 'grid');
+      document.getElementById('viewSheetBtn').classList.toggle('active', mode === 'sheet');
+      document.getElementById('champGrid').style.display = mode === 'grid' ? 'grid' : 'none';
+      document.getElementById('sheetWrapper').style.display = mode === 'sheet' ? 'block' : 'none';
+    }
+
+    let historyLimit = 20;
+    function renderHistory() {
+      const portraitOf = name => !!portraits[portraitSlug(name)];
+      document.getElementById('historyList').innerHTML = MatchHistory.html(savedBhId, { limit: historyLimit, portraitOf });
+    }
+    document.getElementById('historyList').addEventListener('click', e => {
+      if (e.target.closest('[data-hist-more]')) { historyLimit += 20; renderHistory(); }
+    });
+
+    function toggleLogSort() {
+      logSortNewest = !logSortNewest;
+      document.getElementById('logSortBtn').textContent = logSortNewest ? 'Newest First' : 'Oldest First';
+      renderImprovementsLog();
+    }
+
+    function clearImprovementsLog() {
+      improvementsLog = [];
+      localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+      renderImprovementsLog();
+    }
+
+    // Fetching (levels, and Live mode's games counts) lives in core.js.
+
+    async function syncFromApi(opts = {}) {
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      const statusEl = document.getElementById('syncStatus');
+      if (!/^\d+$/.test(bhId)) {
+        statusEl.textContent = bhId ? 'Brawlhalla ID must be a number (find it in-game under your profile).'
+          : 'Please enter your numerical Brawlhalla ID first.';
+        return;
+      }
+      // core.js owns fetching and merging; hand it this page's current data first
+      Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile });
+      if (Tracker.wouldReplace(bhId) && !confirm(Tracker.replaceWarning(bhId))) {
+        document.getElementById('brawlhallaIdInput').value = savedBhId;
+        statusEl.textContent = 'Sync cancelled. Your saved levels were kept.';
+        return;
+      }
+      statusEl.textContent = 'Syncing player stats…';
+
+      // A different player starts fresh, so there are no earlier levels to compare goals against
+      const beforeLevels = playerProfile && playerProfile.id !== bhId ? {} : { ...playerLevels };
+      Tracker.setId(bhId);
+      const r = await Tracker.sync();
+      takeTrackerState();
+      if (r.error) {
+        statusEl.textContent = `Sync failed: ${r.error}`;
+        return;
+      }
+      const counts = MatchHistory.fromStats(legendStats);
+      MatchHistory.record(bhId, counts, Tracker.getLevel);
+      MatchHistory.fillLevels(bhId, counts, Tracker.getLevel);
+
+      const playerName = playerProfile.name;
+      statusEl.textContent = r.updated
+        ? `✓ Synced ${playerName} (#${bhId})! ${r.updated} Legends updated.`
+        : `Found ${playerName} (#${bhId}), but no legend levels came back (dair.gg may be down). Set levels manually with + / −, or try again later.`;
+      if (r.updated && r.missing) statusEl.textContent += ` (${r.missing} had no level data.)`;
+      if (opts.live) statusEl.textContent += ` Last checked ${new Date().toLocaleTimeString()}.`;
+
+      renderAll();
+      const goalAlerts = Goals.alerts(beforeLevels, playerLevels);
+      goalAlerts.forEach(a => { const m = Goals.describe(a); notify(m.title, m.body); });
+      if (goalAlerts.length && opts.live) playChime();
+      // Unlocks already announced as a reached goal are left out of the regular alerts
+      const reached = new Set(goalAlerts.filter(a => a.type === 'reached').map(a => `${a.legend}:${a.lvl}`));
+      return { unlocks: r.unlocks.filter(u => !reached.has(`${u.legend}:${u.lvl}`)), games: playerProfile.games, goalAlerts };
+    }
+
+    // ---------- Live mode: activity detection + unlock notifications ----------
+    // Neither API exposes "online". We poll the official API (data is seconds old) for the total
+    // games count: when it goes up, the player just finished a match. Levels come from dair.gg,
+    // which caches for a few minutes, so levels are re-synced less often and right after new games.
+    const ACTIVITY_POLL_MS = 60 * 1000;
+    const LEVEL_POLL_MS = 5 * 60 * 1000;
+    const PLAYING_WINDOW_MS = 15 * 60 * 1000;
+    let liveTimer = null;
+    let liveState = null;
+
+    function renderActivity() {
+      const el = document.getElementById('activityStatus');
+      document.getElementById('liveRow').hidden = !liveState;
+      if (!liveState) {
+        el.innerHTML = '';
+        return;
+      }
+      const now = Date.now();
+      const checked = liveState.lastCheck ? new Date(liveState.lastCheck).toLocaleTimeString() : '…';
+      if (liveState.lastGameTs && now - liveState.lastGameTs < PLAYING_WINDOW_MS) {
+        const mins = Math.max(0, Math.round((now - liveState.lastGameTs) / 60000));
+        el.innerHTML = `<span class="live-dot on"></span><strong>Playing now</strong> · ${liveState.sessionGames} game(s) this session · last match ${mins ? mins + ' min ago' : 'just now'} · checked ${checked}`;
+      } else {
+        const since = liveState.lastGameTs ? `last match ${new Date(liveState.lastGameTs).toLocaleTimeString()}` : 'no matches since Live started';
+        el.innerHTML = `<span class="live-dot"></span>Not playing (${since}) · checked ${checked}`;
+      }
+    }
+
+    // action: optional { label, run }, shown as a button that runs it and closes the toast
+    function showToast(title, body, action) {
+      const stack = document.getElementById('toastStack');
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.innerHTML = `<strong></strong><span></span>`;
+      t.querySelector('strong').textContent = title;
+      t.querySelector('span').textContent = body;
+      if (action) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'toast-btn';
+        btn.textContent = action.label;
+        btn.addEventListener('click', () => { action.run(); t.remove(); });
+        t.appendChild(btn);
+      }
+      stack.appendChild(t);
+      setTimeout(() => t.remove(), action ? 60000 : 12000);
+    }
+
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [660, 880, 1320].forEach((f, i) => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+          const t0 = ctx.currentTime + i * 0.14;
+          g.gain.setValueAtTime(0.0001, t0);
+          g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.3);
+          o.start(t0); o.stop(t0 + 0.32);
+        });
+      } catch (err) { /* audio not available */ }
+    }
+
+    function notify(title, body, action) {
+      showToast(title, body, action);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(title, { body }); } catch (err) { /* ignore */ }
+      }
+    }
+
+    // "Done" means the player switched to the best stance unlocked now, so no more reminders for it
+    const doneAction = name => ({ label: '✓ Done', run: () => Tracker.confirmStance(name) });
+
+    // After a match: a better stance the player hasn't confirmed switching to gets one reminder per
+    // legend per Live session (ignored ones don't come back until Live restarts)
+    function remindStances(names) {
+      const due = [...new Set(names)].filter(name => !liveState.reminded.has(name)).map(Tracker.pendingStance).filter(Boolean);
+      due.forEach(p => {
+        liveState.reminded.add(p.legend);
+        notify(`Did you switch ${p.legend} to ${p.stance}?`, `It's ${p.legend}'s ${p.kind} stance. Press Done once it's equipped in-game.`, doneAction(p.legend));
+      });
+      if (due.length) playChime();
+    }
+
+    function announceUnlocks(unlocks) {
+      if (!unlocks.length) return;
+      playChime();
+      unlocks.forEach(u => {
+        if (u.stance) notify(`🔓 ${u.legend} hit level ${u.lvl}: switch to ${u.stance} (${u.kind} stance)`, 'Switch it in-game, then press Done.', doneAction(u.legend));
+        else notify(`🔓 ${u.legend} unlocked ${u.what}!`, `Reached level ${u.lvl}.`);
+      });
+    }
+
+    async function liveTick() {
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      if (!liveState || !/^\d+$/.test(bhId)) return;
+      const now = Date.now();
+
+      const games = await Tracker.fetchGames(bhId);
+      if (!liveState) return; // Live was turned off while waiting
+      liveState.lastCheck = now;
+      if (games !== null) {
+        if (MatchHistory.record(bhId, MatchHistory.fromGames(games)).length) renderHistory();
+        if (liveState.games !== null && games.games > liveState.games.games) {
+          liveState.sessionGames += games.games - liveState.games.games;
+          liveState.lastGameTs = now;
+          // Re-check levels soon after a match (dair.gg may need a few minutes to update)
+          liveState.nextLevelSync = Math.min(liveState.nextLevelSync, now + 2 * 60 * 1000);
+          remindStances(Tracker.playedSince(liveState.games, games));
+        }
+        liveState.games = games;
+      }
+
+      if (now >= liveState.nextLevelSync) {
+        liveState.nextLevelSync = now + LEVEL_POLL_MS;
+        const result = await syncFromApi({ live: true });
+        if (!liveState) return;
+        if (result) {
+          announceUnlocks(result.unlocks);
+        }
+      }
+      renderActivity();
+    }
+
+    async function toggleLive() {
+      const btn = document.getElementById('liveBtn');
+      if (liveState) {
+        clearInterval(liveTimer);
+        liveTimer = null;
+        liveState = null;
+        btn.classList.remove('active');
+        localStorage.setItem('bh_live_v1', '0');
+        renderActivity();
+        return;
+      }
+      const bhId = document.getElementById('brawlhallaIdInput').value.trim();
+      if (!/^\d+$/.test(bhId)) {
+        document.getElementById('syncStatus').textContent = 'Enter your numeric Brawlhalla ID before turning on Live.';
+        return;
+      }
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+      btn.classList.add('active');
+      localStorage.setItem('bh_live_v1', '1');
+      // First sync sets the baseline; unlocks found here are already logged, not announced
+      const session = liveState = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + LEVEL_POLL_MS, reminded: new Set() };
+      renderActivity();
+      await syncFromApi({ live: true });
+      // Live may have been turned off (or off and on again) while the first checks ran
+      if (liveState !== session) return;
+      await liveTick();
+      if (liveState !== session) return;
+      liveTimer = setInterval(liveTick, ACTIVITY_POLL_MS);
+    }
+
+    function exportBackup() {
+      const payload = { playerLevels, improvementsLog, savedBhId, legendStats, playerProfile, matchHistory: MatchHistory.all() };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'brawlhalla_stance_tracker_backup.json';
+      a.click();
+    }
+
+    function importBackup(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not a backup');
+          // Only checked values are kept (see Tracker.clean)
+          const { clean } = Tracker;
+          if (parsed.playerLevels) playerLevels = clean.levels(parsed.playerLevels);
+          if (parsed.improvementsLog) improvementsLog = clean.log(parsed.improvementsLog);
+          if (parsed.matchHistory) MatchHistory.replace(parsed.matchHistory);
+          if (parsed.legendStats) { legendStats = clean.stats(parsed.legendStats); localStorage.setItem('bh_legend_stats_v1', JSON.stringify(legendStats)); }
+          if (parsed.playerProfile && clean.profile(parsed.playerProfile)) { playerProfile = clean.profile(parsed.playerProfile); localStorage.setItem('bh_profile_v1', JSON.stringify(playerProfile)); }
+          if (clean.id(parsed.savedBhId)) {
+            savedBhId = clean.id(parsed.savedBhId);
+            localStorage.setItem('bh_player_id_v1', savedBhId);
+            document.getElementById('brawlhallaIdInput').value = savedBhId;
+          }
+          localStorage.setItem('bh_levels_v1', JSON.stringify(playerLevels));
+          localStorage.setItem('bh_improvements_v1', JSON.stringify(improvementsLog));
+          Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile, id: savedBhId });
+          renderAll();
+        } catch (err) {
+          alert('Invalid backup JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    renderAll();
+    Tracker.loadPortraits().then(p => { portraits = p; if (Object.keys(portraits).length) renderAll(); });
+    // Links like index.html#legend-12 open that legend
+    function openLegendFromHash() {
+      const m = location.hash.match(/^#legend-(\d+)$/);
+      if (m && LEGENDS_DB.some(l => l.order === Number(m[1]))) selectLegend(Number(m[1]));
+    }
+    window.addEventListener('hashchange', openLegendFromHash);
+    openLegendFromHash();
+
+    (function startup() {
+      const linkId = new URLSearchParams(location.search).get('id');
+      if (linkId && /^\d+$/.test(linkId)) {
+        history.replaceState(null, '', location.pathname);
+        // syncFromApi asks before a share link for someone else replaces this device's saved data
+        if (linkId !== savedBhId) {
+          document.getElementById('brawlhallaIdInput').value = linkId;
+          syncFromApi();
+          return;
+        }
+      }
+      if (!savedBhId) {
+        document.getElementById('syncStatus').textContent = 'New here? Enter your Brawlhalla ID (the number on your in-game profile) and press Sync to load your levels.';
+      }
+      let live = false;
+      try { live = localStorage.getItem('bh_live_v1') === '1'; } catch (err) { /* storage unavailable */ }
+      if (live && savedBhId) { toggleLive(); return; }
+      // Refresh automatically when the last sync is older than 10 minutes
+      if (savedBhId && (!playerProfile || Date.now() - playerProfile.syncedAt > 10 * 60 * 1000)) syncFromApi();
+    })();
+    setInterval(renderPlayerCard, 60 * 1000);
+  </script>
+  <script>
+    // Offline support (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
