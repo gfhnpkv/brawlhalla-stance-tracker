@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player Stats</title>
+  <meta name="description" content="Your best Brawlhalla legends and weapons, with win rates, KOs, damage and recent form." />
+  <meta name="theme-color" content="#0b101d" />
+  <script src="theme-boot.js" data-page="stats"></script>
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <style>
+    :root {
+      --bg: #0b101d; --panel: #131b2e; --card: #1a2540; --line: #2a395c; --text: #f1f5f9; --muted: #94a3b8;
+      --accent: #06b6d4; --bar: #22d3ee; --track: rgba(148,163,184,0.14); --shadow: rgba(0,0,0,0.4);
+      --title-grad: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
+      --btn-grad: linear-gradient(135deg, #3b82f6, #06b6d4); --on-accent: #fff;
+      color-scheme: dark;
+    }
+    :root[data-theme="valhalla"] {
+      --bg: #120c1f; --panel: #1d1430; --card: #2a1d45; --line: #4a3470; --text: #fdf6e3; --muted: #b8a9d4; --accent: #f5c542; --bar: #f5c542;
+      --title-grad: linear-gradient(90deg, #ffe08a, #f5c542, #ff9f43);
+      --btn-grad: linear-gradient(135deg, #d99a1e, #f5c542); --on-accent: #1a1027;
+    }
+    :root[data-theme="daylight"] {
+      --bg: #f4f6fb; --panel: #ffffff; --card: #eef2f8; --line: #d5dce8; --text: #0f172a; --muted: #5b6678; --accent: #0e7490; --bar: #0e7490;
+      --track: rgba(15,23,42,0.08); --shadow: rgba(15,23,42,0.12);
+      --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
+      --btn-grad: linear-gradient(135deg, #2563eb, #0e7490); --on-accent: #fff;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; line-height: 1.5;
+      padding: clamp(16px, 3vw, 44px); min-height: 100vh; }
+    button, input, select { font: inherit; color: inherit; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .wrap { max-width: 1280px; margin: 0 auto; }
+
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 28px; margin-bottom: 26px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 30px; box-shadow: 0 8px 24px var(--shadow); }
+    h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+      background: var(--title-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .lead { color: var(--muted); font-size: 0.86rem; margin-top: 2px; }
+    .nav { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .nav a { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--accent);
+      font-size: 0.82rem; font-weight: 700; text-decoration: none; }
+    .nav a:hover { border-color: var(--accent); }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .input { width: 190px; padding: 9px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); outline: none; }
+    .input:focus { border-color: var(--accent); }
+    .btn { padding: 9px 16px; border-radius: 10px; border: 1px solid transparent; background: var(--btn-grad); color: var(--on-accent); cursor: pointer; font-weight: 700; }
+    .btn[disabled] { opacity: 0.6; cursor: progress; }
+    .status { color: var(--muted); font-size: 0.86rem; min-height: 1.4em; margin: -12px 0 20px; }
+
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 26px; }
+    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+    .tile .k { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 800; }
+    .tile .v { font-size: 1.45rem; font-weight: 900; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .tile .s { font-size: 0.74rem; color: var(--muted); }
+
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 22px; margin-bottom: 22px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; min-width: 0; }
+    .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .panel h2 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .panel .note { font-size: 0.75rem; color: var(--muted); margin-bottom: 14px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .chip { padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 0.76rem; font-weight: 700; color: var(--muted); }
+    .chip:hover { border-color: var(--accent); }
+    .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
+    .min { font-size: 0.76rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .min select { padding: 3px 6px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); }
+
+    /* ranked bar list: one series, so one hue; values stay in text ink */
+    .bars { display: flex; flex-direction: column; gap: 4px; }
+    .bar-row { display: grid; grid-template-columns: 22px 34px minmax(0, 150px) 1fr 64px; gap: 10px; align-items: center; padding: 5px 4px; border-radius: 8px; }
+    .bar-row:hover { background: var(--card); }
+    .rank { font-size: 0.74rem; color: var(--muted); font-weight: 800; text-align: right; }
+    .art { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; object-position: top center; background: var(--card); }
+    .art.blank { display: grid; place-items: center; font-size: 1rem; }
+    .who { min-width: 0; }
+    .who b { display: block; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .who span { display: block; font-size: 0.7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track { height: 10px; border-radius: 0 4px 4px 0; background: var(--track); }
+    .fill { height: 100%; border-radius: 0 4px 4px 0; background: var(--bar); min-width: 2px; }
+    .val { font-weight: 800; font-size: 0.86rem; text-align: right; font-variant-numeric: tabular-nums; }
+    .empty { color: var(--muted); font-size: 0.84rem; padding: 18px 4px; }
+
+    .days { display: grid; grid-template-columns: repeat(14, 1fr); gap: 6px; align-items: end; height: 140px; margin-top: 6px; }
+    .day { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
+    .day .col { width: 100%; max-width: 26px; background: var(--bar); border-radius: 4px 4px 0 0; min-height: 0; }
+    .day .n { font-size: 0.68rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .day .d { font-size: 0.62rem; color: var(--muted); white-space: nowrap; }
+    .baseline { border-top: 1px solid var(--line); }
+
+    .extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .extras .tile { background: var(--card); }
+
+    @media (max-width: 560px) {
+      header { padding: 18px; }
+      .bar-row { grid-template-columns: 18px 30px minmax(0, 1fr) 70px 52px; gap: 8px; }
+      .art { width: 30px; height: 30px; }
+      .days .d { font-size: 0.55rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Player stats</h1>
+        <p class="lead" id="lead">Your best legends and weapons, from dair.gg and the Brawlhalla API.</p>
+        <nav class="nav" aria-label="Pages"><a href="index.html?view=auto">← Stance tracker</a><a href="stances.html">🧪 Stance lab</a></nav>
+      </div>
+      <div class="actions">
+        <input class="input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" aria-label="Brawlhalla ID" autocomplete="off" />
+        <button class="btn" id="loadBtn">Load stats</button>
+      </div>
+    </header>
+    <div class="status" id="status"></div>
+
+    <div class="tiles" id="tiles"></div>
+
+    <div class="cols">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>🏆 Best legends</h2>
+          <label class="min">Min. games <select id="legendMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
+        </div>
+        <p class="note" id="legendNote"></p>
+        <div class="chips" id="legendChips"></div>
+        <div class="bars" id="legendBars"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>⚔️ Best weapons</h2>
+          <label class="min">Min. games <select id="weaponMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
+        </div>
+        <p class="note" id="weaponNote"></p>
+        <div class="chips" id="weaponChips"></div>
+        <div class="bars" id="weaponBars"></div>
+      </section>
+    </div>
+
+    <div class="cols">
+      <section class="panel">
+        <div class="panel-head"><h2>📅 Last 14 days</h2></div>
+        <p class="note" id="daysNote"></p>
+        <div id="days"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>🧨 Unarmed, throws &amp; gadgets</h2></div>
+        <p class="note">KOs and damage that didn't come from your two weapons.</p>
+        <div class="extras" id="extras"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="legends.js"></script>
+  <script src="core.js"></script>
+  <script src="history.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    const esc = str => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const num = v => (Number.isFinite(v) ? v : 0);
+    const pct = (w, g) => (g ? `${Math.round(100 * w / g)}%` : '–');
+    const fmt = (v, digits = 0) => (Number.isFinite(v) ? v.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : '–');
+    const hours = sec => `${fmt(sec / 3600, sec < 36000 ? 1 : 0)}h`;
+    const CACHE_KEY = 'bh_stats_cache_v1';
+
+    let data = null; // { id, name, fetchedAt, stats, legends: [], weapons: [], unarmed, throws, gadgets }
+    let portraits = {};
+    let legendMetric = 'winrate', weaponMetric = 'winrate';
+
+    // dair.gg's answer, reduced to the numbers this page uses. Anything missing becomes 0, so a
+    // changed or broken answer (or old cache) shows empty sections instead of crashing.
+    function shape(id, d) {
+      if (!d || !d.stats || !Array.isArray(d.legends)) return null;
+      const s = d.stats;
+      const legendName = n => {
+        const found = LEGENDS_DB.find(l => l.name.toLowerCase() === String(n).toLowerCase());
+        return found ? found.name : String(n || '?');
+      };
+      return {
+        id, name: String(d.name || 'Player'), fetchedAt: Date.now(),
+        stats: { level: num(s.level), games: num(s.games), wins: num(s.wins), time: num(s.matchtime), kos: num(s.kos), falls: num(s.falls), damage: num(s.damage_dealt), taken: num(s.damage_taken) },
+        legends: d.legends.map(l => {
+          const st = l.stats || {};
+          return {
+            name: legendName(l.name), games: num(st.games), wins: num(st.wins), kos: num(st.kos), falls: num(st.falls),
+            damage: num(st.damage_dealt), time: num(st.matchtime), level: num(st.level),
+            weapons: [l.weapon_one, l.weapon_two].filter(Boolean).map(w => String(w.name || ''))
+          };
+        }).filter(l => l.games > 0),
+        weapons: (Array.isArray(d.weapons) ? d.weapons : []).map(w => {
+          const st = w.stats || {};
+          const top = (Array.isArray(w.legends) ? w.legends : []).reduce((a, b) => (num(b.kos) > num(a && a.kos) ? b : a), null);
+          return {
+            name: String(w.name || '?'), games: num(st.games), wins: num(st.wins), kos: num(st.kos), damage: num(st.damage_dealt),
+            held: num(st.time_held), level: num(st.level), top: top ? { name: legendName(top.name), kos: num(top.kos) } : null
+          };
+        }).filter(w => w.games > 0),
+        unarmed: { kos: num(d.unarmed && d.unarmed.kos), damage: num(d.unarmed && d.unarmed.damage_dealt), held: num(d.unarmed && d.unarmed.time_held) },
+        throws: { kos: num(d.weapon_throws && d.weapon_throws.kos), damage: num(d.weapon_throws && d.weapon_throws.damage_dealt) },
+        gadgets: { kos: num(d.gadgets && d.gadgets.kos), damage: num(d.gadgets && d.gadgets.damage_dealt) }
+      };
+    }
+
+    // Only the saved per-legend stats: used when dair.gg can't be reached and nothing is cached
+    function fromSaved() {
+      const st = Tracker.state.stats, p = Tracker.state.profile;
+      const legends = Object.keys(st).map(name => ({
+        name, games: st[name].games, wins: st[name].wins, kos: num(st[name].kos), falls: 0, damage: 0, time: st[name].time,
+        level: Tracker.getLevel(name), weapons: st[name].weapons
+      })).filter(l => l.games > 0);
+      if (!legends.length) return null;
+      const sum = k => legends.reduce((a, l) => a + num(l[k]), 0);
+      return {
+        id: Tracker.state.id, name: p ? p.name : 'Player', fetchedAt: p ? p.syncedAt : 0, partial: true,
+        stats: { level: p ? num(p.level) : 0, games: p && p.games ? p.games : sum('games'), wins: p && p.wins ? p.wins : sum('wins'), time: sum('time'), kos: sum('kos'), falls: 0, damage: 0, taken: 0 },
+        legends, weapons: [], unarmed: null, throws: null, gadgets: null
+      };
+    }
+
+    async function load(id) {
+      $('loadBtn').disabled = true;
+      $('status').textContent = 'Loading stats…';
+      try {
+        const base = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/api' : 'https://brawlhalla-tracker-relay.gfhnpkv.workers.dev';
+        const res = await fetch(`${base}/dair/${id}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(res.status === 404 ? 'No player found with that ID.' : res.status === 429 ? 'Rate limited, try again in a minute.' : `dair.gg returned HTTP ${res.status}`);
+        const shaped = shape(id, (await res.json()).data);
+        if (!shaped) throw new Error('dair.gg sent an answer this page can\'t read.');
+        data = shaped;
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (err) { /* storage full or unavailable */ }
+        $('status').textContent = `✓ Loaded ${data.name} (#${id}). dair.gg updates a few minutes after each match.`;
+      } catch (err) {
+        const cached = readCache(id);
+        data = cached || (Tracker.state.id === id ? fromSaved() : null);
+        $('status').textContent = `Couldn't load fresh stats: ${err.message || 'network error'}` +
+          (cached ? ` Showing the copy from ${new Date(cached.fetchedAt).toLocaleString()}.` : data ? ' Showing your last synced legend stats.' : '');
+      }
+      $('loadBtn').disabled = false;
+      render();
+    }
+    function readCache(id) {
+      try {
+        const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+        return c && c.id === id && Array.isArray(c.legends) && Array.isArray(c.weapons) && c.stats ? c : null;
+      } catch (err) { return null; }
+    }
+
+    // ---------- rendering ----------
+    const LEGEND_METRICS = {
+      winrate: { label: 'Win rate', rate: true, full: 1, value: l => l.wins / l.games, show: l => pct(l.wins, l.games), sub: l => `${fmt(l.games)} games` },
+      games: { label: 'Most played', value: l => l.games, show: l => fmt(l.games), sub: l => `${pct(l.wins, l.games)} wins · ${hours(l.time)}` },
+      kos: { label: 'KOs / game', rate: true, value: l => l.kos / l.games, show: l => fmt(l.kos / l.games, 2), sub: l => `${fmt(l.kos)} KOs in ${fmt(l.games)} games` },
+      kd: { label: 'KO / fall', rate: true, needs: 'falls', value: l => l.kos / Math.max(1, l.falls), show: l => fmt(l.kos / Math.max(1, l.falls), 2), sub: l => `${fmt(l.kos)} KOs, ${fmt(l.falls)} falls` },
+      damage: { label: 'Damage / game', rate: true, needs: 'damage', value: l => l.damage / l.games, show: l => fmt(l.damage / l.games), sub: l => `${fmt(l.games)} games` },
+      level: { label: 'Level', value: l => l.level, show: l => fmt(l.level), sub: l => `${fmt(l.games)} games · ${hours(l.time)}` }
+    };
+    const WEAPON_METRICS = {
+      winrate: { label: 'Win rate', rate: true, full: 1, value: w => w.wins / w.games, show: w => pct(w.wins, w.games), sub: w => `${fmt(w.games)} games` },
+      games: { label: 'Most played', value: w => w.games, show: w => fmt(w.games), sub: w => `${pct(w.wins, w.games)} wins` },
+      kos: { label: 'KOs', value: w => w.kos, show: w => fmt(w.kos), sub: w => (w.top ? `most with ${w.top.name} (${fmt(w.top.kos)})` : '') },
+      dpm: { label: 'Damage / min held', rate: true, value: w => w.damage / Math.max(1, w.held / 60), show: w => fmt(w.damage / Math.max(1, w.held / 60)), sub: w => `${hours(w.held)} held` },
+      level: { label: 'Mastery level', value: w => w.level, show: w => fmt(w.level), sub: w => `${fmt(w.games)} games` }
+    };
+
+    function chips(el, metrics, active, skip) {
+      el.innerHTML = Object.entries(metrics).filter(([k, m]) => !skip(m))
+        .map(([k, m]) => `<button class="chip" data-metric="${k}" aria-pressed="${k === active}">${m.label}</button>`).join('');
+    }
+    function artHtml(name) {
+      const src = portraits[Tracker.portraitSlug(name)];
+      return src ? `<img class="art" src="${esc(src.replace('portraits/', 'portraits/mini/'))}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;art blank&quot;>🛡️</span>'" />`
+        : '<span class="art blank">🛡️</span>';
+    }
+    // Top 10 by the metric, as bars scaled to the best value (win rates to 100%). Rates only count items with enough games.
+    function bars(items, metric, min, art) {
+      const pool = items.filter(x => !metric.rate || x.games >= min);
+      const top = pool.slice().sort((a, b) => metric.value(b) - metric.value(a)).slice(0, 10);
+      if (!top.length) return `<div class="empty">Nothing with at least ${min} games yet. Lower the minimum.</div>`;
+      const max = metric.full || Math.max(...top.map(metric.value)) || 1;
+      return top.map((x, i) => `
+        <div class="bar-row" title="${esc(x.name)}: ${esc(metric.show(x))} · ${esc(metric.sub(x))}">
+          <span class="rank">${i + 1}</span>
+          ${art(x)}
+          <span class="who"><b>${esc(x.name)}</b><span>${esc(metric.sub(x))}</span></span>
+          <span class="track"><span class="fill" style="display:block;width:${(100 * Math.max(0, metric.value(x)) / max).toFixed(1)}%"></span></span>
+          <span class="val">${esc(metric.show(x))}</span>
+        </div>`).join('');
+    }
+
+    function renderTiles() {
+      const s = data.stats;
+      const tiles = [
+        ['Games', fmt(s.games), `${fmt(s.wins)} wins`],
+        ['Win rate', pct(s.wins, s.games), `${fmt(s.games - s.wins)} losses`],
+        ['Time played', hours(s.time), s.games ? `${fmt(s.time / s.games / 60, 1)} min per game` : ''],
+        ['KOs / game', s.games ? fmt(s.kos / s.games, 2) : '–', `${fmt(s.kos)} KOs`]
+      ];
+      if (s.falls) tiles.push(['KO / fall', fmt(s.kos / s.falls, 2), `${fmt(s.falls)} falls`]);
+      if (s.damage) tiles.push(['Damage / game', fmt(s.damage / Math.max(1, s.games)), `${fmt(s.taken / Math.max(1, s.games))} taken`]);
+      if (s.level) tiles.push(['Account level', fmt(s.level), data.legends.length ? `${data.legends.length} legends played` : '']);
+      $('tiles').innerHTML = tiles.map(([k, v, sub]) => `<div class="tile"><div class="k">${k}</div><div class="v">${esc(v)}</div><div class="s">${esc(sub)}</div></div>`).join('');
+    }
+
+    function renderLegends() {
+      const lm = LEGEND_METRICS[legendMetric] ? legendMetric : 'winrate';
+      chips($('legendChips'), LEGEND_METRICS, lm, m => m.needs && data.partial);
+      const min = Number($('legendMin').value);
+      $('legendNote').textContent = LEGEND_METRICS[lm].rate ? `Legends with at least ${min} games.` : 'All legends you\'ve played.';
+      $('legendBars').innerHTML = bars(data.legends, LEGEND_METRICS[lm], min, l => artHtml(l.name));
+    }
+
+    function renderWeapons() {
+      const wm = WEAPON_METRICS[weaponMetric] ? weaponMetric : 'winrate';
+      chips($('weaponChips'), WEAPON_METRICS, wm, () => false);
+      const min = Number($('weaponMin').value);
+      if (!data.weapons.length) {
+        $('weaponNote').textContent = '';
+        $('weaponBars').innerHTML = '<div class="empty">Weapon stats come from dair.gg, which couldn\'t be reached. Try Load stats again in a minute.</div>';
+        return;
+      }
+      $('weaponNote').textContent = 'A weapon\'s games count every match on a legend that carries it.' + (WEAPON_METRICS[wm].rate ? ` At least ${min} games.` : '');
+      $('weaponBars').innerHTML = bars(data.weapons, WEAPON_METRICS[wm], min, () => '<span class="art blank">⚔️</span>');
+    }
+
+    // Games per day from the tracker's own game history (history.js), which starts when it was added
+    function renderDays() {
+      const entries = MatchHistory.all().filter(e => e.id === data.id);
+      const days = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+        days.push({ start: d.getTime(), end: d.getTime() + 864e5, label: d.toLocaleDateString([], { weekday: 'short' }), date: d.toLocaleDateString(), games: 0, wins: 0 });
+      }
+      entries.forEach(e => { const d = days.find(x => e.ts >= x.start && e.ts < x.end); if (d) { d.games += e.games; d.wins += e.wins; } });
+      const total = days.reduce((a, d) => ({ games: a.games + d.games, wins: a.wins + d.wins }), { games: 0, wins: 0 });
+      if (!total.games) {
+        $('daysNote').textContent = 'From the tracker\'s game history, which only records matches since it was added. Sync or turn on Live in the tracker, then play.';
+        $('days').innerHTML = '<div class="empty">No games recorded in the last 14 days yet.</div>';
+        return;
+      }
+      $('daysNote').textContent = `${total.games} games, ${pct(total.wins, total.games)} wins. From the tracker's game history, so only matches since it was added.`;
+      const max = Math.max(...days.map(d => d.games));
+      $('days').innerHTML = `<div class="days">${days.map(d => `
+        <div class="day" title="${esc(d.date)}: ${d.games} game${d.games === 1 ? '' : 's'}${d.games ? `, ${pct(d.wins, d.games)} wins` : ''}">
+          <span class="n">${d.games || ''}</span>
+          <span class="col" style="height:${d.games ? Math.max(4, 100 * d.games / max) : 0}px"></span>
+          <span class="d">${esc(d.label)}</span>
+        </div>`).join('')}</div>`;
+    }
+
+    function renderExtras() {
+      if (!data.unarmed) { $('extras').innerHTML = '<div class="empty">Comes from dair.gg, which couldn\'t be reached.</div>'; return; }
+      const all = Math.max(1, data.stats.kos);
+      $('extras').innerHTML = [
+        ['👊 Unarmed', data.unarmed], ['🎯 Weapon throws', data.throws], ['💣 Gadgets', data.gadgets]
+      ].map(([k, x]) => `<div class="tile"><div class="k">${k}</div><div class="v">${fmt(x.kos)} <span class="s">KOs</span></div>
+        <div class="s">${pct(x.kos, all)} of all KOs · ${fmt(x.damage)} damage</div></div>`).join('');
+    }
+
+    function render() {
+      if (!data) {
+        $('tiles').innerHTML = '';
+        ['legendBars', 'weaponBars', 'days', 'extras', 'legendChips', 'weaponChips'].forEach(id => { $(id).innerHTML = ''; });
+        $('legendBars').innerHTML = '<div class="empty">Enter your Brawlhalla ID and press Load stats.</div>';
+        return;
+      }
+      $('lead').textContent = `${data.name} (#${data.id}) · ${data.partial ? 'last synced legend stats' : 'from dair.gg'}${data.fetchedAt ? `, ${new Date(data.fetchedAt).toLocaleString()}` : ''}`;
+      renderTiles(); renderLegends(); renderWeapons(); renderDays(); renderExtras();
+    }
+
+    // ---------- events ----------
+    $('legendChips').addEventListener('click', e => { const c = e.target.closest('[data-metric]'); if (c) { legendMetric = c.dataset.metric; renderLegends(); } });
+    $('weaponChips').addEventListener('click', e => { const c = e.target.closest('[data-metric]'); if (c) { weaponMetric = c.dataset.metric; renderWeapons(); } });
+    $('legendMin').addEventListener('change', () => data && renderLegends());
+    $('weaponMin').addEventListener('change', () => data && renderWeapons());
+    function submit() {
+      const id = $('idInput').value.trim();
+      if (!/^\d+$/.test(id)) { $('status').textContent = 'Brawlhalla ID must be a number (find it in-game under your profile).'; return; }
+      load(id);
+    }
+    $('loadBtn').addEventListener('click', submit);
+    $('idInput').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    window.addEventListener('storage', e => { if (data && MatchHistory.isKey(e.key)) { MatchHistory.reload(); renderDays(); } });
+
+    // Starts with the tracker's saved ID (or ?id= from a link): the cached copy shows right away
+    const startId = [new URLSearchParams(location.search).get('id'), Tracker.state.id].find(v => /^\d+$/.test(v || '')) || '';
+    $('idInput').value = startId;
+    data = startId ? readCache(startId) : null;
+    render();
+    if (startId) load(startId);
+    Tracker.loadPortraits().then(p => { portraits = p; if (data) renderLegends(); });
+  </script>
+</body>
+</html>
