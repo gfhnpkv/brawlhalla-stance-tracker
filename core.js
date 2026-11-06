@@ -220,7 +220,8 @@ const Tracker = (() => {
   function portraitHtml(name, size = 'mini', { cls = '', width, height, lazy = true, x2, onload = '', fallback = 'el.remove()' } = {}) {
     const attr = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const set = src => (x2 ? `${src(name, size)} 1x, ${src(name, x2)} 2x` : src(name, size));
-    return `<picture style="display:contents"><source type="image/avif" srcset="${attr(set(portraitSrc))}" />`
+    // The <source> is hidden: with the <picture> display:contents, it would otherwise take a grid or flex slot
+    return `<picture style="display:contents"><source type="image/avif" srcset="${attr(set(portraitSrc))}" style="display:none" />`
       + `<img${cls ? ` class="${attr(cls)}"` : ''} src="${attr(portraitPng(name, size))}"${x2 ? ` srcset="${attr(set(portraitPng))}"` : ''} alt=""`
       + `${width ? ` width="${width}"` : ''}${height ? ` height="${height}"` : ''}${lazy ? ' loading="lazy"' : ''} decoding="async"`
       + `${onload ? ` onload="${attr(onload)}"` : ''} onerror="if (!Tracker.portraitError(this)) { const el = this.parentNode; ${attr(fallback)} }" /></picture>`;
