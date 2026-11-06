@@ -802,6 +802,7 @@
         <details class="menu" id="viewsMenu">
           <summary>Views ▾</summary>
           <div class="menu-list">
+            <a href="index.html">Main tracker</a>
             <a href="app.html?view=mobile">📱 Mobile view</a>
             <a href="stances.html">🧪 Stance lab</a>
             <a href="stats.html">📊 Player stats</a>
@@ -1758,7 +1759,7 @@
     }
 
     function exportBackup() {
-      const payload = { playerLevels, improvementsLog, savedBhId, legendStats, playerProfile, matchHistory: MatchHistory.all() };
+      const payload = { playerLevels, improvementsLog, savedBhId, legendStats, playerProfile, matchHistory: MatchHistory.all(), goals: Goals.list() };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1779,6 +1780,7 @@
           if (parsed.playerLevels) playerLevels = clean.levels(parsed.playerLevels);
           if (parsed.improvementsLog) improvementsLog = clean.log(parsed.improvementsLog);
           if (parsed.matchHistory) MatchHistory.replace(parsed.matchHistory);
+          if (Array.isArray(parsed.goals)) { localStorage.setItem('bh_goals_v1', JSON.stringify(parsed.goals)); Goals.reload(); }
           if (parsed.legendStats) { legendStats = clean.stats(parsed.legendStats); localStorage.setItem('bh_legend_stats_v1', JSON.stringify(legendStats)); }
           if (parsed.playerProfile && clean.profile(parsed.playerProfile)) { playerProfile = clean.profile(parsed.playerProfile); localStorage.setItem('bh_profile_v1', JSON.stringify(playerProfile)); }
           if (clean.id(parsed.savedBhId)) {
@@ -1799,7 +1801,7 @@
 
     renderAll();
     Tracker.loadPortraits().then(p => { portraits = p; if (Object.keys(portraits).length) renderAll(); });
-    // Links like index.html#legend-12 open that legend
+    // Links like classic.html#legend-12 open that legend
     function openLegendFromHash() {
       const m = location.hash.match(/^#legend-(\d+)$/);
       if (m && LEGENDS_DB.some(l => l.order === Number(m[1]))) selectLegend(Number(m[1]));

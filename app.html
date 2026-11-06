@@ -1022,7 +1022,7 @@
       }
     });
     $('exportBtn').addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify({ playerLevels, improvementsLog, savedBhId, legendStats, playerProfile, matchHistory: MatchHistory.all() }, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify({ playerLevels, improvementsLog, savedBhId, legendStats, playerProfile, matchHistory: MatchHistory.all(), goals: Goals.list() }, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'brawlhalla_stance_tracker_backup.json';
@@ -1042,6 +1042,7 @@
           if (p.playerLevels) { playerLevels = clean.levels(p.playerLevels); save(KEYS.levels, playerLevels); }
           if (p.improvementsLog) { improvementsLog = clean.log(p.improvementsLog); save(KEYS.log, improvementsLog); }
           if (p.matchHistory) MatchHistory.replace(p.matchHistory);
+          if (Array.isArray(p.goals)) { localStorage.setItem('bh_goals_v1', JSON.stringify(p.goals)); Goals.reload(); }
           if (p.legendStats) { legendStats = clean.stats(p.legendStats); save(KEYS.stats, legendStats); }
           if (clean.profile(p.playerProfile)) { playerProfile = clean.profile(p.playerProfile); save(KEYS.profile, playerProfile); }
           if (clean.id(p.savedBhId)) { savedBhId = clean.id(p.savedBhId); save(KEYS.id, savedBhId); }

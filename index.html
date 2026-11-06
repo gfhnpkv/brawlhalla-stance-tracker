@@ -108,6 +108,23 @@
     .nav { display: flex; gap: 2px; }
     .nav a { color: var(--muted); text-decoration: none; font-size: var(--fs-s); font-weight: 600; padding: 8px 10px; border-radius: var(--r-s); }
     .nav a:hover { color: var(--text); background: var(--raised); }
+    /* More menu: a <details> drop-down in the top bar */
+    .menu { position: relative; }
+    .menu > summary { list-style: none; }
+    .menu > summary::-webkit-details-marker { display: none; }
+    .menu[open] > summary { border-color: var(--accent); color: var(--accent); }
+    .menu-list {
+      position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; min-width: 240px;
+      display: grid; gap: 2px; padding: 6px; background: var(--panel); border: 1px solid var(--line-strong);
+      border-radius: var(--r); box-shadow: var(--shadow);
+    }
+    .menu-list button {
+      display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 0 10px;
+      border: 0; border-radius: var(--r-s); background: none; text-align: left; font-size: var(--fs-s); font-weight: 600; cursor: pointer;
+    }
+    .menu-list button:hover { background: var(--raised); }
+    .menu-list button .icon { color: var(--muted); }
+    .menu-list hr { width: 100%; border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
     .sync-status { max-width: 1440px; margin: 0 auto; padding: 0 24px 8px; font-size: var(--fs-s); color: var(--muted); min-height: 0; }
     .sync-status:empty { display: none; }
     .sync-status.error { color: var(--loss); }
@@ -349,6 +366,11 @@
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.75"/><path d="m21 16-5-5-9 8"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></symbol>
     <symbol id="i-swap" viewBox="0 0 24 24"><path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/></symbol>
   </svg>
 
@@ -366,6 +388,17 @@
         <a href="stances.html">Stance lab</a>
         <a href="stats.html">Stats</a>
       </nav>
+      <details class="menu" id="moreMenu">
+        <summary class="btn"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg>More</summary>
+        <div class="menu-list">
+          <button type="button" id="shareLinkBtn" title="Copy a link that opens this tracker for your ID"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>Copy share link</button>
+          <button type="button" id="shareImageBtn"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg>Save an image</button>
+          <hr />
+          <button type="button" id="exportBtn"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Export backup (JSON)</button>
+          <button type="button" id="importBtn"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Import backup</button>
+        </div>
+      </details>
+      <input type="file" id="importFile" accept=".json,application/json" hidden />
     </div>
     <div class="sync-status" id="syncStatus" role="status"></div>
   </header>
@@ -433,6 +466,7 @@
   <script src="core.js"></script>
   <script src="goals.js"></script>
   <script src="history.js"></script>
+  <script src="shareimage.js"></script>
   <script>
     const { state } = Tracker;
     const $ = id => document.getElementById(id);
@@ -918,17 +952,100 @@
     // Keep "x min ago", "Playing now" and the strip's now-line current
     setInterval(renderLive, 30 * 1000);
 
+    // ---------- More menu: share link, share image, backup ----------
+    const closeMenu = () => $('moreMenu').removeAttribute('open');
+    document.addEventListener('click', e => { if (!$('moreMenu').contains(e.target)) closeMenu(); });
+    $('moreMenu').addEventListener('keydown', e => {
+      if (e.key === 'Escape' && $('moreMenu').open) { closeMenu(); $('moreMenu').querySelector('summary').focus(); }
+    });
+    // Same link as classic.html: this page with ?id=, which syncs that player on open
+    $('shareLinkBtn').addEventListener('click', () => {
+      closeMenu();
+      const bhId = $('idInput').value.trim();
+      if (!/^\d+$/.test(bhId)) { setStatus('Enter a Brawlhalla ID first to create a share link.', true); return; }
+      const url = `${location.origin}${location.pathname}?id=${bhId}`;
+      const copied = () => toast('Link copied', url);
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(url).then(copied, () => prompt('Copy this link:', url));
+      else prompt('Copy this link:', url);
+    });
+    $('shareImageBtn').addEventListener('click', async () => {
+      closeMenu();
+      try {
+        const r = await ShareImage.share();
+        if (r === 'downloaded') toast('Image saved', 'Check your downloads folder.');
+      } catch (err) {
+        toast('Could not make the image', err.message || 'Try again.');
+      }
+    });
+    // Backups use the same JSON as classic.html and app.html, so each page imports the others' files
+    $('exportBtn').addEventListener('click', () => {
+      closeMenu();
+      const payload = { playerLevels: state.levels, improvementsLog: state.log, savedBhId: state.id, legendStats: state.stats, playerProfile: state.profile, matchHistory: MatchHistory.all(), goals: Goals.list() };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'brawlhalla_stance_tracker_backup.json';
+      a.click();
+    });
+    $('importBtn').addEventListener('click', () => { closeMenu(); $('importFile').click(); });
+    $('importFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not a backup');
+          // Only checked values are kept (see Tracker.clean)
+          const { clean } = Tracker;
+          const next = { levels: state.levels, log: state.log, stats: state.stats, profile: state.profile, id: state.id };
+          if (parsed.playerLevels) next.levels = clean.levels(parsed.playerLevels);
+          if (parsed.improvementsLog) next.log = clean.log(parsed.improvementsLog);
+          if (parsed.matchHistory) MatchHistory.replace(parsed.matchHistory);
+          if (parsed.legendStats) { next.stats = clean.stats(parsed.legendStats); localStorage.setItem('bh_legend_stats_v1', JSON.stringify(next.stats)); }
+          if (parsed.playerProfile && clean.profile(parsed.playerProfile)) { next.profile = clean.profile(parsed.playerProfile); localStorage.setItem('bh_profile_v1', JSON.stringify(next.profile)); }
+          if (clean.id(parsed.savedBhId)) {
+            next.id = clean.id(parsed.savedBhId);
+            localStorage.setItem('bh_player_id_v1', next.id);
+            $('idInput').value = next.id;
+          }
+          if (Array.isArray(parsed.goals)) { localStorage.setItem('bh_goals_v1', JSON.stringify(parsed.goals)); Goals.reload(); }
+          localStorage.setItem('bh_levels_v1', JSON.stringify(next.levels));
+          localStorage.setItem('bh_improvements_v1', JSON.stringify(next.log));
+          Object.assign(Tracker.state, next);
+          renderAll();
+          if (sheetLegend) renderSheet();
+          toast('Backup imported', 'Your levels, game history and goals are restored.');
+        } catch (err) {
+          toast('Import failed', 'That file is not a valid backup.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
     // ---------- start ----------
     $('idInput').value = state.id;
     renderAll();
     Tracker.loadPortraits().then(p => { portraits = p; if (Object.keys(p).length) renderAll(); });
+    // Links like index.html#legend-12 open that legend's details (as on classic.html)
+    function openLegendFromHash() {
+      const m = location.hash.match(/^#legend-(\d+)$/);
+      const l = m && LEGENDS_DB.find(x => x.order === Number(m[1]));
+      if (l) openSheet(l.name);
+    }
+    window.addEventListener('hashchange', openLegendFromHash);
+    openLegendFromHash();
     (function startup() {
       const linkId = new URLSearchParams(location.search).get('id');
-      if (linkId && /^\d+$/.test(linkId) && linkId !== state.id) {
-        history.replaceState(null, '', location.pathname);
-        $('idInput').value = linkId;
-        doSync();
-        return;
+      // Share links (?id=): doSync asks before someone else's ID replaces this device's saved data
+      if (linkId && /^\d+$/.test(linkId)) {
+        history.replaceState(null, '', location.pathname + location.hash);
+        if (linkId !== state.id) {
+          $('idInput').value = linkId;
+          doSync();
+          return;
+        }
       }
       if (!state.id) { setStatus('Enter your Brawlhalla ID (the number on your in-game profile) and press Sync to load your levels.'); $('idInput').focus(); return; }
       let wasLive = false;
