@@ -140,7 +140,7 @@
     .scorebug .l .num { color: var(--loss); }
     .scorebug .mid { display: grid; align-content: center; gap: 2px; padding: 10px 8px; text-align: center; background: var(--raised); min-width: 0; }
     .scorebug .games { display: block; font-size: var(--fs-1); font-weight: 650; }
-    .scorebug .last { font-size: var(--fs-s); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scorebug .last { font-size: var(--fs-s); color: var(--muted); text-wrap: balance; }
     .scorebug .flag { grid-column: 1 / -1; padding: 3px 8px; text-align: center; font-size: var(--fs-s); font-weight: 700; background: var(--raised); color: var(--muted); border-top: 1px solid var(--line); }
     .scorebug .flag.on { background: var(--accent); color: var(--accent-ink); border-top-color: var(--accent); }
     /* A match landing: the numbers roll in and the flag reads Final */
@@ -691,7 +691,8 @@
       for (let h = new Date(start).getHours() + 1; ; h++) {
         const t = new Date(dayStart).setHours(h);
         if (t >= now) break;
-        if (h % step === 0) html += `<div class="hour" style="left:${x(t)}"><span>${clock(t)}</span></div>`;
+        // Leave room for the label before the now-line
+        if (h % step === 0 && (now - t) / span > 0.12) html += `<div class="hour" style="left:${x(t)}"><span>${clock(t)}</span></div>`;
       }
       today.forEach(e => {
         const fresh = live && e.ts >= live.freshTs && now - e.ts < 5000 ? ' new' : '';
