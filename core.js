@@ -58,10 +58,11 @@ const Tracker = (() => {
   const state = {};
   // (Re)reads everything from localStorage; pages call it when another tab saves
   function reload() {
+    // Levels and stats go in first: rebuilding the log works out statuses, which read them
+    state.levels = clean.levels(load(KEYS.levels, {}));
+    state.stats = clean.stats(load(KEYS.stats, {}));
     Object.assign(state, {
-      levels: clean.levels(load(KEYS.levels, {})),
       log: clean.log(load(KEYS.log, [])),
-      stats: clean.stats(load(KEYS.stats, {})),
       profile: clean.profile(load(KEYS.profile, null)),
       id: clean.id((() => { try { return localStorage.getItem(KEYS.id); } catch (err) { return ''; } })())
     });
@@ -73,7 +74,8 @@ const Tracker = (() => {
   // A legend counts as played once it has games in the synced stats or a level above 1.
   // The API can't tell owned from not owned, so an unplayed legend is shown as locked either way.
   function hasPlayed(name, lvl = getLevel(name)) {
-    return lvl > 1 || !!(state.stats[name] && state.stats[name].games > 0);
+    const stats = state.stats && state.stats[name];
+    return lvl > 1 || !!(stats && stats.games > 0);
   }
   // 'v' best stance, '!' standard stance, 'p' played but no stance yet, 'x' locked (not played / not owned)
   function statusOf(legend, lvl) {
