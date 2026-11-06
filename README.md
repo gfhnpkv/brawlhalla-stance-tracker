@@ -28,11 +28,19 @@ Enter your numeric Brawlhalla ID and click **Sync API**. No API key needed. Sour
 1. [dair.gg](https://api.dair.gg/) community API: returns per-legend levels for every account.
 2. Official Brawlhalla API v1.0 (2000 requests / 5 min): fallback; omits levels for some accounts.
 
-## Stance check after each match
-Turn on **Live** (main page or phone view). When a match ends, the tracker looks at which legend you played and
-compares the stance you have equipped in the **Stance lab** with the best stance unlocked at that legend's level.
-If they don't match, you get an alert telling you which stance to switch to. It checks again when a level-up
-unlocks a new best stance. The game's API doesn't say which stance is equipped, so keep the Stance lab up to date.
+## Stance reminders
+Turn on **Live** (main page or phone view). The game's API doesn't say which stance you have equipped, so the
+tracker reminds you instead of checking:
+- **On unlock:** when a level-up unlocks a better stance, a pop-up says which one to switch to, e.g.
+  "🔓 Bödvar hit level 8: switch to Strength (best stance)".
+- **After a match:** if you play that legend before confirming, you get one reminder, "Did you switch Bödvar
+  to Strength?". Press **✓ Done** once it's equipped and that legend won't ask again until it unlocks something
+  better. An ignored reminder doesn't repeat for that legend until Live is turned off and on again.
+- Stances you had already unlocked before your first sync (or before reminders existed) count as switched, so
+  old unlocks never bring reminders.
+
+Confirmations are saved in your browser (`bh_stance_confirmed_v1`). The equipped stance you mark in the
+**Stance lab** is only for your notes; reminders don't use it.
 
 When a level is missing, your manually entered level is kept. Set levels with + / − on any legend.
 

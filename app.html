@@ -282,6 +282,7 @@
     .toasts { position: fixed; left: 12px; right: 12px; top: calc(12px + var(--safe-t)); z-index: 60; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
     .toast { background: var(--toast-bg); color: var(--text); border: 1px solid var(--v); border-left-width: 5px; border-radius: 12px; padding: 12px 14px; font-size: 0.88rem; box-shadow: 0 10px 30px var(--shadow); animation: drop 0.25s ease-out; }
     .toast strong { display: block; margin-bottom: 2px; }
+    .toast-btn { pointer-events: auto; display: block; margin-top: 10px; padding: 8px 16px; border-radius: 10px; font-weight: 800; font-size: 0.85rem; background: var(--v); color: #04130a; }
     @keyframes drop { from { transform: translateY(-12px); opacity: 0; } }
 
     @media (min-width: 700px) {
@@ -822,14 +823,23 @@
       renderHeader();
     }
 
-    function toast(title, body) {
+    // action: optional { label, run }, shown as a button that runs it and closes the toast
+    function toast(title, body, action) {
       const t = document.createElement('div');
       t.className = 'toast';
       t.innerHTML = '<strong></strong><span></span>';
       t.querySelector('strong').textContent = title;
       t.querySelector('span').textContent = body;
+      if (action) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'toast-btn';
+        btn.textContent = action.label;
+        btn.addEventListener('click', () => { action.run(); t.remove(); });
+        t.appendChild(btn);
+      }
       $('toasts').appendChild(t);
-      setTimeout(() => t.remove(), 8000);
+      setTimeout(() => t.remove(), action ? 60000 : 8000);
     }
     function chime() {
       try {
@@ -846,29 +856,30 @@
       } catch (err) { /* no audio */ }
       if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
     }
-    // After a match, check the stance lab's equipped stance against the best one unlocked
-    function checkStances(names) {
-      const wrong = [...new Set(names)].map(Tracker.stanceAdvice).filter(Boolean);
-      wrong.forEach(a => {
-        const title = `⚠️ Change ${a.legend}'s stance`;
-        const body = `You have ${a.have} equipped, but ${a.want.join(' or ')} is unlocked. Switch it in-game, then update it in the Stance lab.`;
-        toast(title, body);
-        if ('Notification' in window && Notification.permission === 'granted') {
-          try { new Notification(title, { body }); } catch (err) { /* ignore */ }
-        }
+    function notify(title, body, action) {
+      toast(title, body, action);
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(title, { body }); } catch (err) { /* ignore */ }
+      }
+    }
+    // "Done" means the player switched to the best stance unlocked now, so no more reminders for it
+    const doneAction = name => ({ label: '✓ Done', run: () => Tracker.confirmStance(name) });
+    // After a match: a better stance the player hasn't confirmed switching to gets one reminder per
+    // legend per Live session (ignored ones don't come back until Live restarts)
+    function remindStances(names) {
+      const due = [...new Set(names)].filter(name => !live.reminded.has(name)).map(Tracker.pendingStance).filter(Boolean);
+      due.forEach(p => {
+        live.reminded.add(p.legend);
+        notify(`Did you switch ${p.legend} to ${p.stance}?`, `It's ${p.legend}'s ${p.kind} stance. Press Done once it's equipped in-game.`, doneAction(p.legend));
       });
-      if (wrong.length) chime();
+      if (due.length) chime();
     }
     function announce(unlocks) {
       if (!unlocks.length) return;
       chime();
       unlocks.forEach(u => {
-        const title = `🔓 ${u.legend} unlocked ${u.what}!`;
-        const body = `Reached level ${u.lvl}${u.statusUp ? ` (now ${u.statusUp})` : ''}.`;
-        toast(title, body);
-        if ('Notification' in window && Notification.permission === 'granted') {
-          try { new Notification(title, { body }); } catch (err) { /* ignore */ }
-        }
+        if (u.stance) notify(`🔓 ${u.legend} hit level ${u.lvl}: switch to ${u.stance} (${u.kind} stance)`, 'Switch it in-game, then press Done.', doneAction(u.legend));
+        else notify(`🔓 ${u.legend} unlocked ${u.what}!`, `Reached level ${u.lvl}.`);
       });
     }
 
@@ -884,7 +895,7 @@
           live.sessionGames += games.games - live.games.games;
           live.lastGameTs = now;
           live.nextLevelSync = Math.min(live.nextLevelSync, now + 2 * 60 * 1000);
-          checkStances(Tracker.playedSince(live.games, games));
+          remindStances(Tracker.playedSince(live.games, games));
         }
         live.games = games;
       }
@@ -894,8 +905,6 @@
         if (!live) return;
         if (r) {
           announce(r.unlocks);
-          // A new best stance unlocked from that match: say what to switch to
-          checkStances(r.unlocks.filter(u => u.statusUp).map(u => u.legend));
         }
       }
       renderActivity();
@@ -914,7 +923,7 @@
         return;
       }
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
-      const session = live = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + 5 * 60 * 1000 };
+      const session = live = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + 5 * 60 * 1000, reminded: new Set() };
       renderActivity();
       await sync({ quiet: true });
       // Live may have been turned off (or off and on again) while the first checks ran

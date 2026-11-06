@@ -108,10 +108,13 @@ const Tracker = (() => {
     };
   }
 
-  // ---------- stance check ----------
-  // The stance lab (stances.html) saves the equipped stance per legend as 'base', a stat ('str')
-  // or 'super_' + stat. These read it so the other pages can check it after a match.
+  // ---------- stance reminders ----------
+  // The API can't tell which stance is equipped, so after a better stance unlocks the pages remind
+  // the player to switch until they press Done. CONFIRMED_KEY holds, per legend, the stance key
+  // confirmed last: 'base', a stat ('str') or 'super_' + stat.
+  // The stance lab (stances.html) keeps its own equipped marking under LAB_KEY; reminders don't read it.
   const LAB_KEY = 'bh_stance_lab_v1';
+  const CONFIRMED_KEY = 'bh_stance_confirmed_v1';
   const STAT_KEY = { Strength: 'str', Dexterity: 'dex', Dex: 'dex', Defense: 'def', Speed: 'spd' };
   const STAT_LABEL = { str: 'Strength', dex: 'Dexterity', def: 'Defense', spd: 'Speed' };
   const stanceLabel = key => (key === 'base' ? 'Base' : key.startsWith('super_') ? `Super ${STAT_LABEL[key.slice(6)]}` : STAT_LABEL[key]);
@@ -128,30 +131,55 @@ const Tracker = (() => {
   // "Strength (takes Dex) or Speed" -> ['str', 'spd']; the "(takes …)" notes aren't options
   const stancesIn = text => [...text.replace(/\(takes [^)]*\)/g, '').matchAll(/\b(Super )?(Strength|Dexterity|Dex|Defense|Speed|Base)\b/g)]
     .map(m => stanceKeyOf(m[0]));
-  function equippedStance(name) {
-    try {
-      const picks = JSON.parse(localStorage.getItem(LAB_KEY) || '{}');
-      const key = picks && picks[name] && picks[name].equipped;
-      return typeof key === 'string' && (key === 'base' || stanceLabel(key)) ? key : 'base';
-    } catch (err) { return 'base'; }
-  }
-  // Null when the legend's equipped stance is already the best one unlocked at its level.
-  // Otherwise { legend, have, want: [labels] } so the page can say what to switch to.
-  function stanceAdvice(name) {
-    const legend = legendNamed(name);
-    if (!legend) return null;
-    const lvl = getLevel(name);
+  // The stances worth equipping at a level: the best (target) ones once unlocked, else the standard
+  // ones. { keys, label: 'Strength or Speed', kind: 'best' | 'standard' }, or null before any.
+  function bestStances(legend, lvl) {
     const status = statusOf(legend, lvl);
     if (status !== 'v' && status !== '!') return null;
     const unlocked = key => unlockLevel(legend, key) <= lvl;
-    let want = stancesIn(status === 'v' ? legend.target : legend.alt).filter(unlocked);
-    if (!want.length) want = stancesIn(legend.alt).filter(unlocked);
-    const have = equippedStance(name);
-    if (!want.length || want.includes(have)) return null;
-    return { legend: name, have: stanceLabel(have), want: [...new Set(want)].map(stanceLabel) };
+    let keys = status === 'v' ? stancesIn(legend.target).filter(unlocked) : [];
+    let kind = 'best';
+    if (!keys.length) { keys = stancesIn(legend.alt).filter(unlocked); kind = 'standard'; }
+    if (!keys.length) return null;
+    keys = [...new Set(keys)];
+    return { keys, label: keys.map(stanceLabel).join(' or '), kind };
+  }
+
+  // Read fresh each time, so a Done pressed in another tab counts here too
+  function loadConfirmed() {
+    const v = load(CONFIRMED_KEY, null);
+    if (!isObj(v)) return null;
+    const out = {};
+    Object.keys(v).forEach(name => { if (legendNamed(name) && typeof v[name] === 'string') out[name] = v[name]; });
+    return out;
+  }
+  // Everything already unlocked counts as switched, so old unlocks never bring reminders.
+  // Taken on the first run ever and after a first sync (or a sync of a different player).
+  function baselineStances() {
+    const out = {};
+    LEGENDS_DB.forEach(l => { const b = bestStances(l, getLevel(l.name)); if (b) out[l.name] = b.keys[0]; });
+    save(CONFIRMED_KEY, out);
+  }
+  // { legend, stance, kind } when a better stance is unlocked but not confirmed yet, else null
+  function pendingStance(name) {
+    const legend = legendNamed(name);
+    const best = legend && bestStances(legend, getLevel(name));
+    const confirmed = loadConfirmed() || {};
+    if (!best || best.keys.includes(confirmed[name])) return null;
+    return { legend: name, stance: best.label, kind: best.kind };
+  }
+  // The Done button: the player switched to the best stance unlocked now
+  function confirmStance(name) {
+    const legend = legendNamed(name);
+    const best = legend && bestStances(legend, getLevel(name));
+    if (!best) return;
+    save(CONFIRMED_KEY, { ...(loadConfirmed() || {}), [name]: best.keys[0] });
   }
 
   reload();
+  try {
+    if (!loadConfirmed()) baselineStances();
+  } catch (err) { /* reminders just won't show; the rest of the page still loads */ }
 
   // Syncing a different player replaces the saved levels, stats and log. True when that would
   // throw away something, so pages can ask first.
@@ -303,6 +331,8 @@ const Tracker = (() => {
     if (!data) return { error };
     const player = parsePlayer(bhId, data);
 
+    // A first sync (or another player's) brings in levels earned long ago: not news, no reminders
+    const firstSync = !state.profile || state.profile.id !== bhId;
     if (state.profile && state.profile.id !== bhId) {
       // Different player: start fresh so data doesn't mix between accounts
       state.levels = {}; state.stats = {}; state.log = [];
@@ -314,10 +344,15 @@ const Tracker = (() => {
       if (level === null) { missing++; return; }
       const oldLvl = getLevel(name);
       state.levels[name] = level;
-      MILESTONES.filter(m => oldLvl < m && level >= m).forEach(m => unlocks.push({
-        legend: name, lvl: m, what: milestoneName(legend, m),
-        statusUp: m === legend.vLvl ? 'v' : (m === legend.bangLvl ? '!' : null)
-      }));
+      MILESTONES.filter(m => oldLvl < m && level >= m).forEach(m => {
+        const statusUp = m === legend.vLvl ? 'v' : (m === legend.bangLvl ? '!' : null);
+        // A better stance: say which one to switch to ({ stance, kind } from bestStances)
+        const best = statusUp && bestStances(legend, m);
+        unlocks.push({
+          legend: name, lvl: m, what: milestoneName(legend, m), statusUp,
+          stance: best ? best.label : null, kind: best ? best.kind : null
+        });
+      });
       if (level > oldLvl) state.log.push(logEntry(legend, oldLvl, level));
       updated++;
     });
@@ -328,12 +363,16 @@ const Tracker = (() => {
     save(KEYS.log, state.log);
     save(KEYS.stats, state.stats);
     save(KEYS.profile, state.profile);
+    if (firstSync) {
+      baselineStances();
+      return { updated, missing, unlocks: [] };
+    }
     return { updated, missing, unlocks };
   }
 
   return {
     KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits,
     getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
-    LAB_KEY, stanceAdvice, fetchGames, playedSince
+    LAB_KEY, pendingStance, confirmStance, fetchGames, playedSince
   };
 })();
