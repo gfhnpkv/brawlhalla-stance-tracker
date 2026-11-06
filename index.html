@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Stance Tracker (clean)</title>
-  <meta name="description" content="Alternative design of the Brawlhalla Stance Tracker: Live status, stance reminders, game history and the legend roster." />
+  <title>Stance Tracker</title>
+  <meta name="description" content="Brawlhalla Stance Tracker: Live status, stance reminders, game history and the legend roster." />
   <meta name="theme-color" content="#0e1116" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <script src="theme-boot.js" data-page="desktop" data-no-theme></script>
   <style>
     :root {
       color-scheme: dark;
@@ -361,7 +362,7 @@
       </form>
       <button class="switch" id="liveSwitch" role="switch" aria-checked="false" type="button"><span class="track"></span>Live</button>
       <nav class="nav" aria-label="Other pages">
-        <a href="index.html">Classic tracker</a>
+        <a href="classic.html">Classic tracker</a>
         <a href="stances.html">Stance lab</a>
         <a href="stats.html">Stats</a>
       </nav>
@@ -437,7 +438,7 @@
     const $ = id => document.getElementById(id);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const icon = (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
-    // Status copy from index.html
+    // Status copy from classic.html
     const STATUS = {
       v: { cls: 'v', short: 'Best', long: 'Best stance unlocked', icon: 'best' },
       '!': { cls: 'b', short: 'Standard', long: 'Standard stance unlocked', icon: 'standard' },
@@ -553,7 +554,7 @@
       return { unlocks: r.unlocks.filter(u => !reached.has(`${u.legend}:${u.lvl}`)) };
     }
 
-    // ---------- Live mode (same polling as index.html) ----------
+    // ---------- Live mode (same polling as classic.html) ----------
     // The official API's games count shows a match within seconds; levels come from dair.gg, which
     // caches for a few minutes, so they're re-synced every 5 minutes and 2 minutes after a match.
     const ACTIVITY_POLL_MS = 60 * 1000;

@@ -1,12 +1,17 @@
 // Runs in <head> before the page draws: applies the saved theme (no flash) and sends
 // phones to app.html and computers to index.html. ?view=mobile|desktop sets a manual
 // choice, ?view=auto clears it.
+// data-page="desktop" pages (index.html, classic.html) only ever send phones to app.html;
+// only data-page="mobile" (app.html) sends computers on, so classic.html is never bounced.
+// data-no-theme: the page has one fixed look (index.html), so the saved theme is not applied.
 (function () {
   var THEME_COLORS = { midnight: '#0b101d', valhalla: '#120c1f', daylight: '#f4f6fb' };
-  var page = document.currentScript && document.currentScript.dataset.page;
+  var script = document.currentScript;
+  var page = script && script.dataset.page;
+  var themed = !(script && script.hasAttribute('data-no-theme'));
   try {
     var theme = localStorage.getItem('bh_theme_v1');
-    if (theme && THEME_COLORS[theme]) {
+    if (themed && theme && THEME_COLORS[theme]) {
       document.documentElement.setAttribute('data-theme', theme);
       var meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', THEME_COLORS[theme]);
