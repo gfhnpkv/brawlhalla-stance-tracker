@@ -13,6 +13,9 @@ Legend art belongs to Blue Mammoth Games / Ubisoft. The images in this folder we
 Legends without a portrait show their crest in the Stance Lab and a plain tile on the main page. Tall images (about 3:4) look best;
 they are cropped from the top.
 
-The tracker (`index.html`) shows the full image behind the selected legend and a small icon from
-`mini/` (same file name) behind each legend tile, falling back to the full image. Import the icons with
-`python3 tools/import_portraits.py ../brawllhala-images/legends/mini --mini`.
+The pages load small AVIF copies, not these PNGs: `mini/<name>.avif` for tiles and lists, and
+`large/<name>.avif` (720px) for big art such as the tracker's spotlight. The PNGs stay as the fallback
+for browsers that can't show AVIF. Import the small icons with
+`python3 tools/import_portraits.py ../brawllhala-images/legends/mini --mini`, then (re)make the AVIF
+copies with `python3 tools/make_avif.py` (macOS; it skips files that are already up to date).
+After replacing a picture under the same name, bump `IMG_CACHE` in `sw.js` so returning visitors get it.
