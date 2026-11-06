@@ -2,9 +2,14 @@
 """Make the small AVIF copies of the legend portraits that the pages load.
 
 For every portraits/<slug>.png this writes:
-  portraits/mini/<slug>.avif   from portraits/mini/<slug>.png (tiles, lists, history)
+  portraits/tiny/<slug>.png    96px on the long side, from the mini PNG (fallback for the tiny AVIF)
+  portraits/tiny/<slug>.avif   96px: pictures shown at 48px or less (2x for sharp screens)
+  portraits/small/<slug>.png   180px, from the mini PNG (fallback for the small AVIF)
+  portraits/small/<slug>.avif  180px: tiles on 1x screens (shown about 150px wide)
+  portraits/mini/<slug>.avif   from portraits/mini/<slug>.png (tiles on 2x screens)
   portraits/large/<slug>.avif  720px on the long side (big art, e.g. the spotlight panel)
-The PNGs stay as the fallback. Files already newer than their PNG are skipped.
+The PNGs stay as the fallback (Tracker.portraitHtml puts them in <picture>). Files already
+newer than their source are skipped.
 Needs macOS (uses sips, which keeps the transparency).
 
 Usage (from the project folder), e.g. after adding a legend with import_portraits.py:
@@ -19,6 +24,8 @@ PROJECT = Path(__file__).resolve().parent.parent
 PORTRAITS = PROJECT / 'portraits'
 QUALITY = '60'
 LARGE_SIZE = '720'
+TINY_SIZE = '96'
+SMALL_SIZE = '180'
 
 
 def convert(src, dest, resize, force):
@@ -27,7 +34,8 @@ def convert(src, dest, resize, force):
     if not force and dest.exists() and dest.stat().st_mtime >= src.stat().st_mtime:
         return 'skipped'
     dest.parent.mkdir(exist_ok=True)
-    cmd = ['sips', '-s', 'format', 'avif', '-s', 'formatOptions', QUALITY]
+    fmt = dest.suffix[1:]
+    cmd = ['sips', '-s', 'format', fmt] + (['-s', 'formatOptions', QUALITY] if fmt == 'avif' else [])
     if resize:
         cmd += ['-Z', resize]
     subprocess.run(cmd + [str(src), '--out', str(dest)], check=True, capture_output=True)
@@ -40,7 +48,13 @@ def main():
     args = parser.parse_args()
     counts = {}
     for png in sorted(PORTRAITS.glob('*.png')):
-        jobs = [(PORTRAITS / 'mini' / png.name, PORTRAITS / 'mini' / f'{png.stem}.avif', None),
+        mini_png = PORTRAITS / 'mini' / png.name
+        # Each PNG comes before its AVIF: the AVIF is made from it
+        jobs = [(mini_png, PORTRAITS / 'tiny' / png.name, TINY_SIZE),
+                (PORTRAITS / 'tiny' / png.name, PORTRAITS / 'tiny' / f'{png.stem}.avif', None),
+                (mini_png, PORTRAITS / 'small' / png.name, SMALL_SIZE),
+                (PORTRAITS / 'small' / png.name, PORTRAITS / 'small' / f'{png.stem}.avif', None),
+                (mini_png, PORTRAITS / 'mini' / f'{png.stem}.avif', None),
                 (png, PORTRAITS / 'large' / f'{png.stem}.avif', LARGE_SIZE)]
         for src, dest, resize in jobs:
             result = convert(src, dest, resize, args.force)
