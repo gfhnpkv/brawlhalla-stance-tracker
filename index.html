@@ -750,6 +750,19 @@
     .sum-top { font-size:0.75rem; color:var(--text-muted); padding:2px 2px 0; }
     .sum-top b { color:var(--accent-cyan); }
     .section-title { font-size:0.75rem; text-transform:uppercase; letter-spacing:0.6px; color:var(--text-muted); font-weight:800; margin-bottom:12px; }
+    /* Game history (markup from history.js) */
+    .hist-today { font-size:0.8rem; padding:11px 14px; border-radius:10px; background:var(--bg-card); border:1px solid var(--border-color); margin-bottom:6px; }
+    .hist-today b { color:var(--accent-cyan); }
+    .hist-note, .hist-empty { font-size:0.72rem; color:var(--text-muted); margin-bottom:10px; }
+    .hist-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--hairline); font-size:0.8rem; }
+    .hist-when { color:var(--text-muted); font-size:0.72rem; min-width:44px; }
+    .hist-art { width:22px; height:22px; border-radius:6px; object-fit:cover; flex:none; }
+    .hist-legend { flex:1; min-width:0; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hist-result { font-weight:800; padding:1px 7px; border-radius:6px; background:var(--prog-bg); color:var(--prog); white-space:nowrap; }
+    .hist-result.win { background:var(--v-bg); color:var(--v-green); }
+    .hist-result.loss { background:var(--x-bg); color:var(--x-red); }
+    .hist-lvl { color:var(--text-muted); font-size:0.72rem; min-width:40px; text-align:right; }
+    .hist-more { margin-top:10px; width:100%; padding:6px; font-size:0.75rem; }
 
     kbd { font-size:0.7rem; padding:1px 5px; border-radius:4px; border:1px solid var(--border-color); background:var(--bg-dark); color:var(--text-muted); }
     .champ-tile:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline:2px solid var(--accent-cyan); outline-offset:2px; }
@@ -908,6 +921,10 @@
         <div class="section-title">Closest to next unlock</div>
         <div id="nextList"></div>
       </div>
+      <div class="next-box">
+        <div class="section-title">🎮 Game history</div>
+        <div id="historyList"></div>
+      </div>
       <div class="log-header">
         <h3>Improvements Log</h3>
         <div style="display:flex;gap:6px">
@@ -924,6 +941,7 @@
   <script src="legends.js"></script>
   <script src="core.js"></script>
   <script src="goals.js"></script>
+  <script src="history.js"></script>
   <script src="summary.js"></script>
   <script src="shareimage.js"></script>
   <script>
@@ -1316,6 +1334,7 @@
       renderPlayerCard();
       renderSummary();
       renderGoals();
+      renderHistory();
     }
 
     function renderGoals() {
@@ -1427,6 +1446,7 @@
     });
     window.addEventListener('storage', e => {
       if (e.key === 'bh_goals_v1') { Goals.reload(); renderAll(); }
+      if (MatchHistory.isKey(e.key)) { MatchHistory.reload(); renderHistory(); }
       // Another tab synced or changed levels: pick that up so this tab doesn't save over it
       if (Tracker.isDataKey(e.key)) {
         Tracker.reload();
@@ -1508,6 +1528,15 @@
       document.getElementById('sheetWrapper').style.display = mode === 'sheet' ? 'block' : 'none';
     }
 
+    let historyLimit = 20;
+    function renderHistory() {
+      const portraitOf = name => { const src = portraits[portraitSlug(name)]; return src ? src.replace('portraits/', 'portraits/mini/') : ''; };
+      document.getElementById('historyList').innerHTML = MatchHistory.html(savedBhId, { limit: historyLimit, portraitOf });
+    }
+    document.getElementById('historyList').addEventListener('click', e => {
+      if (e.target.closest('[data-hist-more]')) { historyLimit += 20; renderHistory(); }
+    });
+
     function toggleLogSort() {
       logSortNewest = !logSortNewest;
       document.getElementById('logSortBtn').textContent = logSortNewest ? 'Newest First' : 'Oldest First';
@@ -1548,6 +1577,9 @@
         statusEl.textContent = `Sync failed: ${r.error}`;
         return;
       }
+      const counts = MatchHistory.fromStats(legendStats);
+      MatchHistory.record(bhId, counts, Tracker.getLevel);
+      MatchHistory.fillLevels(bhId, counts, Tracker.getLevel);
 
       const playerName = playerProfile.name;
       statusEl.textContent = r.updated
@@ -1652,6 +1684,7 @@
       if (!liveState) return; // Live was turned off while waiting
       liveState.lastCheck = now;
       if (games !== null) {
+        if (MatchHistory.record(bhId, MatchHistory.fromGames(games)).length) renderHistory();
         if (liveState.games !== null && games.games > liveState.games.games) {
           liveState.sessionGames += games.games - liveState.games.games;
           liveState.lastGameTs = now;
@@ -1708,7 +1741,7 @@
     }
 
     function exportBackup() {
-      const payload = { playerLevels, improvementsLog, savedBhId, legendStats, playerProfile };
+      const payload = { playerLevels, improvementsLog, savedBhId, legendStats, playerProfile, matchHistory: MatchHistory.all() };
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -1728,6 +1761,7 @@
           const { clean } = Tracker;
           if (parsed.playerLevels) playerLevels = clean.levels(parsed.playerLevels);
           if (parsed.improvementsLog) improvementsLog = clean.log(parsed.improvementsLog);
+          if (parsed.matchHistory) MatchHistory.replace(parsed.matchHistory);
           if (parsed.legendStats) { legendStats = clean.stats(parsed.legendStats); localStorage.setItem('bh_legend_stats_v1', JSON.stringify(legendStats)); }
           if (parsed.playerProfile && clean.profile(parsed.playerProfile)) { playerProfile = clean.profile(parsed.playerProfile); localStorage.setItem('bh_profile_v1', JSON.stringify(playerProfile)); }
           if (clean.id(parsed.savedBhId)) {

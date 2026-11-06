@@ -246,7 +246,7 @@ const Tracker = (() => {
     return { error };
   }
 
-  // Total and per-legend games from the official API (seconds old, unlike dair.gg), so Live mode
+  // Total and per-legend games (and per-legend wins, for the game history) from the official API (seconds old, unlike dair.gg), so Live mode
   // can tell when a match ended and which legend it was on. Null when neither source answers.
   async function fetchGames(bhId) {
     for (const url of [`https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all`, `${relayBase()}/player/${bhId}`]) {
@@ -255,9 +255,9 @@ const Tracker = (() => {
         if (!res.ok) continue;
         const json = await res.json();
         if (!Number.isFinite(json.games)) continue;
-        const legends = {};
-        if (Array.isArray(json.legends)) parsePlayer(bhId, json).legends.forEach(l => { legends[l.name] = l.stats.games; });
-        return { games: json.games, legends };
+        const legends = {}, wins = {};
+        if (Array.isArray(json.legends)) parsePlayer(bhId, json).legends.forEach(l => { legends[l.name] = l.stats.games; wins[l.name] = l.stats.wins; });
+        return { games: json.games, legends, wins };
       } catch (err) { /* try next source */ }
     }
     return null;
