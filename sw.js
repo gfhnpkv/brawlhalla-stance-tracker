@@ -4,11 +4,11 @@
 // they rarely change, so repeat visits show them with no network at all. Bump IMG_CACHE after
 // replacing a picture under the same name.
 // API calls to other sites are not touched, and saved data stays in localStorage.
-const CACHE = 'stance-tracker-v18';
+const CACHE = 'stance-tracker-v19';
 const IMG_CACHE = 'stance-tracker-img-v1';
 const isPicture = url => /\/(portraits|weapons)\/.+\.(avif|png|jpe?g|webp|svg)$/i.test(url.pathname);
 const FILES = [
-  './', 'index.html', 'app.html', 'stances.html', 'stats.html',
+  './', 'index.html', 'classic.html', 'redesign-clean.html', 'app.html', 'stances.html', 'stats.html',
   'legends.js', 'stance-data.js', 'core.js', 'goals.js', 'history.js', 'summary.js', 'shareimage.js', 'crest.js', 'theme-boot.js', 'icon.svg', 'manifest.webmanifest', 'portraits/index.json', '404.html'
 ];
 
