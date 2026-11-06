@@ -28,6 +28,12 @@ Enter your numeric Brawlhalla ID and click **Sync API**. No API key needed. Sour
 1. [dair.gg](https://api.dair.gg/) community API: returns per-legend levels for every account.
 2. Official Brawlhalla API v1.0 (2000 requests / 5 min): fallback; omits levels for some accounts.
 
+## Stance check after each match
+Turn on **Live** (main page or phone view). When a match ends, the tracker looks at which legend you played and
+compares the stance you have equipped in the **Stance lab** with the best stance unlocked at that legend's level.
+If they don't match, you get an alert telling you which stance to switch to. It checks again when a level-up
+unlocks a new best stance. The game's API doesn't say which stance is equipped, so keep the Stance lab up to date.
+
 When a level is missing, your manually entered level is kept. Set levels with + / − on any legend.
 
 Progress is saved in your browser (localStorage). Use Export/Import JSON for backups.

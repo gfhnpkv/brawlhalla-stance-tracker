@@ -106,6 +106,49 @@ const Tracker = (() => {
     };
   }
 
+  // ---------- stance check ----------
+  // The stance lab (stances.html) saves the equipped stance per legend as 'base', a stat ('str')
+  // or 'super_' + stat. These read it so the other pages can check it after a match.
+  const LAB_KEY = 'bh_stance_lab_v1';
+  const STAT_KEY = { Strength: 'str', Dexterity: 'dex', Dex: 'dex', Defense: 'def', Speed: 'spd' };
+  const STAT_LABEL = { str: 'Strength', dex: 'Dexterity', def: 'Defense', spd: 'Speed' };
+  const stanceLabel = key => (key === 'base' ? 'Base' : key.startsWith('super_') ? `Super ${STAT_LABEL[key.slice(6)]}` : STAT_LABEL[key]);
+  function stanceKeyOf(name) {
+    if (name === 'Base') return 'base';
+    const sup = name.startsWith('Super ');
+    return (sup ? 'super_' : '') + STAT_KEY[name.replace('Super ', '')];
+  }
+  function unlockLevel(legend, key) {
+    if (key === 'base') return 1;
+    const lvl = Object.keys(legend.stances).find(l => stanceKeyOf(legend.stances[l]) === key);
+    return lvl ? Number(lvl) : Infinity;
+  }
+  // "Strength (takes Dex) or Speed" -> ['str', 'spd']; the "(takes …)" notes aren't options
+  const stancesIn = text => [...text.replace(/\(takes [^)]*\)/g, '').matchAll(/\b(Super )?(Strength|Dexterity|Dex|Defense|Speed|Base)\b/g)]
+    .map(m => stanceKeyOf(m[0]));
+  function equippedStance(name) {
+    try {
+      const picks = JSON.parse(localStorage.getItem(LAB_KEY) || '{}');
+      const key = picks && picks[name] && picks[name].equipped;
+      return typeof key === 'string' && (key === 'base' || stanceLabel(key)) ? key : 'base';
+    } catch (err) { return 'base'; }
+  }
+  // Null when the legend's equipped stance is already the best one unlocked at its level.
+  // Otherwise { legend, have, want: [labels] } so the page can say what to switch to.
+  function stanceAdvice(name) {
+    const legend = legendNamed(name);
+    if (!legend) return null;
+    const lvl = getLevel(name);
+    const status = statusOf(legend, lvl);
+    if (status !== 'v' && status !== '!') return null;
+    const unlocked = key => unlockLevel(legend, key) <= lvl;
+    let want = stancesIn(status === 'v' ? legend.target : legend.alt).filter(unlocked);
+    if (!want.length) want = stancesIn(legend.alt).filter(unlocked);
+    const have = equippedStance(name);
+    if (!want.length || want.includes(have)) return null;
+    return { legend: name, have: stanceLabel(have), want: [...new Set(want)].map(stanceLabel) };
+  }
+
   reload();
 
   // Syncing a different player replaces the saved levels, stats and log. True when that would
@@ -201,6 +244,25 @@ const Tracker = (() => {
     return { error };
   }
 
+  // Total and per-legend games from the official API (seconds old, unlike dair.gg), so Live mode
+  // can tell when a match ended and which legend it was on. Null when neither source answers.
+  async function fetchGames(bhId) {
+    for (const url of [`https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all`, `${relayBase()}/player/${bhId}`]) {
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) continue;
+        const json = await res.json();
+        if (!Number.isFinite(json.games)) continue;
+        const legends = {};
+        if (Array.isArray(json.legends)) parsePlayer(bhId, json).legends.forEach(l => { legends[l.name] = l.stats.games; });
+        return { games: json.games, legends };
+      } catch (err) { /* try next source */ }
+    }
+    return null;
+  }
+  // Legends whose game count went up between two fetchGames results
+  const playedSince = (before, after) => Object.keys(after.legends).filter(name => after.legends[name] > (before.legends[name] || 0));
+
   // Turn an API response into { profile fields, legends: [{ name, legend, level (or null), stats }] }
   function parsePlayer(bhId, data) {
     const legends = [];
@@ -269,6 +331,7 @@ const Tracker = (() => {
 
   return {
     KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits,
-    getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync
+    getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
+    LAB_KEY, stanceAdvice, fetchGames, playedSince
   };
 })();

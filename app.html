@@ -721,10 +721,7 @@
     }
 
     // ---------- sync ----------
-    // Live mode reads the games count from the official API, with the relay as fallback.
-    // Level syncing itself lives in core.js.
-    const RELAY_URL = 'https://brawlhalla-tracker-relay.gfhnpkv.workers.dev';
-    const relayBase = () => (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/api' : RELAY_URL);
+    // Fetching (levels, and Live mode's games counts) lives in core.js.
 
     let syncing = false;
     async function sync({ quiet = false } = {}) {
@@ -783,18 +780,6 @@
     const PLAYING_WINDOW_MS = 15 * 60 * 1000;
     const isPlaying = () => !!(live && live.lastGameTs && Date.now() - live.lastGameTs < PLAYING_WINDOW_MS);
 
-    async function fetchGames(bhId) {
-      for (const url of [`https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all`, `${relayBase()}/player/${bhId}`]) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (!res.ok) continue;
-          const json = await res.json();
-          if (Number.isFinite(json.games)) return json.games;
-        } catch (err) { /* try next */ }
-      }
-      return null;
-    }
-
     function renderActivity() {
       const el = $('activityLine');
       if (!live) { el.innerHTML = ''; return; }
@@ -830,6 +815,19 @@
       } catch (err) { /* no audio */ }
       if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
     }
+    // After a match, check the stance lab's equipped stance against the best one unlocked
+    function checkStances(names) {
+      const wrong = [...new Set(names)].map(Tracker.stanceAdvice).filter(Boolean);
+      wrong.forEach(a => {
+        const title = `⚠️ Change ${a.legend}'s stance`;
+        const body = `You have ${a.have} equipped, but ${a.want.join(' or ')} is unlocked. Switch it in-game, then update it in the Stance lab.`;
+        toast(title, body);
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try { new Notification(title, { body }); } catch (err) { /* ignore */ }
+        }
+      });
+      if (wrong.length) chime();
+    }
     function announce(unlocks) {
       if (!unlocks.length) return;
       chime();
@@ -846,14 +844,15 @@
     async function liveTick() {
       if (!live) return;
       const now = Date.now();
-      const games = await fetchGames(savedBhId);
+      const games = await Tracker.fetchGames(savedBhId);
       if (!live) return; // Live was turned off while waiting
       live.lastCheck = now;
       if (games !== null) {
-        if (live.games !== null && games > live.games) {
-          live.sessionGames += games - live.games;
+        if (live.games !== null && games.games > live.games.games) {
+          live.sessionGames += games.games - live.games.games;
           live.lastGameTs = now;
           live.nextLevelSync = Math.min(live.nextLevelSync, now + 2 * 60 * 1000);
+          checkStances(Tracker.playedSince(live.games, games));
         }
         live.games = games;
       }
@@ -861,7 +860,11 @@
         live.nextLevelSync = now + 5 * 60 * 1000;
         const r = await sync({ quiet: true });
         if (!live) return;
-        if (r) announce(r.unlocks);
+        if (r) {
+          announce(r.unlocks);
+          // A new best stance unlocked from that match: say what to switch to
+          checkStances(r.unlocks.filter(u => u.statusUp).map(u => u.legend));
+        }
       }
       renderActivity();
     }

@@ -1522,12 +1522,7 @@
       renderImprovementsLog();
     }
 
-    // The official API is used directly for Live mode's games count; the relay (local server or
-    // Cloudflare Worker) is its fallback. Level syncing itself lives in core.js.
-    const RELAY_URL = 'https://brawlhalla-tracker-relay.gfhnpkv.workers.dev';
-    function relayBase() {
-      return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/api' : RELAY_URL;
-    }
+    // Fetching (levels, and Live mode's games counts) lives in core.js.
 
     async function syncFromApi(opts = {}) {
       const bhId = document.getElementById('brawlhallaIdInput').value.trim();
@@ -1582,20 +1577,6 @@
     let liveTimer = null;
     let liveState = null;
 
-    async function fetchTotalGames(bhId) {
-      const urls = [`https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all`];
-      if (relayBase()) urls.push(`${relayBase()}/player/${bhId}`);
-      for (const url of urls) {
-        try {
-          const res = await fetch(url, { cache: 'no-store' });
-          if (!res.ok) continue;
-          const json = await res.json();
-          if (Number.isFinite(json.games)) return json.games;
-        } catch (err) { /* try next source */ }
-      }
-      return null;
-    }
-
     function renderActivity() {
       const el = document.getElementById('activityStatus');
       document.getElementById('liveRow').hidden = !liveState;
@@ -1647,6 +1628,14 @@
       }
     }
 
+    // After a match, check the stance lab's equipped stance against the best one unlocked
+    function checkStances(names) {
+      const wrong = [...new Set(names)].map(Tracker.stanceAdvice).filter(Boolean);
+      wrong.forEach(a => notify(`⚠️ Change ${a.legend}'s stance`,
+        `You have ${a.have} equipped, but ${a.want.join(' or ')} is unlocked. Switch it in-game, then update it in the Stance lab.`));
+      if (wrong.length) playChime();
+    }
+
     function announceUnlocks(unlocks) {
       if (!unlocks.length) return;
       playChime();
@@ -1661,17 +1650,16 @@
       if (!liveState || !/^\d+$/.test(bhId)) return;
       const now = Date.now();
 
-      const games = await fetchTotalGames(bhId);
+      const games = await Tracker.fetchGames(bhId);
       if (!liveState) return; // Live was turned off while waiting
       liveState.lastCheck = now;
-      let newGames = 0;
       if (games !== null) {
-        if (liveState.games !== null && games > liveState.games) {
-          newGames = games - liveState.games;
-          liveState.sessionGames += newGames;
+        if (liveState.games !== null && games.games > liveState.games.games) {
+          liveState.sessionGames += games.games - liveState.games.games;
           liveState.lastGameTs = now;
           // Re-check levels soon after a match (dair.gg may need a few minutes to update)
           liveState.nextLevelSync = Math.min(liveState.nextLevelSync, now + 2 * 60 * 1000);
+          checkStances(Tracker.playedSince(liveState.games, games));
         }
         liveState.games = games;
       }
@@ -1680,7 +1668,11 @@
         liveState.nextLevelSync = now + LEVEL_POLL_MS;
         const result = await syncFromApi({ live: true });
         if (!liveState) return;
-        if (result) announceUnlocks(result.unlocks);
+        if (result) {
+          announceUnlocks(result.unlocks);
+          // A new best stance unlocked from that match: say what to switch to
+          checkStances(result.unlocks.filter(u => u.statusUp).map(u => u.legend));
+        }
       }
       renderActivity();
     }

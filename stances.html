@@ -217,7 +217,7 @@
     const ROLE = { main: 'Main', pocket: 'Pocket', learning: 'Learning' };
     const STATUS_WORD = { v: 'Best ✓', '!': 'Standard', p: 'In progress', x: 'Locked 🔒' };
     const ROLE_ORDER = { main: 0, pocket: 1, learning: 2, none: 3 };
-    const KEY = 'bh_stance_lab_v1';
+    const KEY = Tracker.LAB_KEY;
     // The API spells weapons like "RocketLance"; show them as "Rocket Lance"
     const weaponName = w => w.replace(/([a-z])([A-Z])/g, '$1 $2');
     const weaponsOf = name => (LEGEND_WEAPONS[name] || []).map(weaponName);
