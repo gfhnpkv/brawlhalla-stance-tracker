@@ -7,13 +7,19 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **🔒**: locked: you haven't played this legend or don't own it (the API can't tell those apart)
 
 ## Use it
-- **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (works from any computer or phone)
+- **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (`index.html`: Live status, stance reminders, game history and the legend roster; phones are sent to the phone view)
 - **Phone:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/app.html (mobile view; add it to your home screen)
+- **Classic:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/classic.html (the original desktop tracker, with themes, the table view and the improvements log)
 - **Stance lab:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stances.html (what each stance does to every legend's stats, with your picks and notes)
+- **Stats:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stats.html (best legends and weapons for any player)
 - **Locally:** `python3 server.py`, then open http://localhost:8000
 
 The card collection, stance matrix, roadmap, compare, legend select and terminal pages were removed in
-November 2026. Old links to them show a "page not found" page that links to the three pages above.
+November 2026. Old links to them show a "page not found" page that links to the pages above.
+
+Also in November 2026 the "Clean" redesign became the main page: the old desktop tracker moved from
+`index.html` to `classic.html`, and `redesign-clean.html` now just redirects to `index.html` (keeping `?id=`).
+Backups (More → Export backup) use the same JSON on every page, so they import on any of them.
 
 ## How data is fetched
 dair.gg doesn't reliably allow direct browser requests, so it goes through a relay:
