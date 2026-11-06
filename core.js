@@ -206,16 +206,41 @@ const Tracker = (() => {
     } catch (err) { /* no portraits folder, or opened as a file */ }
     return out;
   }
-  // Small AVIF copies made by tools/make_avif.py: 'mini' (~260px, tiles and lists) or 'large'
-  // (720px, big art). Pages still check loadPortraits() first to know the legend has a picture.
+  // Small AVIF copies made by tools/make_avif.py: 'tiny' (96px, pictures shown at 48px or less),
+  // 'small' (180px, tiles on 1x screens), 'mini' (~260px, tiles on 2x) or 'large' (720px, big art), each with a PNG for browsers without AVIF
+  // (the large one's is the original). Pages still check loadPortraits() first to know the legend
+  // has a picture.
   const portraitSrc = (name, size = 'mini') => `portraits/${size}/${portraitSlug(name)}.avif`;
-  // For an <img>'s onerror: swaps a failed AVIF for its PNG and returns true; false once the PNG
-  // failed too, so the page can do its own fallback:
-  //   onerror="if (!Tracker.portraitError(this)) this.remove()"
+  const portraitPng = (name, size = 'mini') => (size === 'large' ? `portraits/${portraitSlug(name)}.png` : `portraits/${size}/${portraitSlug(name)}.png`);
+  // The same <picture> on every page: an AVIF <source> and the PNG <img>. The <picture> is
+  // display:contents, so the <img> lays out and is styled as if it stood alone. Options:
+  //   cls, width, height; lazy (default true); x2: a bigger size for 2x screens (e.g. small + 'mini');
+  //   onload: code for the <img>; fallback: code run when even the PNG fails, with `el` as the
+  //   <picture> (default: remove it).
+  function portraitHtml(name, size = 'mini', { cls = '', width, height, lazy = true, x2, onload = '', fallback = 'el.remove()' } = {}) {
+    const attr = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const set = src => (x2 ? `${src(name, size)} 1x, ${src(name, x2)} 2x` : src(name, size));
+    return `<picture style="display:contents"><source type="image/avif" srcset="${attr(set(portraitSrc))}" />`
+      + `<img${cls ? ` class="${attr(cls)}"` : ''} src="${attr(portraitPng(name, size))}"${x2 ? ` srcset="${attr(set(portraitPng))}"` : ''} alt=""`
+      + `${width ? ` width="${width}"` : ''}${height ? ` height="${height}"` : ''}${lazy ? ' loading="lazy"' : ''} decoding="async"`
+      + `${onload ? ` onload="${attr(onload)}"` : ''} onerror="if (!Tracker.portraitError(this)) { const el = this.parentNode; ${attr(fallback)} }" /></picture>`;
+  }
+  // The <img>'s onerror. <picture> only falls back to the PNG when the browser can't show AVIF,
+  // not when the AVIF file itself fails (missing, or a blocked request), so that case drops the
+  // <source> and the browser loads the PNG. Returns true while a PNG is still to try; false once
+  // it failed too, so the page can do its own fallback. A plain <img> with an AVIF src (older
+  // markup) gets its src swapped for the PNG.
   function portraitError(img) {
-    const m = /portraits\/(mini|large)\/([a-z0-9-]+)\.avif$/.exec(img.getAttribute('src') || '');
+    const pic = img.parentNode;
+    if (pic && pic.tagName === 'PICTURE') {
+      const sources = pic.querySelectorAll('source');
+      if (!sources.length) return false;
+      sources.forEach(s => s.remove());
+      return true;
+    }
+    const m = /portraits\/(tiny|mini|large)\/([a-z0-9-]+)\.avif$/.exec(img.getAttribute('src') || '');
     if (!m) return false;
-    img.src = m[1] === 'mini' ? `portraits/mini/${m[2]}.png` : `portraits/${m[2]}.png`;
+    img.src = m[1] === 'large' ? `portraits/${m[2]}.png` : `portraits/${m[1]}/${m[2]}.png`;
     return true;
   }
 
@@ -383,7 +408,7 @@ const Tracker = (() => {
   }
 
   return {
-    KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitError,
+    KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitHtml, portraitError,
     getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
     LAB_KEY, pendingStance, confirmStance, fetchGames, playedSince
   };

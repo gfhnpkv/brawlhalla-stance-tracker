@@ -114,7 +114,8 @@ const MatchHistory = (() => {
   const result = e => (e.games === 1 ? (e.wins ? 'W' : 'L') : `${e.wins}W ${e.games - e.wins}L`);
 
   // The history section's markup: today's summary, then the newest `limit` entries and a
-  // "Show more" button (data-hist-more) when there are more. portraitOf(name) gives an image src.
+  // "Show more" button (data-hist-more) when there are more. portraitOf(name) is true when the
+  // legend has a portrait; it's drawn with Tracker.portraitHtml at the tiny size.
   function html(bhId, { limit = 20, portraitOf = () => '' } = {}) {
     const list = forPlayer(bhId);
     const t = today(bhId);
@@ -126,7 +127,7 @@ const MatchHistory = (() => {
       const tone = e.wins === e.games ? 'win' : e.wins === 0 ? 'loss' : 'mixed';
       return `<div class="hist-row">
           <span class="hist-when">${when(e.ts)}</span>
-          ${src ? `<img class="hist-art" src="${escHtml(src)}" alt="" width="32" height="32" loading="lazy" decoding="async" onerror="if (!(window.Tracker && Tracker.portraitError(this))) this.remove()" />` : ''}
+          ${src && typeof Tracker !== 'undefined' ? Tracker.portraitHtml(e.legend, 'tiny', { cls: 'hist-art', width: 32, height: 32 }) : ''}
           <span class="hist-legend">${escHtml(e.legend)}</span>
           <span class="hist-result ${tone}">${result(e)}</span>
           <span class="hist-lvl">${e.level ? `Lv.${e.level}` : ''}</span>

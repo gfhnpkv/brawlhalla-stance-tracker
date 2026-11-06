@@ -226,7 +226,7 @@
     }
     .tile:hover { border-color: #4a5363; }
     .tile[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-    .tile .art { aspect-ratio: 4 / 3; width: 100%; object-fit: cover; object-position: top; background: var(--bg); display: block; }
+    .tile .art { aspect-ratio: 4 / 3; width: 100%; height: auto; object-fit: cover; object-position: top; background: var(--bg); display: block; }
     .tile .art.blank { display: grid; place-items: center; font-size: var(--fs-2); font-weight: 700; color: var(--faint); }
     .tile.locked .art { filter: grayscale(1) brightness(0.6); }
     .tile .meta { padding: 8px 10px 10px; display: grid; gap: 4px; }
@@ -447,12 +447,12 @@
     const chip = (st, long) => `<span class="chip ${STATUS[st].cls}">${icon(STATUS[st].icon)}${long ? STATUS[st].long : STATUS[st].short}</span>`;
 
     let portraits = {};
-    // The details sheet uses the 720px AVIF; everything else the small AVIF icons. A failed AVIF
-    // falls back to its PNG (Tracker.portraitError), and a missing PNG is removed.
+    // Pictures come from Tracker.portraitHtml (AVIF with a PNG fallback): the details sheet uses
+    // the 720px size, tiles the 180px one (mini on 2x screens), and the 40px-and-smaller spots the tiny one.
     const portraitOf = name => portraits[Tracker.portraitSlug(name)] || '';
-    const miniOf = name => (portraitOf(name) ? Tracker.portraitSrc(name, 'mini') : '');
+    const hasPortrait = name => !!portraitOf(name);
     const avatar = (name, cls = 'avatar') => portraitOf(name)
-      ? `<img class="${cls}" src="${esc(miniOf(name))}" alt="" loading="lazy" decoding="async" onerror="if (!Tracker.portraitError(this)) this.remove();" />`
+      ? Tracker.portraitHtml(name, 'tiny', { cls, width: 40, height: 40 })
       : `<span class="${cls}">${esc(name.slice(0, 2))}</span>`;
     // Weapon icons from weapons/ (legends.js uses the file names); shown with their in-game names
     const WEAPON_NAMES = { Pistol: 'Blasters', Fists: 'Gauntlets', Katar: 'Katars', RocketLance: 'Rocket Lance', Chakram: 'Chakrams' };
@@ -726,7 +726,7 @@
     let histLimit = 10;
     function renderHistory() {
       $('history').innerHTML = state.id
-        ? MatchHistory.html(state.id, { limit: histLimit, portraitOf: miniOf })
+        ? MatchHistory.html(state.id, { limit: histLimit, portraitOf: hasPortrait })
         : '<p class="empty">Enter your Brawlhalla ID and sync to start recording games.</p>';
       renderStrip();
     }
@@ -786,7 +786,7 @@
         const blank = `<span class="art blank" aria-hidden="true">${esc(l.name.slice(0, 2))}</span>`;
         const wpns = weaponsOf(l.name);
         return `<button class="tile${st === 'x' ? ' locked' : ''}" type="button" data-legend="${esc(l.name)}" aria-current="${sheetLegend === l.name}" aria-label="${esc(l.name)}, level ${Tracker.getLevel(l.name)}, ${STATUS[st].long}${wpns.length ? `, ${wpns.map(w => w.label).join(' and ')}` : ''}">
-          ${src ? `<img class="art" src="${esc(miniOf(l.name))}" alt="" width="260" height="195" loading="lazy" decoding="async" onerror="if (!Tracker.portraitError(this)) this.outerHTML='${blank.replace(/"/g, '&quot;')}';" />` : blank}
+          ${src ? Tracker.portraitHtml(l.name, 'small', { cls: 'art', width: 180, height: 135, x2: 'mini', fallback: `el.outerHTML = ${JSON.stringify(blank)};` }) : blank}
           <span class="meta"><span class="nmrow"><span class="nm">${esc(l.name)}</span><span class="wpns">${wpns.map(weaponIcon).join('')}</span></span><span class="row"><span>Lv ${Tracker.getLevel(l.name)}</span>${chip(st)}</span></span>
         </button>`;
       }).join('') : `<div class="roster-empty">No legends match${q ? ` “${esc($('search').value.trim())}”` : ''}${filter !== 'ALL' ? ` in ${STATUS[filter].short}` : ''}. <button class="btn ghost" type="button" data-clear>Clear filters</button></div>`;
@@ -810,7 +810,7 @@
       const order = [3, 4, 6, 8, 11, 13, 15, 17].map(n => `<li class="${lvl >= n ? 'on' : ''}"><span class="lv">Lv ${n}</span>${esc(l.stances[n])}${icon(lvl >= n ? 'check' : 'lock')}</li>`).join('');
       $('sheet').innerHTML = `<div class="sheet-body">
         <div class="sheet-top"><button class="btn icon-only" type="button" data-close aria-label="Close details">${icon('close')}</button></div>
-        <div class="sheet-art${src ? '' : ' blank'}">${src ? `<img src="${esc(Tracker.portraitSrc(l.name, 'large'))}" alt="" width="598" height="720" decoding="async" onerror="if (!Tracker.portraitError(this)) { this.parentNode.classList.add('blank'); this.remove(); }" />` : ''}</div>
+        <div class="sheet-art${src ? '' : ' blank'}">${src ? Tracker.portraitHtml(l.name, 'large', { width: 598, height: 720, lazy: false, fallback: "el.parentNode.classList.add('blank'); el.remove();" }) : ''}</div>
         <h2 id="sheetTitle">${esc(l.name)}</h2>
         <div class="sub">${esc(l.title)} · Legend #${l.order}</div>
         <div class="sheet-row">

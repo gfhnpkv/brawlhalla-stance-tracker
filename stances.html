@@ -271,8 +271,9 @@
     let portraits = {};
     function avatarHtml(l, st) {
       return portraits[slug(l.name)]
-        ? `<div class="crest-box photo"><img src="${esc(Tracker.portraitSrc(l.name, 'mini'))}" alt="" width="64" height="64" loading="lazy" decoding="async"
-            onerror="if (!Tracker.portraitError(this)) this.parentNode.outerHTML=window.crestBoxHtml(${esc(JSON.stringify(l.name))})" /></div>`
+        // Shown at 64px: the 96px tiny file on 1x screens, the mini one on 2x
+        ? `<div class="crest-box photo">${Tracker.portraitHtml(l.name, 'tiny', { x2: 'mini', width: 64, height: 64,
+            fallback: `el.parentNode.outerHTML = window.crestBoxHtml(${JSON.stringify(l.name)});` })}</div>`
         : `<div class="crest-box">${Crest.svg(l, st, { banner: false })}</div>`;
     }
     window.crestBoxHtml = name => {

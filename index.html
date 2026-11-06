@@ -960,20 +960,23 @@
     // Legend portraits listed in portraits/index.json (shared with the Stance Lab through core.js)
     const portraitSlug = Tracker.portraitSlug;
     let portraits = {};
-    // Tiles use the small AVIF icon (PNG if that fails); the spotlight uses the 720px AVIF.
+    // Tiles use the 180px portrait (260px on 2x screens), the spotlight the 720px one (Tracker.portraitHtml: AVIF, PNG fallback).
     // Icons fade in the first time they load; after that, re-renders show them straight away.
     const artLoaded = new Set();
-    window.markArtLoaded = img => { img.classList.add('loaded'); artLoaded.add(img.getAttribute('src')); };
+    window.markArtLoaded = (img, name) => { img.classList.add('loaded'); artLoaded.add(name); };
     function tileArtHtml(name) {
       if (!portraits[portraitSlug(name)]) return '';
-      const mini = esc(Tracker.portraitSrc(name, 'mini'));
-      return `<img class="tile-art${artLoaded.has(mini) ? ' loaded' : ''}" src="${mini}" alt="" width="260" height="260" loading="lazy" decoding="async" onload="markArtLoaded(this)"
-        onerror="if (!Tracker.portraitError(this)) { this.parentNode.classList.remove('has-art'); this.remove(); }" />`;
+      return Tracker.portraitHtml(name, 'small', {
+        cls: `tile-art${artLoaded.has(name) ? ' loaded' : ''}`, width: 180, height: 180, x2: 'mini',
+        onload: `markArtLoaded(this, ${JSON.stringify(name)})`, fallback: "el.parentNode.classList.remove('has-art'); el.remove();"
+      });
     }
     function spotlightArtHtml(name) {
       if (!portraits[portraitSlug(name)]) return '';
-      return `<div class="spotlight-art"><img src="${esc(Tracker.portraitSrc(name, 'large'))}" alt="" width="598" height="720" decoding="async" onload="this.classList.add('loaded')"
-        onerror="if (!Tracker.portraitError(this)) { this.parentNode.parentNode.classList.remove('has-art'); this.parentNode.remove(); }" /></div>`;
+      return `<div class="spotlight-art">${Tracker.portraitHtml(name, 'large', {
+        width: 598, height: 720, lazy: false, onload: "this.classList.add('loaded')",
+        fallback: "el.parentNode.parentNode.classList.remove('has-art'); el.parentNode.remove();"
+      })}</div>`;
     }
     function fmtHours(seconds) {
       if (!seconds) return '0h';
@@ -1531,7 +1534,7 @@
 
     let historyLimit = 20;
     function renderHistory() {
-      const portraitOf = name => (portraits[portraitSlug(name)] ? Tracker.portraitSrc(name, 'mini') : '');
+      const portraitOf = name => !!portraits[portraitSlug(name)];
       document.getElementById('historyList').innerHTML = MatchHistory.html(savedBhId, { limit: historyLimit, portraitOf });
     }
     document.getElementById('historyList').addEventListener('click', e => {

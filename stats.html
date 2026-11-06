@@ -313,7 +313,7 @@
     }
     function artHtml(name) {
       return portraits[Tracker.portraitSlug(name)]
-        ? `<img class="art" src="${esc(Tracker.portraitSrc(name, 'mini'))}" alt="" width="34" height="34" loading="lazy" decoding="async" onerror="if (!Tracker.portraitError(this)) this.outerHTML='<span class=&quot;art blank&quot;>🛡️</span>'" />`
+        ? Tracker.portraitHtml(name, 'tiny', { cls: 'art', width: 34, height: 34, fallback: `el.outerHTML = '<span class="art blank">🛡️</span>';` })
         : '<span class="art blank">🛡️</span>';
     }
     // Weapon icons in weapons/, by dair.gg's weapon name; drawn in the text color so they suit every theme
