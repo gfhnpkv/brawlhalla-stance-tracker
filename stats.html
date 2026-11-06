@@ -49,6 +49,7 @@
     a { color: var(--accent); text-underline-offset: 3px; }
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .icon { width: 1.125em; height: 1.125em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    [hidden] { display: none !important; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
     /* ---------- controls ---------- */
@@ -429,7 +430,7 @@
         rating: { label: 'Rating', value: l => l.rating, show: l => fmt(l.rating), sub: l => `${l.tier || 'No tier'} · peak ${fmt(l.peak)} · ${fmt(l.games)} games` }
       },
       '2v2': {
-        rating: { label: 'Rating', value: t => t.rating, show: t => fmt(t.rating), sub: t => `${t.tier || 'No tier'} · peak ${fmt(t.peak)} · ${fmt(t.wins)}W ${fmt(t.games - t.wins)}L` },
+        rating: { label: 'Rating', value: t => t.rating, show: t => fmt(t.rating), sub: t => `${fmt(t.wins)}W ${fmt(t.games - t.wins)}L · ${t.tier || 'No tier'} · peak ${fmt(t.peak)}` },
         winrate,
         games: { label: 'Most played', value: t => t.games, show: t => fmt(t.games), sub: t => `${fmt(t.wins)}W ${fmt(t.games - t.wins)}L · ${pct(t.wins, t.games)}` }
       }
