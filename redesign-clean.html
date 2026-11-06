@@ -805,18 +805,22 @@
         </dl>` : ''}
       </div>`;
     }
+    // The selected tile is marked in place (not re-rendered), so focus can return to it on close
+    function markCurrent() {
+      document.querySelectorAll('.tile').forEach(t => t.setAttribute('aria-current', String(t.dataset.legend === sheetLegend)));
+    }
     function openSheet(name) {
       sheetLegend = name;
       renderSheet();
+      markCurrent();
       if (!$('sheet').open) $('sheet').showModal();
-      renderRoster();
     }
     $('sheet').addEventListener('close', () => {
       const name = sheetLegend;
       sheetLegend = null;
-      renderRoster();
+      markCurrent();
       const tile = document.querySelector(`.tile[data-legend="${CSS.escape(name || '')}"]`);
-      if (tile) tile.focus();
+      if (tile) requestAnimationFrame(() => tile.focus());
     });
     $('sheet').addEventListener('click', e => {
       if (e.target === $('sheet')) { $('sheet').close(); return; } // backdrop
