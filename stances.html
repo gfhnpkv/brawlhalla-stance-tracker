@@ -270,9 +270,9 @@
     const slug = Tracker.portraitSlug;
     let portraits = {};
     function avatarHtml(l, st) {
-      const src = portraits[slug(l.name)];
-      return src
-        ? `<div class="crest-box photo"><img src="${esc(src)}" alt="" loading="lazy" onerror="this.parentNode.outerHTML=window.crestBoxHtml(${esc(JSON.stringify(l.name))})" /></div>`
+      return portraits[slug(l.name)]
+        ? `<div class="crest-box photo"><img src="${esc(Tracker.portraitSrc(l.name, 'mini'))}" alt="" width="64" height="64" loading="lazy" decoding="async"
+            onerror="if (!Tracker.portraitError(this)) this.parentNode.outerHTML=window.crestBoxHtml(${esc(JSON.stringify(l.name))})" /></div>`
         : `<div class="crest-box">${Crest.svg(l, st, { banner: false })}</div>`;
     }
     window.crestBoxHtml = name => {

@@ -126,7 +126,7 @@ const MatchHistory = (() => {
       const tone = e.wins === e.games ? 'win' : e.wins === 0 ? 'loss' : 'mixed';
       return `<div class="hist-row">
           <span class="hist-when">${when(e.ts)}</span>
-          ${src ? `<img class="hist-art" src="${escHtml(src)}" alt="" loading="lazy" onerror="this.remove()" />` : ''}
+          ${src ? `<img class="hist-art" src="${escHtml(src)}" alt="" width="32" height="32" loading="lazy" decoding="async" onerror="if (!(window.Tracker && Tracker.portraitError(this))) this.remove()" />` : ''}
           <span class="hist-legend">${escHtml(e.legend)}</span>
           <span class="hist-result ${tone}">${result(e)}</span>
           <span class="hist-lvl">${e.level ? `Lv.${e.level}` : ''}</span>

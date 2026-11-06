@@ -632,7 +632,7 @@
     let historyLimit = 20;
     let portraits = {};
     function renderHistory() {
-      const portraitOf = name => (portraits[Tracker.portraitSlug(name)] || '').replace('portraits/', 'portraits/mini/');
+      const portraitOf = name => (portraits[Tracker.portraitSlug(name)] ? Tracker.portraitSrc(name, 'mini') : '');
       $('historyList').innerHTML = MatchHistory.html(savedBhId, { limit: historyLimit, portraitOf });
     }
 

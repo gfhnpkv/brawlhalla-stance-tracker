@@ -312,8 +312,8 @@
         .map(([k, m]) => `<button class="chip" data-metric="${k}" aria-pressed="${k === active}">${m.label}</button>`).join('');
     }
     function artHtml(name) {
-      const src = portraits[Tracker.portraitSlug(name)];
-      return src ? `<img class="art" src="${esc(src.replace('portraits/', 'portraits/mini/'))}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;art blank&quot;>🛡️</span>'" />`
+      return portraits[Tracker.portraitSlug(name)]
+        ? `<img class="art" src="${esc(Tracker.portraitSrc(name, 'mini'))}" alt="" width="34" height="34" loading="lazy" decoding="async" onerror="if (!Tracker.portraitError(this)) this.outerHTML='<span class=&quot;art blank&quot;>🛡️</span>'" />`
         : '<span class="art blank">🛡️</span>';
     }
     // Weapon icons in weapons/, by dair.gg's weapon name; drawn in the text color so they suit every theme
@@ -476,6 +476,12 @@
     render();
     if (startId) load(startId);
     Tracker.loadPortraits().then(p => { portraits = p; if (data) renderLegends(); });
+  </script>
+  <script>
+    // Offline support and cached pictures (only works over http/https, not when opened as a file)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
   </script>
 </body>
 </html>

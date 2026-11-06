@@ -960,21 +960,20 @@
     // Legend portraits listed in portraits/index.json (shared with the Stance Lab through core.js)
     const portraitSlug = Tracker.portraitSlug;
     let portraits = {};
-    // Tiles use the mini icon in portraits/mini/ and fall back to the full image if it's missing.
+    // Tiles use the small AVIF icon (PNG if that fails); the spotlight uses the 720px AVIF.
     // Icons fade in the first time they load; after that, re-renders show them straight away.
     const artLoaded = new Set();
     window.markArtLoaded = img => { img.classList.add('loaded'); artLoaded.add(img.getAttribute('src')); };
     function tileArtHtml(name) {
-      const src = portraits[portraitSlug(name)];
-      if (!src) return '';
-      const full = esc(src);
-      const mini = full.replace('portraits/', 'portraits/mini/');
-      return `<img class="tile-art${artLoaded.has(mini) ? ' loaded' : ''}" src="${mini}" alt="" loading="lazy" onload="markArtLoaded(this)"
-        onerror="if (this.src.includes('/mini/')) this.src='${full}'; else { this.parentNode.classList.remove('has-art'); this.remove(); }" />`;
+      if (!portraits[portraitSlug(name)]) return '';
+      const mini = esc(Tracker.portraitSrc(name, 'mini'));
+      return `<img class="tile-art${artLoaded.has(mini) ? ' loaded' : ''}" src="${mini}" alt="" width="260" height="260" loading="lazy" decoding="async" onload="markArtLoaded(this)"
+        onerror="if (!Tracker.portraitError(this)) { this.parentNode.classList.remove('has-art'); this.remove(); }" />`;
     }
     function spotlightArtHtml(name) {
-      const src = portraits[portraitSlug(name)];
-      return src ? `<div class="spotlight-art"><img src="${esc(src)}" alt="" onload="this.classList.add('loaded')" onerror="this.parentNode.parentNode.classList.remove('has-art'); this.parentNode.remove()" /></div>` : '';
+      if (!portraits[portraitSlug(name)]) return '';
+      return `<div class="spotlight-art"><img src="${esc(Tracker.portraitSrc(name, 'large'))}" alt="" width="598" height="720" decoding="async" onload="this.classList.add('loaded')"
+        onerror="if (!Tracker.portraitError(this)) { this.parentNode.parentNode.classList.remove('has-art'); this.parentNode.remove(); }" /></div>`;
     }
     function fmtHours(seconds) {
       if (!seconds) return '0h';
@@ -1532,7 +1531,7 @@
 
     let historyLimit = 20;
     function renderHistory() {
-      const portraitOf = name => { const src = portraits[portraitSlug(name)]; return src ? src.replace('portraits/', 'portraits/mini/') : ''; };
+      const portraitOf = name => (portraits[portraitSlug(name)] ? Tracker.portraitSrc(name, 'mini') : '');
       document.getElementById('historyList').innerHTML = MatchHistory.html(savedBhId, { limit: historyLimit, portraitOf });
     }
     document.getElementById('historyList').addEventListener('click', e => {

@@ -206,6 +206,18 @@ const Tracker = (() => {
     } catch (err) { /* no portraits folder, or opened as a file */ }
     return out;
   }
+  // Small AVIF copies made by tools/make_avif.py: 'mini' (~260px, tiles and lists) or 'large'
+  // (720px, big art). Pages still check loadPortraits() first to know the legend has a picture.
+  const portraitSrc = (name, size = 'mini') => `portraits/${size}/${portraitSlug(name)}.avif`;
+  // For an <img>'s onerror: swaps a failed AVIF for its PNG and returns true; false once the PNG
+  // failed too, so the page can do its own fallback:
+  //   onerror="if (!Tracker.portraitError(this)) this.remove()"
+  function portraitError(img) {
+    const m = /portraits\/(mini|large)\/([a-z0-9-]+)\.avif$/.exec(img.getAttribute('src') || '');
+    if (!m) return false;
+    img.src = m[1] === 'mini' ? `portraits/mini/${m[2]}.png` : `portraits/${m[2]}.png`;
+    return true;
+  }
 
   function setLevel(name, value) {
     const legend = LEGENDS_DB.find(l => l.name === name);
@@ -371,7 +383,7 @@ const Tracker = (() => {
   }
 
   return {
-    KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits,
+    KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitError,
     getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
     LAB_KEY, pendingStance, confirmStance, fetchGames, playedSince
   };
