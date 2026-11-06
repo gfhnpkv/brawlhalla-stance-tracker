@@ -445,8 +445,8 @@
       }
     }
 
-    /* Highlight the selected legend only while its spotlight is showing (always, unless side panels are hidden and the drawer is closed) */
-    :where(body:not(.minimal), body.drawer-open) .champ-tile.selected {
+    /* Highlight the selected legend only while its details drawer is open */
+    :where(body.drawer-open) .champ-tile.selected {
       border-color: var(--accent-cyan);
       box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.35);
     }
@@ -516,7 +516,7 @@
     /* The light art washes out the badges, so give them a solid backing in Daylight */
     :root[data-theme="daylight"] .champ-tile.has-art .tile-badge { background-color:var(--bg-card); box-shadow:0 1px 4px rgba(15,23,42,0.3); }
     @media (hover: hover) { .champ-tile.has-art:hover .tile-art { transform:scale(1.05); filter:none; } } /* real colors on hover */
-    :where(body:not(.minimal), body.drawer-open) .champ-tile.has-art.selected .tile-art { filter:none; } /* and on the selected legend while its spotlight shows */
+    :where(body.drawer-open) .champ-tile.has-art.selected .tile-art { filter:none; } /* and on the selected legend while its spotlight shows */
     .spotlight-panel.has-art { overflow:hidden; }
     .spotlight-art { position:absolute; top:0; left:0; right:0; height:460px; pointer-events:none;
       -webkit-mask-image:linear-gradient(to bottom, #000 45%, transparent); mask-image:linear-gradient(to bottom, #000 45%, transparent); }
@@ -654,23 +654,25 @@
     .toast strong { display:block; font-size:0.95rem; margin-bottom:2px; }
     .theme-select { padding:7px 10px; }
 
-    /* Default: the side columns are hidden so the grid gets the full width; "Side panels" brings them back.
-       While they are hidden, clicking a legend opens its details as a drawer on the right. */
+    /* "Side panels" shows the right column (goals, progress, log); hidden by default so the grid gets
+       the full width. Legend details never take a column: clicking a legend opens them as a drawer. */
     body.minimal .log-panel { display:none; }
     body:not(.minimal) #optionsFab { border-color:var(--accent-cyan); background:var(--active-bg); }
+    .workspace { grid-template-columns:1fr 330px; }
     body.minimal .workspace { grid-template-columns:1fr; }
-    body.minimal .spotlight-panel { display:none; }
-    body.minimal.drawer-open .spotlight-panel {
+    @media (max-width: 1280px) { .workspace { grid-template-columns:1fr; } }
+    body:not(.drawer-open) .spotlight-panel { display:none; }
+    body.drawer-open .spotlight-panel {
       display:block; position:fixed; top:16px; right:16px; bottom:16px; width:min(430px, calc(100vw - 32px));
       overflow-y:auto; overscroll-behavior:contain; z-index:41; animation:drawerIn 0.22s ease-out;
     }
     @keyframes drawerIn { from { transform:translateX(24px); opacity:0; } }
     .drawer-backdrop { display:none; position:fixed; inset:0; z-index:40; background:rgba(4,8,18,0.62); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
-    body.minimal.drawer-open .drawer-backdrop { display:block; }
+    body.drawer-open .drawer-backdrop { display:block; }
     .drawer-close { display:none; position:fixed; z-index:42; top:26px; right:min(430px, calc(100vw - 32px)); margin-right:-6px;
       width:36px; height:36px; padding:0; border-radius:50%; font-size:1rem; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-main); }
-    body.minimal.drawer-open .drawer-close { display:block; }
-    @media (prefers-reduced-motion: reduce) { body.minimal.drawer-open .spotlight-panel { animation:none; } }
+    body.drawer-open .drawer-close { display:block; }
+    @media (prefers-reduced-motion: reduce) { body.drawer-open .spotlight-panel { animation:none; } }
     .brand-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; margin-top:6px; }
     .brand-row p { margin:0 !important; }
     .menu { position:relative; }
@@ -863,7 +865,7 @@
         <button class="secondary active" id="viewGridBtn" onclick="setViewMode('grid')">▦ Grid</button>
         <button class="secondary" id="viewSheetBtn" onclick="setViewMode('sheet')">☰ Table</button>
       </div>
-      <button class="secondary" id="optionsFab" aria-expanded="false" onclick="toggleMinimal()" title="Show or hide the legend panel and the right column">◧ Side panels</button>
+      <button class="secondary" id="optionsFab" aria-expanded="false" onclick="toggleMinimal()" title="Show or hide the right column (pinned goals, progress, log)">◧ Side panels</button>
     </div>
   </div>
 
@@ -1380,10 +1382,9 @@
       }).join('');
     }
 
-    // Side panels are hidden by default; the choice is remembered
+    // The right column is hidden by default; the choice is remembered
     function setMinimal(on) {
       document.body.classList.toggle('minimal', on);
-      if (!on) document.body.classList.remove('drawer-open');
       const fab = document.getElementById('optionsFab');
       fab.textContent = on ? '☰ Side panels' : '✕ Hide side panels';
       fab.setAttribute('aria-expanded', String(!on));
@@ -1400,14 +1401,11 @@
 
     function selectLegend(order) {
       selectedOrder = order;
-      if (document.body.classList.contains('minimal')) document.body.classList.add('drawer-open');
+      document.body.classList.add('drawer-open');
       document.querySelectorAll('.champ-tile.selected').forEach(t => t.classList.remove('selected'));
       const tile = document.querySelector(`.champ-tile[data-order="${order}"]`);
       if (tile) tile.classList.add('selected');
       renderSpotlight();
-      if (!document.body.classList.contains('minimal') && window.matchMedia('(max-width: 860px)').matches) {
-        document.getElementById('spotlightPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
     }
 
     // One click/keyboard handler for tiles, table rows and the "closest to unlock" list
