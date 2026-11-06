@@ -130,17 +130,29 @@
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(110,168,254,0.45); } 70% { box-shadow: 0 0 0 12px rgba(110,168,254,0); } 100% { box-shadow: 0 0 0 0 rgba(110,168,254,0); } }
     .state-word { font-size: var(--fs-4); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
     .live-state[data-state="off"] .state-word { color: var(--muted); font-size: var(--fs-3); }
-    .live-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 0 0 20px; }
-    .live-facts div { min-width: 0; }
-    .live-facts dt { font-size: var(--fs-s); color: var(--muted); }
-    .live-facts dd { margin: 2px 0 0; font-size: var(--fs-1); font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .wl .w { color: var(--win); } .wl .l { color: var(--loss); } .wl .sep { color: var(--faint); margin: 0 2px; }
+    /* Session score bug (from the Broadcast preview, in this page's type and palette) */
+    .scorebug { display: grid; grid-template-columns: 1fr 1.5fr 1fr; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--bg); margin-bottom: 12px; }
+    .scorebug .side { display: grid; place-items: center; align-content: center; padding: 10px 8px; }
+    .scorebug .num { display: block; font-size: var(--fs-4); font-weight: 700; line-height: 1; }
+    .scorebug .lab { font-size: var(--fs-s); color: var(--muted); margin-top: 4px; }
+    .scorebug .w .num { color: var(--win); }
+    .scorebug .l .num { color: var(--loss); }
+    .scorebug .mid { display: grid; align-content: center; gap: 2px; padding: 10px 8px; text-align: center; background: var(--raised); min-width: 0; }
+    .scorebug .games { display: block; font-size: var(--fs-1); font-weight: 650; }
+    .scorebug .last { font-size: var(--fs-s); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .scorebug .flag { grid-column: 1 / -1; padding: 3px 8px; text-align: center; font-size: var(--fs-s); font-weight: 700; background: var(--raised); color: var(--muted); border-top: 1px solid var(--line); }
+    .scorebug .flag.on { background: var(--accent); color: var(--accent-ink); border-top-color: var(--accent); }
+    /* A match landing: the numbers roll in and the flag reads Final */
+    .scorebug.landed .num, .scorebug.landed .games { animation: roll 220ms var(--ease); }
+    @keyframes roll { from { transform: translateY(-45%); opacity: 0.2; } to { transform: none; opacity: 1; } }
+    .checked { font-size: var(--fs-s); color: var(--muted); margin: 0 0 20px; }
     .live-off-hint { font-size: var(--fs-s); color: var(--muted); margin: -6px 0 16px; }
 
     /* Signature: today's matches on a time axis */
     .strip-head { display: flex; justify-content: space-between; font-size: var(--fs-s); color: var(--muted); margin-bottom: 8px; }
     .strip-head b { color: var(--text); font-weight: 600; }
-    .strip { position: relative; height: 64px; border-radius: var(--r-s); background: var(--bg); border: 1px solid var(--line); }
+    .strip { position: relative; overflow: hidden; height: 64px; border-radius: var(--r-s); background: var(--bg); border: 1px solid var(--line); }
     .strip .axis { position: absolute; left: 10px; right: 10px; top: 50%; height: 1px; background: var(--line-strong); }
     .strip .hour { position: absolute; top: 4px; bottom: 4px; width: 1px; background: var(--line); }
     .strip .hour span { position: absolute; bottom: -2px; left: 4px; font-size: 0.694rem; color: var(--faint); white-space: nowrap; }
@@ -218,6 +230,8 @@
     .tile .art.blank { display: grid; place-items: center; font-size: var(--fs-2); font-weight: 700; color: var(--faint); }
     .tile.locked .art { filter: grayscale(1) brightness(0.6); }
     .tile .meta { padding: 8px 10px 10px; display: grid; gap: 4px; }
+    .tile .nmrow { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .tile .wpns { display: flex; gap: 4px; margin-left: auto; color: var(--faint); flex: none; }
     .tile .nm { font-weight: 600; font-size: var(--fs-s); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .tile .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--muted); }
     .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
@@ -266,6 +280,12 @@
     .stats-line { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0; }
     .stats-line dt { font-size: var(--fs-s); color: var(--muted); }
     .stats-line dd { margin: 2px 0 0; font-weight: 650; font-size: var(--fs-1); }
+    /* Weapon icons: the SVGs in weapons/ as masks, drawn in the text colour */
+    .wpn { display: inline-block; width: 14px; height: 14px; flex: none; background: currentColor; -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+    .weapons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .weapons li { list-style: none; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-s); background: var(--raised); font-weight: 600; }
+    .weapons .wpn { width: 24px; height: 24px; color: var(--text); }
+    ul.weapons { margin: 0; padding: 0; }
     .sheet-reminder { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; margin: 8px 0 16px; border-radius: var(--r); background: var(--accent-soft); border: 1px solid rgba(110, 168, 254, 0.35); font-size: var(--fs-s); }
 
     /* ---------- toasts ---------- */
@@ -426,11 +446,19 @@
     const chip = (st, long) => `<span class="chip ${STATUS[st].cls}">${icon(STATUS[st].icon)}${long ? STATUS[st].long : STATUS[st].short}</span>`;
 
     let portraits = {};
+    // Full art is only for the details sheet; everything else uses the small icons in portraits/mini/.
+    // Like index.html: a missing mini icon falls back to the full image, and a missing full image is removed.
     const portraitOf = name => portraits[Tracker.portraitSlug(name)] || '';
+    const miniOf = name => portraitOf(name).replace('portraits/', 'portraits/mini/');
+    const artFallback = name => `if (this.src.includes('/mini/')) this.src='${esc(portraitOf(name))}'; else this.remove();`;
     const avatar = (name, cls = 'avatar') => {
       const src = portraitOf(name);
-      return src ? `<img class="${cls}" src="${esc(src)}" alt="" loading="lazy" />` : `<span class="${cls}">${esc(name.slice(0, 2))}</span>`;
+      return src ? `<img class="${cls}" src="${esc(miniOf(name))}" alt="" loading="lazy" onerror="${artFallback(name)}" />` : `<span class="${cls}">${esc(name.slice(0, 2))}</span>`;
     };
+    // Weapon icons from weapons/ (legends.js uses the file names); shown with their in-game names
+    const WEAPON_NAMES = { Pistol: 'Blasters', Fists: 'Gauntlets', Katar: 'Katars', RocketLance: 'Rocket Lance', Chakram: 'Chakrams' };
+    const weaponsOf = name => (LEGEND_WEAPONS[name] || []).map(file => ({ file, label: WEAPON_NAMES[file] || file }));
+    const weaponIcon = w => `<span class="wpn" style="--icon:url('weapons/${esc(w.file)}.svg')" aria-hidden="true"></span>`;
     const statusOf = l => Tracker.statusOf(l, Tracker.getLevel(l.name));
 
     // ---------- toasts and notifications ----------
@@ -566,12 +594,14 @@
       const games = await Tracker.fetchGames(bhId);
       if (!live) return; // Live was turned off while waiting
       live.lastCheck = now;
+      let landed = false;
       if (games !== null) {
         if (MatchHistory.record(bhId, MatchHistory.fromGames(games)).length) { live.freshTs = now; renderHistory(); }
         if (live.games !== null && games.games > live.games.games) {
           live.sessionGames += games.games - live.games.games;
           live.sessionWins += Math.max(0, sumWins(games) - sumWins(live.games));
           live.lastGameTs = now;
+          landed = true;
           live.nextLevelSync = Math.min(live.nextLevelSync, now + 2 * 60 * 1000);
           remindStances(Tracker.playedSince(live.games, games));
         }
@@ -583,7 +613,7 @@
         if (!live) return;
         if (r) announceUnlocks(r.unlocks);
       }
-      renderLive();
+      renderLive(landed);
     }
 
     async function setLive(on) {
@@ -618,7 +648,8 @@
       const mins = Math.round((Date.now() - ts) / 60000);
       return mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : clock(ts);
     }
-    function renderLive() {
+    // landed: a match just came in, so the score bug rolls its numbers in and its flag reads Final
+    function renderLive(landed) {
       const el = $('liveState');
       $('liveWho').textContent = state.profile ? `${state.profile.name} · #${state.profile.id}` : (state.id ? `#${state.id}` : '');
       if (!live) {
@@ -630,13 +661,16 @@
         const playing = live.lastGameTs && Date.now() - live.lastGameTs < PLAYING_WINDOW_MS;
         el.dataset.state = playing ? 'playing' : 'idle';
         $('stateWord').textContent = playing ? 'Playing now' : 'Not playing';
-        const losses = live.sessionGames - live.sessionWins;
-        $('liveBody').innerHTML = `<dl class="live-facts">
-            <div><dt>Session games</dt><dd>${live.sessionGames}</dd></div>
-            <div><dt>Session W–L</dt><dd class="wl"><span class="w">${live.sessionWins}</span><span class="sep">–</span><span class="l">${losses}</span></dd></div>
-            <div><dt>Last match</dt><dd>${live.lastGameTs ? ago(live.lastGameTs) : 'None yet'}</dd></div>
-            <div><dt>Checked</dt><dd>${live.lastCheck ? clock(live.lastCheck) : '…'}</dd></div>
-          </dl>`;
+        const losses = Math.max(0, live.sessionGames - live.sessionWins);
+        const final = live.lastGameTs && Date.now() - live.lastGameTs < 90 * 1000;
+        const flag = final ? 'Final' : playing ? 'Live session' : 'Session';
+        $('liveBody').innerHTML = `<div class="scorebug${landed ? ' landed' : ''}" role="group" aria-label="This session: ${live.sessionWins} wins, ${losses} losses">
+            <div class="side w"><span class="num">${live.sessionWins}</span><span class="lab">Wins</span></div>
+            <div class="mid"><span class="games">${live.sessionGames} game${live.sessionGames === 1 ? '' : 's'}</span><span class="last">${live.lastGameTs ? `Last match ${ago(live.lastGameTs)}` : 'No match yet'}</span></div>
+            <div class="side l"><span class="num">${losses}</span><span class="lab">Losses</span></div>
+            <div class="flag${final || playing ? ' on' : ''}">${flag}</div>
+          </div>
+          <p class="checked">Checked ${live.lastCheck ? clock(live.lastCheck) : '…'} · checks every minute</p>`;
       }
       renderStrip();
     }
@@ -692,8 +726,13 @@
     let histLimit = 10;
     function renderHistory() {
       $('history').innerHTML = state.id
-        ? MatchHistory.html(state.id, { limit: histLimit, portraitOf })
+        ? MatchHistory.html(state.id, { limit: histLimit, portraitOf: miniOf })
         : '<p class="empty">Enter your Brawlhalla ID and sync to start recording games.</p>';
+      // MatchHistory's rows drop an image that fails; try the full one first, like everywhere else
+      $('history').querySelectorAll('img.hist-art').forEach(img => {
+        const full = img.getAttribute('src').replace('portraits/mini/', 'portraits/');
+        img.onerror = () => { if (img.src.includes('/mini/')) img.src = full; else img.remove(); };
+      });
       renderStrip();
     }
 
@@ -749,9 +788,11 @@
       $('roster').innerHTML = list.length ? list.map(l => {
         const st = statusOf(l);
         const src = portraitOf(l.name);
-        return `<button class="tile${st === 'x' ? ' locked' : ''}" type="button" data-legend="${esc(l.name)}" aria-current="${sheetLegend === l.name}" aria-label="${esc(l.name)}, level ${Tracker.getLevel(l.name)}, ${STATUS[st].long}">
-          ${src ? `<img class="art" src="${esc(src)}" alt="" loading="lazy" />` : `<span class="art blank" aria-hidden="true">${esc(l.name.slice(0, 2))}</span>`}
-          <span class="meta"><span class="nm">${esc(l.name)}</span><span class="row"><span>Lv ${Tracker.getLevel(l.name)}</span>${chip(st)}</span></span>
+        const blank = `<span class="art blank" aria-hidden="true">${esc(l.name.slice(0, 2))}</span>`;
+        const wpns = weaponsOf(l.name);
+        return `<button class="tile${st === 'x' ? ' locked' : ''}" type="button" data-legend="${esc(l.name)}" aria-current="${sheetLegend === l.name}" aria-label="${esc(l.name)}, level ${Tracker.getLevel(l.name)}, ${STATUS[st].long}${wpns.length ? `, ${wpns.map(w => w.label).join(' and ')}` : ''}">
+          ${src ? `<img class="art" src="${esc(miniOf(l.name))}" alt="" loading="lazy" onerror="if (this.src.includes('/mini/')) this.src='${esc(src)}'; else this.outerHTML='${blank.replace(/"/g, '&quot;')}';" />` : blank}
+          <span class="meta"><span class="nmrow"><span class="nm">${esc(l.name)}</span><span class="wpns">${wpns.map(weaponIcon).join('')}</span></span><span class="row"><span>Lv ${Tracker.getLevel(l.name)}</span>${chip(st)}</span></span>
         </button>`;
       }).join('') : `<div class="roster-empty">No legends match${q ? ` “${esc($('search').value.trim())}”` : ''}${filter !== 'ALL' ? ` in ${STATUS[filter].short}` : ''}. <button class="btn ghost" type="button" data-clear>Clear filters</button></div>`;
     }
@@ -774,7 +815,7 @@
       const order = [3, 4, 6, 8, 11, 13, 15, 17].map(n => `<li class="${lvl >= n ? 'on' : ''}"><span class="lv">Lv ${n}</span>${esc(l.stances[n])}${icon(lvl >= n ? 'check' : 'lock')}</li>`).join('');
       $('sheet').innerHTML = `<div class="sheet-body">
         <div class="sheet-top"><button class="btn icon-only" type="button" data-close aria-label="Close details">${icon('close')}</button></div>
-        <div class="sheet-art${src ? '' : ' blank'}">${src ? `<img src="${esc(src)}" alt="" />` : ''}</div>
+        <div class="sheet-art${src ? '' : ' blank'}">${src ? `<img src="${esc(src)}" alt="" onerror="this.parentNode.classList.add('blank'); this.remove();" />` : ''}</div>
         <h2 id="sheetTitle">${esc(l.name)}</h2>
         <div class="sub">${esc(l.title)} · Legend #${l.order}</div>
         <div class="sheet-row">
@@ -796,6 +837,7 @@
           <div><div class="k"><span><i class="dot v"></i>Best stance</span><span>Unlocks at Lv ${l.vLvl}</span></div><div class="nm">${esc(l.target)}</div></div>
           <div><div class="k"><span><i class="dot b"></i>Standard stance</span><span>Unlocks at Lv ${l.bangLvl}</span></div><div class="nm">${esc(l.alt)}</div></div>
         </div>
+        ${weaponsOf(l.name).length ? `<h3>Weapons</h3><ul class="weapons">${weaponsOf(l.name).map(w => `<li>${weaponIcon(w)}${esc(w.label)}</li>`).join('')}</ul>` : ''}
         <h3>Stance order</h3>
         <ol class="order">${order}</ol>
         ${s && s.games ? `<h3>Stats</h3><dl class="stats-line">
