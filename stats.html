@@ -130,6 +130,7 @@
     .art.wicon::after { content: ''; position: absolute; inset: 6px; background: var(--text);
       -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
     .who { min-width: 0; }
+    .who b.unknown, .team .unknown { color: var(--muted); font-weight: 500; }
     .who b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .who span { display: block; font-size: var(--fs-s); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .track { height: 8px; border-radius: 0 4px 4px 0; background: var(--line); }
@@ -341,10 +342,10 @@
         unarmed: { kos: num(d.unarmed && d.unarmed.kos), damage: num(d.unarmed && d.unarmed.damage_dealt), held: num(d.unarmed && d.unarmed.time_held) },
         throws: { kos: num(d.weapon_throws && d.weapon_throws.kos), damage: num(d.weapon_throws && d.weapon_throws.damage_dealt) },
         gadgets: { kos: num(d.gadgets && d.gadgets.kos), damage: num(d.gadgets && d.gadgets.damage_dealt) },
-        ranked: shapeRanked(d.ranked)
+        ranked: shapeRanked(d.ranked, String(d.name || ''))
       };
     }
-    function shapeRanked(r) {
+    function shapeRanked(r, playerName) {
       if (!r) return null;
       const bracket = b => (b ? {
         rating: num(b.rating), peak: num(b.peak_rating), tier: String(b.tier || ''), wins: num(b.wins), games: num(b.games),
@@ -357,7 +358,11 @@
         solo: bracket(r['1v1']), rotating: bracket(r.rotating),
         duo: duo ? {
           games: num(duo.games), wins: num(duo.wins), rating: num(duo.average_rating), peak: num(duo.average_peak_rating),
-          teams: (Array.isArray(duo.teams) ? duo.teams : []).map(t => ({ ...bracket(t), name: String((t.teammate && t.teammate.name) || 'Teammate') }))
+          teams: (Array.isArray(duo.teams) ? duo.teams : []).map(t => {
+            const mate = t.teammate || {}, name = String(mate.name || 'Teammate');
+            // dair.gg sends id 0 and the player's own name when it doesn't know the teammate
+            return { ...bracket(t), name, unknown: mate.id === 0 || name === playerName };
+          })
             .sort((a, b) => b.rating - a.rating)
         } : null
       };
@@ -486,6 +491,9 @@
       const file = WEAPON_FILES[name];
       return file ? `<span class="art wicon" role="img" aria-label="${esc(name)}" style="--icon:url('weapons/${file}.svg')"></span>` : `<span class="art blank">${icon('sword')}</span>`;
     }
+    // A teammate dair.gg can't name (also caught in an older cached copy, by the player's own name)
+    const UNKNOWN_TIP = 'dair.gg doesn\'t know this teammate\'s account';
+    const mateOf = t => (t.unknown || t.name === data.name ? { ...t, name: 'Unknown teammate', unknown: true } : t);
     // Top 10 by the metric, as bars scaled to the best value (or to metric.full)
     function bars(items, metric, min, art, empty) {
       if (!items.length) return `<div class="empty">${empty}</div>`;
@@ -497,7 +505,7 @@
         <div class="bar-row" title="${esc(x.name)}: ${esc(metric.show(x))} · ${esc(metric.sub(x))}">
           <span class="rank">${i + 1}</span>
           ${art(x)}
-          <span class="who"><b>${esc(x.name)}</b><span>${esc(metric.sub(x))}</span></span>
+          <span class="who"><b${x.unknown ? ` class="unknown" title="${UNKNOWN_TIP}"` : ''}>${esc(x.name)}</b><span>${esc(metric.sub(x))}</span></span>
           <span class="track"><span class="fill" style="width:${(100 * Math.max(0, metric.value(x)) / max).toFixed(1)}%"></span></span>
           <span class="val">${esc(metric.show(x))}</span>
         </div>`).join('');
@@ -515,7 +523,7 @@
         $('legendH').innerHTML = `${icon('users')}Ranked 2v2 teams`;
         const m = fillSort($('legendSort'), LEGEND_METRICS['2v2'], 'legend');
         $('legendNote').textContent = 'The game reports ranked 2v2 per team, not per legend, so this lists your teams.';
-        const teams = data.ranked && data.ranked.duo ? data.ranked.duo.teams.filter(t => t.games > 0) : [];
+        const teams = data.ranked && data.ranked.duo ? data.ranked.duo.teams.filter(t => t.games > 0).map(mateOf) : [];
         $('legendBars').innerHTML = bars(teams, m, min, () => `<span class="art blank">${icon('users')}</span>`,
           data.partial || !data.ranked ? noDair : 'No ranked 2v2 games this season.');
         return;
@@ -636,7 +644,7 @@
         tier: r.duo.teams.length ? r.duo.teams[0].tier : '', wins: r.duo.wins, games: r.duo.games, region: r.duo.teams.length ? r.duo.teams[0].region : ''
       } : null;
       const teams = r.duo && r.duo.teams.length > 0 ? r.duo.teams.slice(0, 5).map(t =>
-        `<div class="team"><span>with ${esc(t.name)}</span><span>${fmt(t.rating)} · ${fmt(t.wins)}W ${fmt(t.games - t.wins)}L</span></div>`).join('') : '';
+        `<div class="team">${mateOf(t).unknown ? `<span class="unknown" title="${UNKNOWN_TIP}">Unknown teammate</span>` : `<span>with ${esc(t.name)}</span>`}<span>${fmt(t.rating)} · ${fmt(t.wins)}W ${fmt(t.games - t.wins)}L</span></div>`).join('') : '';
       $('ranked').innerHTML = bracketHtml(`${icon('user')}1v1`, r.solo) + bracketHtml(`${icon('users')}2v2 (best team)`, duo, teams) + bracketHtml(`${icon('rotate')}3v3 / rotating`, r.rotating);
     }
 
