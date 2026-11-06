@@ -2,180 +2,289 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Player Stats</title>
-  <meta name="description" content="Your best Brawlhalla legends and weapons, with win rates, KOs, damage and recent form." />
-  <meta name="theme-color" content="#0b101d" />
-  <script src="theme-boot.js" data-page="stats"></script>
+  <meta name="description" content="Your best Brawlhalla legends and weapons, with win rates, KOs, damage, ranked and recent form." />
+  <meta name="theme-color" content="#0e1116" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <style>
+    /* Tokens and components from redesign-clean.html */
     :root {
-      --bg: #0b101d; --panel: #131b2e; --card: #1a2540; --line: #2a395c; --text: #f1f5f9; --muted: #94a3b8;
-      --accent: #06b6d4; --bar: #22d3ee; --track: rgba(148,163,184,0.14); --shadow: rgba(0,0,0,0.4);
-      --title-grad: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
-      --btn-grad: linear-gradient(135deg, #3b82f6, #06b6d4); --on-accent: #fff;
       color-scheme: dark;
+      --bg: #0e1116;
+      --panel: #161a21;
+      --raised: #1d222b;
+      --line: #2a303b;
+      --line-strong: #3a4250;
+      --text: #e7eaf0;
+      --muted: #a1a9b6;
+      --faint: #8a93a3;
+      --accent: #6ea8fe;
+      --accent-ink: #0b1220;
+      --accent-soft: rgba(110, 168, 254, 0.14);
+      --win: #4ade80;
+      --loss: #f87171;
+
+      --fs-s: 0.833rem;
+      --fs-0: 1rem;
+      --fs-1: 1.2rem;
+      --fs-2: 1.44rem;
+      --fs-3: 1.728rem;
+      --fs-4: 2.488rem;
+      --r: 10px;
+      --r-s: 6px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
-    :root[data-theme="valhalla"] {
-      --bg: #120c1f; --panel: #1d1430; --card: #2a1d45; --line: #4a3470; --text: #fdf6e3; --muted: #b8a9d4; --accent: #f5c542; --bar: #f5c542;
-      --title-grad: linear-gradient(90deg, #ffe08a, #f5c542, #ff9f43);
-      --btn-grad: linear-gradient(135deg, #d99a1e, #f5c542); --on-accent: #1a1027;
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--line-strong) var(--bg); }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 400 var(--fs-0)/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-variant-numeric: tabular-nums;
+      caret-color: var(--accent);
     }
-    :root[data-theme="daylight"] {
-      --bg: #f4f6fb; --panel: #ffffff; --card: #eef2f8; --line: #d5dce8; --text: #0f172a; --muted: #5b6678; --accent: #0e7490; --bar: #0e7490;
-      --track: rgba(15,23,42,0.08); --shadow: rgba(15,23,42,0.12);
-      --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
-      --btn-grad: linear-gradient(135deg, #2563eb, #0e7490); --on-accent: #fff;
-      color-scheme: light;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; line-height: 1.5;
-      padding: clamp(16px, 3vw, 44px); min-height: 100vh; }
-    button, input, select { font: inherit; color: inherit; }
+    ::selection { background: var(--accent); color: var(--accent-ink); }
+    h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+    p { margin: 0; }
+    a { color: var(--accent); text-underline-offset: 3px; }
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .wrap { max-width: 1280px; margin: 0 auto; }
+    .icon { width: 1.125em; height: 1.125em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-    header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 28px; margin-bottom: 26px;
-      background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 30px; box-shadow: 0 8px 24px var(--shadow); }
-    h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
-      background: var(--title-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .lead { color: var(--muted); font-size: 0.86rem; margin-top: 2px; }
-    .nav { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .nav a { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--accent);
-      font-size: 0.82rem; font-weight: 700; text-decoration: none; }
-    .nav a:hover { border-color: var(--accent); }
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    .input { width: 190px; padding: 9px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); outline: none; }
-    .input:focus { border-color: var(--accent); }
-    .btn { padding: 9px 16px; border-radius: 10px; border: 1px solid transparent; background: var(--btn-grad); color: var(--on-accent); cursor: pointer; font-weight: 700; }
-    .btn[disabled] { opacity: 0.6; cursor: progress; }
-    .status { color: var(--muted); font-size: 0.86rem; min-height: 1.4em; margin: -12px 0 20px; }
+    /* ---------- controls ---------- */
+    button, input, select { font: inherit; color: inherit; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-height: 36px; padding: 0 14px; border-radius: var(--r-s); border: 1px solid var(--line-strong);
+      background: var(--raised); font-size: var(--fs-s); font-weight: 600; cursor: pointer;
+      transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
+    }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .btn.primary:hover { background: #8bb9ff; border-color: #8bb9ff; }
+    .btn.loading .icon { animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .field {
+      min-height: 36px; padding: 0 12px; border-radius: var(--r-s); border: 1px solid var(--line-strong);
+      background: var(--bg); font-size: var(--fs-s);
+    }
+    .field::placeholder { color: var(--faint); }
+    .field:hover { border-color: #4a5363; }
+    .field[aria-invalid="true"] { border-color: var(--loss); }
+    select.field { padding-right: 8px; }
+    .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-s); overflow: hidden; }
+    .seg button { min-height: 34px; padding: 0 12px; border: 0; border-left: 1px solid var(--line-strong); background: transparent; color: var(--muted); font-size: var(--fs-s); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+    .seg button:first-child { border-left: 0; }
+    .seg button:hover { color: var(--text); background: var(--raised); }
+    .seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+    .ctl { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-s); color: var(--muted); }
 
-    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 26px; }
-    .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
-    .tile .k { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 800; }
-    .tile .v { font-size: 1.45rem; font-weight: 900; margin-top: 2px; font-variant-numeric: tabular-nums; }
-    .tile .s { font-size: 0.74rem; color: var(--muted); }
+    /* ---------- top bar ---------- */
+    .topbar { position: sticky; top: 0; z-index: 20; background: rgba(14, 17, 22, 0.96); border-bottom: 1px solid var(--line); }
+    .topbar-inner { max-width: 1440px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--fs-0); margin-right: auto; }
+    .brand img { width: 24px; height: 24px; }
+    .idform { display: flex; gap: 8px; align-items: center; }
+    .idform .field { width: 150px; }
+    .nav { display: flex; gap: 2px; }
+    .nav a { color: var(--muted); text-decoration: none; font-size: var(--fs-s); font-weight: 600; padding: 8px 10px; border-radius: var(--r-s); white-space: nowrap; }
+    .nav a:hover { color: var(--text); background: var(--raised); }
+    .sync-status { max-width: 1440px; margin: 0 auto; padding: 0 24px 8px; font-size: var(--fs-s); color: var(--muted); }
+    .sync-status:empty { display: none; }
+    .sync-status.error { color: var(--loss); }
 
-    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 22px; margin-bottom: 22px; }
-    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; min-width: 0; }
-    .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 4px; }
-    .panel h2 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    .panel .note { font-size: 0.75rem; color: var(--muted); margin-bottom: 14px; }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-    .chip { padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 0.76rem; font-weight: 700; color: var(--muted); }
-    .chip:hover { border-color: var(--accent); }
-    .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--text); }
-    .min { font-size: 0.76rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-    .min select { padding: 3px 6px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); }
+    /* ---------- page ---------- */
+    main { max-width: 1440px; margin: 0 auto; padding: 24px; display: grid; gap: 24px; }
+    .page-head h1 { font-size: var(--fs-3); font-weight: 700; letter-spacing: -0.01em; }
+    .page-head p { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
+    .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 24px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; min-width: 0; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .panel-head h2 { font-size: var(--fs-1); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .panel-head h2 .icon { color: var(--muted); }
+    .note { font-size: var(--fs-s); color: var(--faint); margin-bottom: 12px; }
+    .note:empty { display: none; }
+    .empty { color: var(--muted); font-size: var(--fs-s); padding: 12px 0 4px; }
+
+    /* overview numbers */
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; min-width: 0; }
+    .kpi .k { font-size: var(--fs-s); color: var(--muted); }
+    .kpi .v { font-size: var(--fs-2); font-weight: 700; line-height: 1.25; }
+    .kpi .s { font-size: var(--fs-s); color: var(--faint); }
+
+    /* mode toggle for the two lists */
+    .modebar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .modebar .hint { font-size: var(--fs-s); color: var(--muted); }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
 
     /* ranked bar list: one series, so one hue; values stay in text ink */
-    .bars { display: flex; flex-direction: column; gap: 4px; }
-    .bar-row { display: grid; grid-template-columns: 22px 34px minmax(0, 150px) 1fr 64px; gap: 10px; align-items: center; padding: 5px 4px; border-radius: 8px; }
-    .bar-row:hover { background: var(--card); }
-    .rank { font-size: 0.74rem; color: var(--muted); font-weight: 800; text-align: right; }
-    .art { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; object-position: top center; background: var(--card); }
-    .art.blank { display: grid; place-items: center; font-size: 1rem; }
-    .who { min-width: 0; }
-    .who b { display: block; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .who span { display: block; font-size: 0.7rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .track { height: 10px; border-radius: 0 4px 4px 0; background: var(--track); }
-    .fill { height: 100%; border-radius: 0 4px 4px 0; background: var(--bar); min-width: 2px; }
+    .bars { display: flex; flex-direction: column; }
+    .bar-row { display: grid; grid-template-columns: 20px 34px minmax(0, 170px) 1fr 64px; gap: 12px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); }
+    .bar-row:first-child { border-top: 0; }
+    .rank { font-size: var(--fs-s); color: var(--faint); text-align: right; }
+    .art { width: 34px; height: 34px; border-radius: var(--r-s); object-fit: cover; object-position: top center; background: var(--raised); display: block; }
+    .art.blank { display: grid; place-items: center; color: var(--faint); }
     .art.wicon { position: relative; }
-    .art.wicon::after { content: ''; position: absolute; inset: 5px; background: var(--text);
+    .art.wicon::after { content: ''; position: absolute; inset: 6px; background: var(--text);
       -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
-    .val { font-weight: 800; font-size: 0.86rem; text-align: right; font-variant-numeric: tabular-nums; }
-    .empty { color: var(--muted); font-size: 0.84rem; padding: 18px 4px; }
+    .who { min-width: 0; }
+    .who b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .who span { display: block; font-size: var(--fs-s); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .track { height: 8px; border-radius: 0 4px 4px 0; background: var(--line); }
+    .fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--accent); min-width: 2px; }
+    .val { font-weight: 650; text-align: right; }
 
-    .days { display: grid; grid-template-columns: repeat(14, 1fr); gap: 6px; align-items: end; height: 140px; margin-top: 6px; }
-    .day { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
-    .day .col { width: 100%; max-width: 26px; background: var(--bar); border-radius: 4px 4px 0 0; min-height: 0; }
-    .day .n { font-size: 0.68rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .day .d { font-size: 0.62rem; color: var(--muted); white-space: nowrap; }
-    .baseline { border-top: 1px solid var(--line); }
-
-    .extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-    .extras .tile { background: var(--card); }
-
-    .ranked { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; }
-    .rk { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; min-width: 0; }
-    .rk h3 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
-    .rk .rating { font-size: 1.9rem; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.2; margin-top: 6px; }
-    .tier { display: inline-block; font-size: 0.74rem; font-weight: 800; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--tier, var(--line)); color: var(--text); margin-left: 6px; vertical-align: middle; }
-    .tier::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tier, var(--muted)); margin-right: 6px; }
-    .rk dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 0.8rem; margin-top: 10px; }
+    /* ranked season */
+    .ranked { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+    .rk { background: var(--raised); border-radius: var(--r); padding: 16px; min-width: 0; }
+    .rk h3 { font-size: var(--fs-0); font-weight: 650; display: flex; align-items: center; gap: 8px; }
+    .rk h3 .icon { color: var(--muted); }
+    .rk .rating { font-size: var(--fs-3); font-weight: 700; line-height: 1.2; margin-top: 8px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+    .tier { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-s); font-weight: 600; color: var(--text); }
+    .tier::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--tier, var(--faint)); }
+    .rk dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: var(--fs-s); margin: 12px 0 0; }
     .rk dt { color: var(--muted); }
-    .rk dd { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .team { display: flex; justify-content: space-between; gap: 10px; font-size: 0.78rem; padding: 6px 0; border-top: 1px solid var(--line); }
+    .rk dd { margin: 0; text-align: right; font-weight: 600; }
+    .team { display: flex; justify-content: space-between; gap: 10px; font-size: var(--fs-s); padding: 7px 0; border-top: 1px solid var(--line); }
+    .rk .team:first-of-type { margin-top: 10px; }
     .team span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .rk .none { color: var(--muted); font-size: 0.84rem; margin-top: 10px; }
+    .team span:last-child { color: var(--muted); white-space: nowrap; }
+    .rk .none { color: var(--muted); font-size: var(--fs-s); margin-top: 10px; }
 
-    @media (max-width: 560px) {
-      header { padding: 18px; }
-      .bar-row { grid-template-columns: 18px 30px minmax(0, 1fr) 70px 52px; gap: 8px; }
+    /* last 14 days */
+    .days { display: grid; grid-template-columns: repeat(14, 1fr); gap: 6px; align-items: end; height: 140px; }
+    .day { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
+    .day .col { width: 100%; max-width: 24px; background: var(--accent); border-radius: 4px 4px 0 0; }
+    .day .n { font-size: 0.75rem; font-weight: 600; }
+    .day .d { font-size: 0.694rem; color: var(--faint); white-space: nowrap; }
+
+    .extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+    .extras .kpi { background: var(--raised); border: 0; }
+    .extras .k { display: flex; align-items: center; gap: 6px; }
+
+    footer { max-width: 1440px; margin: 0 auto; padding: 8px 24px 40px; font-size: var(--fs-s); color: var(--faint); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+    @media (max-width: 640px) {
+      .topbar-inner { padding: 10px 16px; gap: 10px; }
+      .brand { flex: 1 1 auto; }
+      .idform { order: 3; flex: 1 1 100%; }
+      .idform .field { flex: 1; width: auto; }
+      .nav { order: 4; flex: 1 1 100%; margin: 0 -10px; overflow-x: auto; }
+      .sync-status { padding: 0 16px 8px; }
+      main { padding: 16px; gap: 16px; }
+      .cols { gap: 16px; }
+      .panel { padding: 16px; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .modebar .seg { width: 100%; }
+      .modebar .seg button { flex: 1 1 0; padding: 0 6px; }
+      .toolbar .ctl { flex: 1 1 auto; }
+      .toolbar select { flex: 1; }
+      .bar-row { grid-template-columns: 16px 30px minmax(0, 1fr) 56px 52px; gap: 8px; }
       .art { width: 30px; height: 30px; }
-      .days .d { font-size: 0.55rem; }
+      .days { gap: 3px; }
+      .days .d { font-size: 0.6rem; }
+      footer { padding: 8px 16px 32px; }
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div>
-        <h1>Player stats</h1>
-        <p class="lead" id="lead">Your best legends and weapons, from dair.gg and the Brawlhalla API.</p>
-        <nav class="nav" aria-label="Pages"><a href="index.html?view=auto">← Stance tracker</a><a href="stances.html">🧪 Stance lab</a></nav>
-      </div>
-      <div class="actions">
-        <input class="input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" aria-label="Brawlhalla ID" autocomplete="off" />
-        <button class="btn" id="loadBtn">Load stats</button>
-      </div>
-    </header>
-    <div class="status" id="status"></div>
+  <!-- One icon set: 24px grid, 1.75 stroke, round caps (as in redesign-clean.html) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></symbol>
+    <symbol id="i-medal" viewBox="0 0 24 24"><path d="M8 3h8l-2.5 6h-3z"/><circle cx="12" cy="15" r="6"/><path d="M12 12.5v5"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v6a4 4 0 0 1-8 0z"/><path d="M8 6H5v1.5A3 3 0 0 0 8 10.5M16 6h3v1.5a3 3 0 0 1-3 3"/><path d="M12 14v3M8.5 20h7M10 17h4v3h-4z"/></symbol>
+    <symbol id="i-sword" viewBox="0 0 24 24"><path d="M20 4 9.5 14.5"/><path d="M14.5 4H20v5.5"/><path d="m6.5 11.5 6 6"/><path d="M8 16l-4 4"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M15.5 4.6a3.5 3.5 0 0 1 0 6.8M18 14.3a6.5 6.5 0 0 1 3.5 5.7"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><circle cx="7" cy="8" r="2.5"/><circle cx="17" cy="8" r="2.5"/><circle cx="12" cy="16" r="2.5"/><path d="M3 20a4 4 0 0 1 4-3M21 20a4 4 0 0 0-4-3"/></symbol>
+    <symbol id="i-fist" viewBox="0 0 24 24"><path d="M7 11V7.5a1.5 1.5 0 0 1 3 0V10M10 9V6.5a1.5 1.5 0 0 1 3 0V10M13 9.5V7a1.5 1.5 0 0 1 3 0v3.5M16 9.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1a5 5 0 0 1-5-5v-4.5a1.5 1.5 0 0 1 3 0"/></symbol>
+    <symbol id="i-throw" viewBox="0 0 24 24"><path d="M4 18 18 4"/><path d="M11 4h7v7"/><path d="M4 13v5h5"/></symbol>
+    <symbol id="i-bomb" viewBox="0 0 24 24"><circle cx="11" cy="14" r="6.5"/><path d="m15.5 9.5 2-2"/><path d="M18.5 3.5v2M21 6h-2M20.3 4.2l-1.2 1.2"/></symbol>
+  </svg>
 
-    <div class="tiles" id="tiles"></div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><img src="icon.svg" alt="" />Stance Tracker</div>
+      <form class="idform" id="idForm" novalidate>
+        <label class="sr-only" for="idInput">Brawlhalla ID</label>
+        <input class="field" id="idInput" inputmode="numeric" autocomplete="off" placeholder="Brawlhalla ID" />
+        <button class="btn primary" id="loadBtn" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-sync"/></svg>Load</button>
+      </form>
+      <nav class="nav" aria-label="Other pages">
+        <a href="redesign-clean.html">Tracker</a>
+        <a href="stances.html">Stance lab</a>
+        <a href="index.html">Classic tracker</a>
+      </nav>
+    </div>
+    <div class="sync-status" id="status" role="status"></div>
+  </header>
 
-    <section class="panel" style="margin-bottom:22px">
-      <div class="panel-head"><h2>🏅 Ranked this season</h2></div>
+  <main>
+    <div class="page-head">
+      <h1 id="title">Stats</h1>
+      <p id="lead">Your best legends and weapons, from dair.gg and the Brawlhalla API.</p>
+    </div>
+
+    <div class="kpis" id="tiles"></div>
+
+    <section class="panel" aria-labelledby="rankedH">
+      <div class="panel-head"><h2 id="rankedH"><svg class="icon" aria-hidden="true"><use href="#i-medal"/></svg>Ranked season</h2></div>
       <p class="note" id="rankedNote"></p>
       <div class="ranked" id="ranked"></div>
     </section>
 
+    <div class="modebar">
+      <div class="seg" role="group" aria-label="Games to count" id="modeSeg">
+        <button type="button" data-mode="all">All games</button>
+        <button type="button" data-mode="1v1">Ranked 1v1</button>
+        <button type="button" data-mode="2v2">Ranked 2v2</button>
+      </div>
+      <span class="hint" id="modeHint"></span>
+    </div>
+
     <div class="cols">
-      <section class="panel">
-        <div class="panel-head">
-          <h2>🏆 Best legends</h2>
-          <label class="min">Min. games <select id="legendMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
+      <section class="panel" aria-labelledby="legendH">
+        <div class="panel-head"><h2 id="legendH"></h2></div>
+        <div class="toolbar">
+          <label class="ctl">Sort <select class="field" id="legendSort"></select></label>
+          <label class="ctl">Min. games <select class="field" id="legendMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
         </div>
         <p class="note" id="legendNote"></p>
-        <div class="chips" id="legendChips"></div>
         <div class="bars" id="legendBars"></div>
       </section>
 
-      <section class="panel">
-        <div class="panel-head">
-          <h2>⚔️ Best weapons</h2>
-          <label class="min">Min. games <select id="weaponMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
+      <section class="panel" aria-labelledby="weaponH">
+        <div class="panel-head"><h2 id="weaponH"><svg class="icon" aria-hidden="true"><use href="#i-sword"/></svg>Best weapons</h2></div>
+        <div class="toolbar" id="weaponTools">
+          <label class="ctl">Sort <select class="field" id="weaponSort"></select></label>
+          <label class="ctl">Min. games <select class="field" id="weaponMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
         </div>
         <p class="note" id="weaponNote"></p>
-        <div class="chips" id="weaponChips"></div>
         <div class="bars" id="weaponBars"></div>
       </section>
     </div>
 
     <div class="cols">
-      <section class="panel">
-        <div class="panel-head"><h2>📅 Last 14 days</h2></div>
+      <section class="panel" aria-labelledby="daysH">
+        <div class="panel-head"><h2 id="daysH"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Last 14 days</h2></div>
         <p class="note" id="daysNote"></p>
         <div id="days"></div>
       </section>
-      <section class="panel">
-        <div class="panel-head"><h2>🧨 Unarmed, throws &amp; gadgets</h2></div>
+      <section class="panel" aria-labelledby="extrasH">
+        <div class="panel-head"><h2 id="extrasH"><svg class="icon" aria-hidden="true"><use href="#i-target"/></svg>Unarmed, throws and gadgets</h2></div>
         <p class="note">KOs and damage that didn't come from your two weapons.</p>
         <div class="extras" id="extras"></div>
       </section>
     </div>
-  </div>
+  </main>
+
+  <footer>Data from the official Brawlhalla API and the dair.gg community API. Legend art © Blue Mammoth Games, used with permission. Not affiliated with Blue Mammoth Games or Ubisoft.</footer>
 
   <script src="legends.js"></script>
   <script src="core.js"></script>
@@ -183,15 +292,20 @@
   <script>
     const $ = id => document.getElementById(id);
     const esc = str => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
     const num = v => (Number.isFinite(v) ? v : 0);
     const pct = (w, g) => (g ? `${Math.round(100 * w / g)}%` : '–');
     const fmt = (v, digits = 0) => (Number.isFinite(v) ? v.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : '–');
     const hours = sec => `${fmt(sec / 3600, sec < 36000 ? 1 : 0)}h`;
     const CACHE_KEY = 'bh_stats_cache_v1';
+    const MODE_KEY = 'bh_stats_mode_v1';
 
-    let data = null; // { id, name, fetchedAt, stats, legends: [], weapons: [], unarmed, throws, gadgets }
+    let data = null; // { id, name, fetchedAt, stats, legends: [], weapons: [], unarmed, throws, gadgets, ranked }
     let portraits = {};
-    let legendMetric = 'winrate', weaponMetric = 'winrate';
+    let mode = 'all';
+    try { if (['all', '1v1', '2v2'].includes(localStorage.getItem(MODE_KEY))) mode = localStorage.getItem(MODE_KEY); } catch (err) { /* storage unavailable */ }
+    // The chosen sort, per mode and list
+    const sortBy = { all: {}, '1v1': {}, '2v2': {} };
 
     // dair.gg's answer, reduced to the numbers this page uses. Anything missing becomes 0, so a
     // changed or broken answer (or old cache) shows empty sections instead of crashing.
@@ -206,11 +320,13 @@
         id, name: String(d.name || 'Player'), fetchedAt: Date.now(),
         stats: { level: num(s.level), games: num(s.games), wins: num(s.wins), time: num(s.matchtime), kos: num(s.kos), falls: num(s.falls), damage: num(s.damage_dealt), taken: num(s.damage_taken) },
         legends: d.legends.map(l => {
-          const st = l.stats || {};
+          const st = l.stats || {}, rk = l.ranked;
           return {
             name: legendName(l.name), games: num(st.games), wins: num(st.wins), kos: num(st.kos), falls: num(st.falls),
             damage: num(st.damage_dealt), time: num(st.matchtime), level: num(st.level),
-            weapons: [l.weapon_one, l.weapon_two].filter(Boolean).map(w => String(w.name || ''))
+            weapons: [l.weapon_one, l.weapon_two].filter(Boolean).map(w => String(w.name || '')),
+            // This season's ranked 1v1 on this legend
+            rk: rk ? { rating: num(rk.rating), peak: num(rk.peak_rating), tier: String(rk.tier || ''), wins: num(rk.wins), games: num(rk.games) } : null
           };
         }).filter(l => l.games > 0),
         weapons: (Array.isArray(d.weapons) ? d.weapons : []).map(w => {
@@ -240,7 +356,7 @@
         solo: bracket(r['1v1']), rotating: bracket(r.rotating),
         duo: duo ? {
           games: num(duo.games), wins: num(duo.wins), rating: num(duo.average_rating), peak: num(duo.average_peak_rating),
-          teams: (Array.isArray(duo.teams) ? duo.teams : []).map(t => ({ ...bracket(t), mate: String((t.teammate && t.teammate.name) || 'Teammate') }))
+          teams: (Array.isArray(duo.teams) ? duo.teams : []).map(t => ({ ...bracket(t), name: String((t.teammate && t.teammate.name) || 'Teammate') }))
             .sort((a, b) => b.rating - a.rating)
         } : null
       };
@@ -251,7 +367,7 @@
       const st = Tracker.state.stats, p = Tracker.state.profile;
       const legends = Object.keys(st).map(name => ({
         name, games: st[name].games, wins: st[name].wins, kos: num(st[name].kos), falls: 0, damage: 0, time: st[name].time,
-        level: Tracker.getLevel(name), weapons: st[name].weapons
+        level: Tracker.getLevel(name), weapons: st[name].weapons, rk: null
       })).filter(l => l.games > 0);
       if (!legends.length) return null;
       const sum = k => legends.reduce((a, l) => a + num(l[k]), 0);
@@ -262,9 +378,13 @@
       };
     }
 
+    function setStatus(text, error) {
+      $('status').textContent = text;
+      $('status').classList.toggle('error', !!error);
+    }
     async function load(id) {
-      $('loadBtn').disabled = true;
-      $('status').textContent = 'Loading stats…';
+      $('loadBtn').disabled = true; $('loadBtn').classList.add('loading');
+      setStatus('Loading stats…');
       try {
         const base = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/api' : 'https://brawlhalla-tracker-relay.gfhnpkv.workers.dev';
         const res = await fetch(`${base}/dair/${id}`, { cache: 'no-store' });
@@ -273,14 +393,14 @@
         if (!shaped) throw new Error('dair.gg sent an answer this page can\'t read.');
         data = shaped;
         try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (err) { /* storage full or unavailable */ }
-        $('status').textContent = `✓ Loaded ${data.name} (#${id}). dair.gg updates a few minutes after each match.`;
+        setStatus(`Loaded ${data.name} (#${id}). dair.gg updates a few minutes after each match.`);
       } catch (err) {
         const cached = readCache(id);
         data = cached || (Tracker.state.id === id ? fromSaved() : null);
-        $('status').textContent = `Couldn't load fresh stats: ${err.message || 'network error'}` +
-          (cached ? ` Showing the copy from ${new Date(cached.fetchedAt).toLocaleString()}.` : data ? ' Showing your last synced legend stats.' : '');
+        setStatus(`Couldn't load fresh stats: ${err.message || 'network error'}` +
+          (cached ? ` Showing the copy from ${new Date(cached.fetchedAt).toLocaleString()}.` : data ? ' Showing your last synced legend stats.' : ''), !data);
       }
-      $('loadBtn').disabled = false;
+      $('loadBtn').disabled = false; $('loadBtn').classList.remove('loading');
       render();
     }
     function readCache(id) {
@@ -290,42 +410,85 @@
       } catch (err) { return null; }
     }
 
-    // ---------- rendering ----------
+    // ---------- the two lists, per mode ----------
+    // Items for the bar lists all have { name, games, wins }; metrics with `rate` only count items
+    // with enough games, `full` scales bars to that value (win rates to 100%).
+    const winrate = { label: 'Win rate', rate: true, full: 1, value: x => x.wins / x.games, show: x => pct(x.wins, x.games), sub: x => `${fmt(x.games)} games` };
     const LEGEND_METRICS = {
-      winrate: { label: 'Win rate', rate: true, full: 1, value: l => l.wins / l.games, show: l => pct(l.wins, l.games), sub: l => `${fmt(l.games)} games` },
-      games: { label: 'Most played', value: l => l.games, show: l => fmt(l.games), sub: l => `${pct(l.wins, l.games)} wins · ${hours(l.time)}` },
-      kos: { label: 'KOs / game', rate: true, value: l => l.kos / l.games, show: l => fmt(l.kos / l.games, 2), sub: l => `${fmt(l.kos)} KOs in ${fmt(l.games)} games` },
-      kd: { label: 'KO / fall', rate: true, needs: 'falls', value: l => l.kos / Math.max(1, l.falls), show: l => fmt(l.kos / Math.max(1, l.falls), 2), sub: l => `${fmt(l.kos)} KOs, ${fmt(l.falls)} falls` },
-      damage: { label: 'Damage / game', rate: true, needs: 'damage', value: l => l.damage / l.games, show: l => fmt(l.damage / l.games), sub: l => `${fmt(l.games)} games` },
-      level: { label: 'Level', value: l => l.level, show: l => fmt(l.level), sub: l => `${fmt(l.games)} games · ${hours(l.time)}` }
+      all: {
+        winrate,
+        games: { label: 'Most played', value: l => l.games, show: l => fmt(l.games), sub: l => `${pct(l.wins, l.games)} wins · ${hours(l.time)}` },
+        kos: { label: 'KOs / game', rate: true, value: l => l.kos / l.games, show: l => fmt(l.kos / l.games, 2), sub: l => `${fmt(l.kos)} KOs in ${fmt(l.games)} games` },
+        kd: { label: 'KO / fall', rate: true, needs: 'falls', value: l => l.kos / Math.max(1, l.falls), show: l => fmt(l.kos / Math.max(1, l.falls), 2), sub: l => `${fmt(l.kos)} KOs, ${fmt(l.falls)} falls` },
+        damage: { label: 'Damage / game', rate: true, needs: 'damage', value: l => l.damage / l.games, show: l => fmt(l.damage / l.games), sub: l => `${fmt(l.games)} games` },
+        level: { label: 'Level', value: l => l.level, show: l => fmt(l.level), sub: l => `${fmt(l.games)} games · ${hours(l.time)}` }
+      },
+      '1v1': {
+        winrate,
+        games: { label: 'Most played', value: l => l.games, show: l => fmt(l.games), sub: l => `${fmt(l.wins)}W ${fmt(l.games - l.wins)}L · ${pct(l.wins, l.games)}` },
+        rating: { label: 'Rating', value: l => l.rating, show: l => fmt(l.rating), sub: l => `${l.tier || 'No tier'} · peak ${fmt(l.peak)} · ${fmt(l.games)} games` }
+      },
+      '2v2': {
+        rating: { label: 'Rating', value: t => t.rating, show: t => fmt(t.rating), sub: t => `${t.tier || 'No tier'} · peak ${fmt(t.peak)} · ${fmt(t.wins)}W ${fmt(t.games - t.wins)}L` },
+        winrate,
+        games: { label: 'Most played', value: t => t.games, show: t => fmt(t.games), sub: t => `${fmt(t.wins)}W ${fmt(t.games - t.wins)}L · ${pct(t.wins, t.games)}` }
+      }
     };
     const WEAPON_METRICS = {
-      winrate: { label: 'Win rate', rate: true, full: 1, value: w => w.wins / w.games, show: w => pct(w.wins, w.games), sub: w => `${fmt(w.games)} games` },
-      games: { label: 'Most played', value: w => w.games, show: w => fmt(w.games), sub: w => `${pct(w.wins, w.games)} wins` },
-      kos: { label: 'KOs', value: w => w.kos, show: w => fmt(w.kos), sub: w => (w.top ? `most with ${w.top.name} (${fmt(w.top.kos)})` : '') },
-      dpm: { label: 'Damage / min held', rate: true, value: w => w.damage / Math.max(1, w.held / 60), show: w => fmt(w.damage / Math.max(1, w.held / 60)), sub: w => `${hours(w.held)} held` },
-      level: { label: 'Mastery level', value: w => w.level, show: w => fmt(w.level), sub: w => `${fmt(w.games)} games` }
+      all: {
+        winrate,
+        games: { label: 'Most played', value: w => w.games, show: w => fmt(w.games), sub: w => `${pct(w.wins, w.games)} wins` },
+        kos: { label: 'KOs', value: w => w.kos, show: w => fmt(w.kos), sub: w => (w.top ? `most with ${w.top.name} (${fmt(w.top.kos)})` : '') },
+        dpm: { label: 'Damage / min held', rate: true, value: w => w.damage / Math.max(1, w.held / 60), show: w => fmt(w.damage / Math.max(1, w.held / 60)), sub: w => `${hours(w.held)} held` },
+        level: { label: 'Mastery level', value: w => w.level, show: w => fmt(w.level), sub: w => `${fmt(w.games)} games` }
+      },
+      '1v1': {
+        winrate,
+        games: { label: 'Most played', value: w => w.games, show: w => fmt(w.games), sub: w => `${fmt(w.wins)}W ${fmt(w.games - w.wins)}L · ${pct(w.wins, w.games)}` }
+      }
+    };
+    const MODE_HINTS = {
+      all: 'Every match: casual, ranked and other modes together.',
+      '1v1': 'This season\'s ranked 1v1, per legend.',
+      '2v2': 'This season\'s ranked 2v2, per team.'
     };
 
-    function chips(el, metrics, active, skip) {
-      el.innerHTML = Object.entries(metrics).filter(([k, m]) => !skip(m))
-        .map(([k, m]) => `<button class="chip" data-metric="${k}" aria-pressed="${k === active}">${m.label}</button>`).join('');
+    // This season's ranked 1v1 per legend, as list items
+    const soloLegends = () => data.legends.filter(l => l.rk && l.rk.games > 0)
+      .map(l => ({ name: l.name, weapons: l.weapons, ...l.rk }));
+    // Ranked 1v1 per weapon: each legend's ranked games and wins count for both its weapons
+    function soloWeapons() {
+      const by = {};
+      soloLegends().forEach(l => (l.weapons || []).forEach(w => {
+        if (!w) return;
+        by[w] = by[w] || { name: w, games: 0, wins: 0 };
+        by[w].games += l.games; by[w].wins += l.wins;
+      }));
+      return Object.values(by);
+    }
+
+    function fillSort(sel, metrics, key, skip = () => false) {
+      const entries = Object.entries(metrics).filter(([, m]) => !skip(m));
+      const active = entries.some(([k]) => k === sortBy[mode][key]) ? sortBy[mode][key] : entries[0][0];
+      sel.innerHTML = entries.map(([k, m]) => `<option value="${k}"${k === active ? ' selected' : ''}>${m.label}</option>`).join('');
+      return metrics[active];
     }
     function artHtml(name) {
       return portraits[Tracker.portraitSlug(name)]
-        ? Tracker.portraitHtml(name, 'tiny', { cls: 'art', width: 34, height: 34, fallback: `el.outerHTML = '<span class="art blank">🛡️</span>';` })
-        : '<span class="art blank">🛡️</span>';
+        ? Tracker.portraitHtml(name, 'tiny', { cls: 'art', width: 34, height: 34, fallback: `el.outerHTML = '<span class="art blank"></span>';` })
+        : `<span class="art blank">${icon('user')}</span>`;
     }
-    // Weapon icons in weapons/, by dair.gg's weapon name; drawn in the text color so they suit every theme
+    // Weapon icons in weapons/, by dair.gg's weapon name; drawn in the text colour
     const WEAPON_FILES = { Hammer: 'Hammer', Blasters: 'Pistol', Bow: 'Bow', Katars: 'Katar', Spear: 'Spear', Gauntlets: 'Fists', Sword: 'Sword',
       Axe: 'Axe', 'Rocket Lance': 'RocketLance', Scythe: 'Scythe', Orb: 'Orb', Cannon: 'Cannon', Greatsword: 'Greatsword', Boots: 'Boots', Chakrams: 'Chakram' };
     function weaponArt(name) {
       const file = WEAPON_FILES[name];
-      return file ? `<span class="art wicon" role="img" aria-label="${esc(name)}" style="--icon:url('weapons/${file}.svg')"></span>` : '<span class="art blank">⚔️</span>';
+      return file ? `<span class="art wicon" role="img" aria-label="${esc(name)}" style="--icon:url('weapons/${file}.svg')"></span>` : `<span class="art blank">${icon('sword')}</span>`;
     }
-    // Top 10 by the metric, as bars scaled to the best value (win rates to 100%). Rates only count items with enough games.
-    function bars(items, metric, min, art) {
-      const pool = items.filter(x => !metric.rate || x.games >= min);
+    // Top 10 by the metric, as bars scaled to the best value (or to metric.full)
+    function bars(items, metric, min, art, empty) {
+      if (!items.length) return `<div class="empty">${empty}</div>`;
+      const pool = items.filter(x => (!metric.rate && mode === 'all') || x.games >= min);
       const top = pool.slice().sort((a, b) => metric.value(b) - metric.value(a)).slice(0, 10);
       if (!top.length) return `<div class="empty">Nothing with at least ${min} games yet. Lower the minimum.</div>`;
       const max = metric.full || Math.max(...top.map(metric.value)) || 1;
@@ -334,9 +497,62 @@
           <span class="rank">${i + 1}</span>
           ${art(x)}
           <span class="who"><b>${esc(x.name)}</b><span>${esc(metric.sub(x))}</span></span>
-          <span class="track"><span class="fill" style="display:block;width:${(100 * Math.max(0, metric.value(x)) / max).toFixed(1)}%"></span></span>
+          <span class="track"><span class="fill" style="width:${(100 * Math.max(0, metric.value(x)) / max).toFixed(1)}%"></span></span>
           <span class="val">${esc(metric.show(x))}</span>
         </div>`).join('');
+    }
+
+    function renderMode() {
+      document.querySelectorAll('#modeSeg [data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+      $('modeHint').textContent = MODE_HINTS[mode];
+    }
+
+    function renderLegends() {
+      const min = Number($('legendMin').value);
+      const noDair = 'Ranked stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.';
+      if (mode === '2v2') {
+        $('legendH').innerHTML = `${icon('users')}Ranked 2v2 teams`;
+        const m = fillSort($('legendSort'), LEGEND_METRICS['2v2'], 'legend');
+        $('legendNote').textContent = 'The game reports ranked 2v2 per team, not per legend, so this lists your teams.';
+        const teams = data.ranked && data.ranked.duo ? data.ranked.duo.teams.filter(t => t.games > 0) : [];
+        $('legendBars').innerHTML = bars(teams, m, min, () => `<span class="art blank">${icon('users')}</span>`,
+          data.partial || !data.ranked ? noDair : 'No ranked 2v2 games this season.');
+        return;
+      }
+      $('legendH').innerHTML = `${icon('trophy')}Best legends`;
+      const m = fillSort($('legendSort'), LEGEND_METRICS[mode], 'legend', x => x.needs && data.partial);
+      if (mode === '1v1') {
+        $('legendNote').textContent = `Ranked 1v1 this season, legends with at least ${min} games.`;
+        $('legendBars').innerHTML = bars(soloLegends(), m, min, l => artHtml(l.name),
+          data.partial ? noDair : 'No ranked 1v1 games this season.');
+        return;
+      }
+      $('legendNote').textContent = m.rate ? `Legends with at least ${min} games.` : 'All legends you\'ve played.';
+      $('legendBars').innerHTML = bars(data.legends, m, min, l => artHtml(l.name), 'No legend stats yet.');
+    }
+
+    function renderWeapons() {
+      const min = Number($('weaponMin').value);
+      $('weaponTools').hidden = mode === '2v2';
+      if (mode === '2v2') {
+        $('weaponNote').textContent = '';
+        $('weaponBars').innerHTML = '<div class="empty">The game reports ranked 2v2 per team, not per legend, so there\'s no way to tell which weapons those games were played with.</div>';
+        return;
+      }
+      const m = fillSort($('weaponSort'), WEAPON_METRICS[mode], 'weapon');
+      if (mode === '1v1') {
+        $('weaponNote').textContent = 'Summed from your legends\' ranked 1v1 games: each legend\'s games count for both its weapons.' + (` At least ${min} games.`);
+        $('weaponBars').innerHTML = bars(soloWeapons(), m, min, w => weaponArt(w.name),
+          data.partial ? 'Ranked stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.' : 'No ranked 1v1 games this season.');
+        return;
+      }
+      if (!data.weapons.length) {
+        $('weaponNote').textContent = '';
+        $('weaponBars').innerHTML = '<div class="empty">Weapon stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.</div>';
+        return;
+      }
+      $('weaponNote').textContent = 'A weapon\'s games count every match on a legend that carries it.' + (m.rate ? ` At least ${min} games.` : '');
+      $('weaponBars').innerHTML = bars(data.weapons, m, min, w => weaponArt(w.name), '');
     }
 
     function renderTiles() {
@@ -350,28 +566,7 @@
       if (s.falls) tiles.push(['KO / fall', fmt(s.kos / s.falls, 2), `${fmt(s.falls)} falls`]);
       if (s.damage) tiles.push(['Damage / game', fmt(s.damage / Math.max(1, s.games)), `${fmt(s.taken / Math.max(1, s.games))} taken`]);
       if (s.level) tiles.push(['Account level', fmt(s.level), data.legends.length ? `${data.legends.length} legends played` : '']);
-      $('tiles').innerHTML = tiles.map(([k, v, sub]) => `<div class="tile"><div class="k">${k}</div><div class="v">${esc(v)}</div><div class="s">${esc(sub)}</div></div>`).join('');
-    }
-
-    function renderLegends() {
-      const lm = LEGEND_METRICS[legendMetric] ? legendMetric : 'winrate';
-      chips($('legendChips'), LEGEND_METRICS, lm, m => m.needs && data.partial);
-      const min = Number($('legendMin').value);
-      $('legendNote').textContent = LEGEND_METRICS[lm].rate ? `Legends with at least ${min} games.` : 'All legends you\'ve played.';
-      $('legendBars').innerHTML = bars(data.legends, LEGEND_METRICS[lm], min, l => artHtml(l.name));
-    }
-
-    function renderWeapons() {
-      const wm = WEAPON_METRICS[weaponMetric] ? weaponMetric : 'winrate';
-      chips($('weaponChips'), WEAPON_METRICS, wm, () => false);
-      const min = Number($('weaponMin').value);
-      if (!data.weapons.length) {
-        $('weaponNote').textContent = '';
-        $('weaponBars').innerHTML = '<div class="empty">Weapon stats come from dair.gg, which couldn\'t be reached. Try Load stats again in a minute.</div>';
-        return;
-      }
-      $('weaponNote').textContent = 'A weapon\'s games count every match on a legend that carries it.' + (WEAPON_METRICS[wm].rate ? ` At least ${min} games.` : '');
-      $('weaponBars').innerHTML = bars(data.weapons, WEAPON_METRICS[wm], min, w => weaponArt(w.name));
+      $('tiles').innerHTML = tiles.map(([k, v, sub]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${esc(v)}</div><div class="s">${esc(sub)}</div></div>`).join('');
     }
 
     // Games per day from the tracker's own game history (history.js), which starts when it was added
@@ -403,8 +598,8 @@
       if (!data.unarmed) { $('extras').innerHTML = '<div class="empty">Comes from dair.gg, which couldn\'t be reached.</div>'; return; }
       const all = Math.max(1, data.stats.kos);
       $('extras').innerHTML = [
-        ['👊 Unarmed', data.unarmed], ['🎯 Weapon throws', data.throws], ['💣 Gadgets', data.gadgets]
-      ].map(([k, x]) => `<div class="tile"><div class="k">${k}</div><div class="v">${fmt(x.kos)} <span class="s">KOs</span></div>
+        ['fist', 'Unarmed', data.unarmed], ['throw', 'Weapon throws', data.throws], ['bomb', 'Gadgets', data.gadgets]
+      ].map(([ic, k, x]) => `<div class="kpi"><div class="k">${icon(ic)}${k}</div><div class="v">${fmt(x.kos)} <span class="s">KOs</span></div>
         <div class="s">${pct(x.kos, all)} of all KOs · ${fmt(x.damage)} damage</div></div>`).join('');
     }
 
@@ -429,7 +624,7 @@
       const r = data.ranked;
       if (!r) {
         $('rankedNote').textContent = '';
-        $('ranked').innerHTML = `<div class="empty">${data.partial ? 'Ranked stats come from dair.gg, which couldn\'t be reached.' : 'Press Load stats to get ranked stats.'}</div>`;
+        $('ranked').innerHTML = `<div class="empty">${data.partial ? 'Ranked stats come from dair.gg, which couldn\'t be reached.' : 'Press Load to get ranked stats.'}</div>`;
         return;
       }
       $('rankedNote').textContent = r.games
@@ -440,33 +635,48 @@
         tier: r.duo.teams.length ? r.duo.teams[0].tier : '', wins: r.duo.wins, games: r.duo.games, region: r.duo.teams.length ? r.duo.teams[0].region : ''
       } : null;
       const teams = r.duo && r.duo.teams.length > 0 ? r.duo.teams.slice(0, 5).map(t =>
-        `<div class="team"><span>with ${esc(t.mate)}</span><span>${fmt(t.rating)} · ${fmt(t.wins)}W ${fmt(t.games - t.wins)}L</span></div>`).join('') : '';
-      $('ranked').innerHTML = bracketHtml('⚔️ 1v1', r.solo) + bracketHtml('👥 2v2 (best team)', duo, teams) + bracketHtml('🔄 3v3 / rotating', r.rotating);
+        `<div class="team"><span>with ${esc(t.name)}</span><span>${fmt(t.rating)} · ${fmt(t.wins)}W ${fmt(t.games - t.wins)}L</span></div>`).join('') : '';
+      $('ranked').innerHTML = bracketHtml(`${icon('user')}1v1`, r.solo) + bracketHtml(`${icon('users')}2v2 (best team)`, duo, teams) + bracketHtml(`${icon('rotate')}3v3 / rotating`, r.rotating);
     }
 
+    function renderLists() { renderMode(); renderLegends(); renderWeapons(); }
     function render() {
+      renderMode();
       if (!data) {
-        $('tiles').innerHTML = '';
-        ['legendBars', 'weaponBars', 'days', 'extras', 'legendChips', 'weaponChips', 'ranked', 'rankedNote'].forEach(id => { $(id).innerHTML = ''; });
-        $('legendBars').innerHTML = '<div class="empty">Enter your Brawlhalla ID and press Load stats.</div>';
+        ['tiles', 'weaponBars', 'days', 'extras', 'ranked', 'rankedNote', 'legendNote', 'weaponNote', 'daysNote'].forEach(id => { $(id).innerHTML = ''; });
+        $('legendH').innerHTML = `${icon('trophy')}Best legends`;
+        $('legendBars').innerHTML = '<div class="empty">Enter your Brawlhalla ID and press Load.</div>';
         return;
       }
-      $('lead').textContent = `${data.name} (#${data.id}) · ${data.partial ? 'last synced legend stats' : 'from dair.gg'}${data.fetchedAt ? `, ${new Date(data.fetchedAt).toLocaleString()}` : ''}`;
-      renderTiles(); renderRanked(); renderLegends(); renderWeapons(); renderDays(); renderExtras();
+      $('title').textContent = data.name;
+      $('lead').textContent = `#${data.id} · ${data.partial ? 'last synced legend stats' : 'from dair.gg'}${data.fetchedAt ? `, ${new Date(data.fetchedAt).toLocaleString()}` : ''}`;
+      renderTiles(); renderRanked(); renderLists(); renderDays(); renderExtras();
     }
 
     // ---------- events ----------
-    $('legendChips').addEventListener('click', e => { const c = e.target.closest('[data-metric]'); if (c) { legendMetric = c.dataset.metric; renderLegends(); } });
-    $('weaponChips').addEventListener('click', e => { const c = e.target.closest('[data-metric]'); if (c) { weaponMetric = c.dataset.metric; renderWeapons(); } });
+    $('modeSeg').addEventListener('click', e => {
+      const b = e.target.closest('[data-mode]');
+      if (!b) return;
+      mode = b.dataset.mode;
+      try { localStorage.setItem(MODE_KEY, mode); } catch (err) { /* storage unavailable */ }
+      if (data) renderLists(); else renderMode();
+    });
+    $('legendSort').addEventListener('change', () => { sortBy[mode].legend = $('legendSort').value; if (data) renderLegends(); });
+    $('weaponSort').addEventListener('change', () => { sortBy[mode].weapon = $('weaponSort').value; if (data) renderWeapons(); });
     $('legendMin').addEventListener('change', () => data && renderLegends());
     $('weaponMin').addEventListener('change', () => data && renderWeapons());
-    function submit() {
+    $('idForm').addEventListener('submit', e => {
+      e.preventDefault();
       const id = $('idInput').value.trim();
-      if (!/^\d+$/.test(id)) { $('status').textContent = 'Brawlhalla ID must be a number (find it in-game under your profile).'; return; }
+      if (!/^\d+$/.test(id)) {
+        $('idInput').setAttribute('aria-invalid', 'true');
+        setStatus(id ? 'Brawlhalla ID must be a number (find it in-game under your profile).' : 'Enter your Brawlhalla ID first.', true);
+        return;
+      }
+      $('idInput').removeAttribute('aria-invalid');
       load(id);
-    }
-    $('loadBtn').addEventListener('click', submit);
-    $('idInput').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    });
+    $('idInput').addEventListener('input', () => $('idInput').removeAttribute('aria-invalid'));
     window.addEventListener('storage', e => { if (data && MatchHistory.isKey(e.key)) { MatchHistory.reload(); renderDays(); } });
 
     // Starts with the tracker's saved ID (or ?id= from a link): the cached copy shows right away
@@ -475,6 +685,7 @@
     data = startId ? readCache(startId) : null;
     render();
     if (startId) load(startId);
+    else setStatus('Enter your Brawlhalla ID (the number on your in-game profile) and press Load.');
     Tracker.loadPortraits().then(p => { portraits = p; if (data) renderLegends(); });
   </script>
   <script>
