@@ -159,7 +159,7 @@
     .day { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
     .day .col { width: 100%; max-width: 24px; background: var(--accent); border-radius: 4px 4px 0 0; }
     .day .n { font-size: 0.75rem; font-weight: 600; }
-    .day .d { font-size: 0.694rem; color: var(--faint); white-space: nowrap; }
+    .day .d { font-size: 0.75rem; color: var(--faint); white-space: nowrap; }
 
     .extras { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
     .extras .kpi { background: var(--raised); border: 0; }
@@ -189,7 +189,8 @@
       .bar-row { grid-template-columns: 16px 30px minmax(0, 1fr) 56px 52px; gap: 8px; }
       .art { width: 30px; height: 30px; }
       .days { gap: 3px; }
-      .days .d { font-size: 0.6rem; }
+      .days .d { font-size: 0.75rem; }
+      .day:nth-child(even) .d { visibility: hidden; }
       footer { padding: 8px 16px 32px; }
     }
   </style>
