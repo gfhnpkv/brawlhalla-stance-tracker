@@ -323,6 +323,7 @@
     .toast > span { grid-column: 1; font-size: var(--fs-s); color: var(--muted); }
     .toast .btn { grid-column: 2; grid-row: 1 / span 2; }
     @keyframes toastIn { from { transform: translateY(10px); opacity: 0; } }
+    .toast.out { transition: opacity 160ms ease-in, transform 200ms cubic-bezier(.4,0,1,1); opacity: 0; transform: translateX(24px); }
 
     footer { max-width: 1440px; margin: 0 auto; padding: 8px 24px 40px; font-size: var(--fs-s); color: var(--faint); }
 
@@ -510,16 +511,25 @@
       t.innerHTML = '<strong></strong><span></span>';
       t.querySelector('strong').textContent = title;
       t.querySelector('span').textContent = body;
+      // Animates out, then removes; safe to call more than once
+      let dismissed = false;
+      const dismiss = () => {
+        if (dismissed) return;
+        dismissed = true;
+        t.classList.add('out');
+        t.addEventListener('transitionend', () => t.remove(), { once: true });
+        setTimeout(() => t.remove(), 260);
+      };
       if (action) {
         const b = document.createElement('button');
         b.type = 'button'; b.className = 'btn primary';
         b.innerHTML = `${icon('check')}<span></span>`;
         b.querySelector('span').textContent = action.label;
-        b.addEventListener('click', () => { action.run(); t.remove(); });
+        b.addEventListener('click', () => { action.run(); dismiss(); });
         t.appendChild(b);
       }
       $('toasts').appendChild(t);
-      setTimeout(() => t.remove(), action ? 60000 : 12000);
+      setTimeout(dismiss, action ? 60000 : 12000);
     }
     function notify(title, body, action) {
       toast(title, body, action);
