@@ -50,7 +50,7 @@
       font-size: 0.82rem; font-weight: 700; text-decoration: none; }
     .nav a:hover { border-color: var(--accent); }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    .input, .select { padding: 9px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); outline: none; }
+    .input, .select { padding: 9px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); outline: none; font-size: 16px; }
     .input:focus, .select:focus { border-color: var(--accent); }
     .btn { padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 700; }
     .btn:hover { border-color: var(--accent); }
@@ -146,6 +146,10 @@
     footer a { color: var(--accent); text-decoration: none; font-weight: 700; }
     .credit { text-align: center; color: var(--muted); font-size: 0.74rem; }
 
+    @media (pointer: coarse) {
+      .chip { min-height: 44px; padding: 10px 12px; font-size: 0.875rem; }
+      .btn { min-height: 44px; }
+    }
     @media (max-width: 640px) {
       body { padding: 12px; }
       .grid { grid-template-columns: 1fr; gap: 14px; }
