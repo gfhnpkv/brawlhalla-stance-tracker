@@ -103,8 +103,9 @@
     .topbar-inner { max-width: 1440px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--fs-0); margin-right: auto; }
     .brand img { width: 24px; height: 24px; }
-    .idform { display: flex; gap: 8px; align-items: center; }
-    .idform .field { width: 150px; }
+    .idform { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .idform .field { width: 200px; }
+    .id-hint { flex: 1 1 100%; padding: 0; }
     .nav { display: flex; gap: 2px; }
     .nav a { color: var(--muted); text-decoration: none; font-size: var(--fs-s); font-weight: 600; padding: 8px 10px; border-radius: var(--r-s); white-space: nowrap; display: inline-flex; align-items: center; min-height: 40px; }
     .nav a:hover { color: var(--text); background: var(--raised); }
@@ -166,6 +167,7 @@
     @keyframes roll { from { transform: translateY(-45%); opacity: 0.2; } to { transform: none; opacity: 1; } }
     .checked { font-size: var(--fs-s); color: var(--muted); margin: 0 0 20px; }
     .live-off-hint { font-size: var(--fs-s); color: var(--muted); margin: -6px 0 16px; }
+    .steps { list-style: none; margin: -6px 0 16px; padding: 0; display: grid; gap: 6px; font-size: var(--fs-s); color: var(--muted); }
 
     /* Signature: today's matches on a time axis */
     .strip-head { display: flex; justify-content: space-between; font-size: var(--fs-s); color: var(--muted); margin-bottom: 8px; }
@@ -388,10 +390,11 @@
       <div class="brand"><img src="icon.svg" alt="" />Stance Tracker</div>
       <form class="idform" id="idForm" novalidate>
         <label class="sr-only" for="idInput">Brawlhalla ID</label>
-        <input class="field" id="idInput" inputmode="numeric" autocomplete="off" placeholder="Brawlhalla ID" />
+        <input class="field" id="idInput" inputmode="numeric" autocomplete="off" placeholder="Your Brawlhalla ID (e.g. 1234567)" />
         <button class="btn primary" id="syncBtn" type="submit"><svg class="icon"><use href="#i-sync"/></svg>Sync</button>
+        <span class="empty id-hint" id="idHint" hidden>In Brawlhalla: Profile → the number under your name</span>
       </form>
-      <button class="switch" id="liveSwitch" role="switch" aria-checked="false" type="button"><span class="track"></span>Live</button>
+      <button class="switch" id="liveSwitch" role="switch" aria-checked="false" type="button" title="Checks for finished matches every minute and reminds you to switch stances"><span class="track"></span>Live</button>
       <nav class="nav" aria-label="Other pages">
         <a href="classic.html">Classic tracker</a>
         <a href="stances.html">Stance lab</a>
@@ -461,6 +464,7 @@
             <option value="alpha">Alphabetical (A–Z)</option>
           </select>
         </div>
+        <p class="empty" id="rosterHint" hidden>Sync your ID to see your levels and unlock progress.</p>
         <div class="roster" id="roster"></div>
       </section>
     </div>
@@ -595,7 +599,7 @@
       MatchHistory.fillLevels(bhId, counts, Tracker.getLevel);
 
       setStatus(r.updated
-        ? `Synced ${state.profile.name} (#${bhId}): ${r.updated} legends updated${r.missing ? `, ${r.missing} had no level data` : ''} · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+        ? `Synced ${state.profile.name} (#${bhId}): ${r.updated} legends updated${r.missing ? `, ${r.missing} had no level data` : ''} · ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${live ? '' : ' Turn on Live to track games as you play.'}`
         : `Found ${state.profile.name} (#${bhId}), but no legend levels came back (dair.gg may be down). Set levels by hand, or try again later.`);
       renderAll();
       const goalAlerts = Goals.alerts(beforeLevels, state.levels);
@@ -707,8 +711,15 @@
       if (!live) {
         el.dataset.state = 'off';
         $('stateWord').textContent = 'Live is off';
-        $('liveBody').innerHTML = `<p class="live-off-hint">Turn on Live while you play: it checks for finished matches every minute, records them, and reminds you to switch stances.</p>
-          <p><button class="btn primary" type="button" data-live-on>Turn on Live</button></p>`;
+        $('liveBody').innerHTML = state.id
+          ? `<p class="live-off-hint">Turn on Live while you play: it checks for finished matches every minute, records them, and reminds you to switch stances.</p>
+          <p><button class="btn primary" type="button" data-live-on>Turn on Live</button></p>`
+          : `<ol class="steps">
+            <li>1. Enter your Brawlhalla ID in the top bar.</li>
+            <li>2. Press Sync to load your legends.</li>
+            <li>3. Turn on Live while you play — it checks for finished matches every minute and reminds you to switch stances.</li>
+          </ol>
+          <p><button class="btn primary" type="button" data-live-on disabled>Sync your ID first</button></p>`;
       } else {
         const playing = live.lastGameTs && Date.now() - live.lastGameTs < PLAYING_WINDOW_MS;
         el.dataset.state = playing ? 'playing' : 'idle';
@@ -773,7 +784,9 @@
           <div><div class="title">Switch ${esc(p.legend)} to ${esc(p.stance)}</div><div class="sub">${p.kind === 'best' ? 'Best' : 'Standard'} stance unlocked. Press Done once it's equipped.</div></div>
           <button class="btn primary" type="button" data-done="${esc(p.legend)}">${icon('check')}Done</button>
         </div>`).join('')
-        : `<p class="empty">No stances to switch. After a match, Live tells you here when a legend you played has a better stance to equip.</p>`;
+        : state.id
+          ? `<p class="empty">No stances to switch. After a match, Live tells you here when a legend you played has a better stance to equip.</p>`
+          : `<p class="empty">Sync your ID, then turn on Live to get stance reminders here.</p>`;
     }
 
     let histLimit = 10;
@@ -931,6 +944,7 @@
     }
 
     function renderAll() {
+      $('idHint').hidden = $('rosterHint').hidden = !!state.id;
       renderLive();
       renderReminders();
       renderHistory();
