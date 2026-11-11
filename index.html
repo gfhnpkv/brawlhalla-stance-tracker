@@ -263,9 +263,14 @@
       padding: 0; border: 0; border-left: 1px solid var(--line); background: var(--panel); color: var(--text);
       box-shadow: var(--shadow);
     }
-    dialog.sheet[open] { animation: sheetIn 220ms var(--ease); }
-    @keyframes sheetIn { from { transform: translateX(24px); opacity: 0; } }
-    dialog.sheet::backdrop { background: rgba(5, 7, 10, 0.6); }
+    /* Slides in from the right edge and back out; the backdrop fades. display/overlay are
+       transitioned so the close animation runs before the dialog is hidden. */
+    dialog.sheet { transform: translateX(100%); transition: transform 340ms cubic-bezier(.32,.72,0,1), overlay 340ms allow-discrete, display 340ms allow-discrete; }
+    dialog.sheet[open] { transform: none; }
+    @starting-style { dialog.sheet[open] { transform: translateX(100%); } }
+    dialog.sheet::backdrop { background: rgba(5, 7, 10, 0.6); opacity: 0; transition: opacity 280ms ease-out, overlay 280ms allow-discrete, display 280ms allow-discrete; }
+    dialog.sheet[open]::backdrop { opacity: 1; }
+    @starting-style { dialog.sheet[open]::backdrop { opacity: 0; } }
     .sheet-body { padding: 0 24px 32px; overflow-y: auto; height: 100%; scrollbar-width: thin; }
     .sheet-top { position: sticky; top: 0; z-index: 1; display: flex; justify-content: flex-end; padding: 12px 0 0; margin-bottom: -48px; }
     .sheet-top .btn { background: rgba(22, 26, 33, 0.9); }
@@ -323,6 +328,8 @@
 
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
+      dialog.sheet { transform: none !important; transition-duration: 1ms !important; }
+      dialog.sheet::backdrop { transition-duration: 1ms !important; }
     }
 
     /* ---------- tablet and phone ---------- */
