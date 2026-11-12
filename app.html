@@ -346,7 +346,7 @@
       <ol class="steps" id="firstSteps" hidden>
         <li>1. Enter your Brawlhalla ID in the Me tab.</li>
         <li>2. Press Sync to load your legends.</li>
-        <li>3. Turn on Live while you play — it checks for finished matches every minute and reminds you to switch stances.</li>
+        <li>3. Turn on Live while you play — it checks for finished matches every 30 seconds and reminds you to switch stances.</li>
       </ol>
       <div class="controls">
         <input class="search" id="search" type="search" aria-label="Search legends" placeholder="Search legend, stance, weapon" autocomplete="off" />
@@ -412,10 +412,10 @@
         <div class="toggle">
           <div>
             <h3>Live mode</h3>
-            <p style="margin:0">Checks every minute while this page is open. Shows when you're playing and alerts you on new unlocks.</p>
+            <p style="margin:0">Checks every 30 seconds while this page is open. Shows when you're playing and alerts you on new unlocks.</p>
             <p style="margin:4px 0 0">Keep this page open.</p>
           </div>
-          <button class="switch" id="liveSwitch" role="switch" aria-checked="false" aria-label="Live mode" title="Checks for finished matches every minute and reminds you to switch stances" disabled></button>
+          <button class="switch" id="liveSwitch" role="switch" aria-checked="false" aria-label="Live mode" title="Checks for finished matches every 30 seconds and reminds you to switch stances" disabled></button>
         </div>
         <div class="status-line" id="activityLine"></div>
       </div>
@@ -967,7 +967,7 @@
       if (live !== session) return;
       await liveTick();
       if (live !== session) return;
-      liveTimer = setInterval(liveTick, 60 * 1000);
+      liveTimer = setInterval(liveTick, 30 * 1000);
     }
 
     // ---------- tabs & events ----------
