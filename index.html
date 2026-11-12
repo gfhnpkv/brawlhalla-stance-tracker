@@ -9,6 +9,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <script src="theme-boot.js" data-page="desktop" data-no-theme></script>
   <style>
+    @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/barlow-condensed-600.woff2') format('woff2'); }
+    @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/barlow-condensed-700.woff2') format('woff2'); }
     :root {
       color-scheme: dark;
       /* Ground, one panel layer, one raised layer for hover/inputs */
@@ -32,6 +34,7 @@
       --win: #4ade80;
       --loss: #f87171;
 
+      --display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
       --fs-s: 0.833rem;
       --fs-0: 1rem;
       --fs-1: 1.2rem;
@@ -54,6 +57,7 @@
     }
     ::selection { background: var(--accent); color: var(--accent-ink); }
     h1, h2, h3 { margin: 0; line-height: 1.2; text-wrap: balance; }
+    h1, h2 { font-family: var(--display); }
     a { color: var(--accent); text-underline-offset: 3px; }
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .icon { width: 1.125em; height: 1.125em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
@@ -136,7 +140,7 @@
     .col-left { position: sticky; top: 76px; max-height: calc(100vh - 100px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
     .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; min-width: 0; }
     .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-    .panel-head h2 { font-size: var(--fs-1); font-weight: 700; }
+    .panel-head h2 { font-size: 1.35rem; font-weight: 700; }
     .panel-head .aside { font-size: var(--fs-s); color: var(--muted); }
     .empty { color: var(--muted); font-size: var(--fs-s); margin: 0; padding: 0 0 4px; }
     .empty b { color: var(--text); font-weight: 600; }
@@ -151,18 +155,18 @@
     .live-state[data-state="playing"] .live-dot { background: var(--accent); box-shadow: 0 0 0 0 var(--accent-soft); animation: pulse 2s var(--ease) infinite; }
     .live-state[data-state="idle"] .live-dot { background: transparent; border: 2px solid var(--accent); }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(110,168,254,0.45); } 70% { box-shadow: 0 0 0 12px rgba(110,168,254,0); } 100% { box-shadow: 0 0 0 0 rgba(110,168,254,0); } }
-    .state-word { font-size: var(--fs-4); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
-    .live-state[data-state="off"] .state-word { color: var(--muted); font-size: var(--fs-3); }
+    .state-word { font-family: var(--display); font-size: 2.8rem; font-weight: 700; letter-spacing: .01em; text-transform: none; line-height: 1.05; }
+    .live-state[data-state="off"] .state-word { color: var(--muted); font-size: 1.95rem; }
     .wl .w { color: var(--win); } .wl .l { color: var(--loss); } .wl .sep { color: var(--faint); margin: 0 2px; }
     /* Session score bug (from the Broadcast preview, in this page's type and palette) */
     .scorebug { display: grid; grid-template-columns: 1fr 1.5fr 1fr; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--bg); margin-bottom: 12px; }
     .scorebug .side { display: grid; place-items: center; align-content: center; padding: 10px 8px; }
-    .scorebug .num { display: block; font-size: var(--fs-4); font-weight: 700; line-height: 1; }
+    .scorebug .num { display: block; font-family: var(--display); font-size: 3rem; font-weight: 700; line-height: 1; }
     .scorebug .lab { font-size: var(--fs-s); color: var(--muted); margin-top: 4px; }
     .scorebug .w .num { color: var(--win); }
     .scorebug .l .num { color: var(--loss); }
     .scorebug .mid { display: grid; align-content: center; gap: 2px; padding: 10px 8px; text-align: center; background: var(--raised); min-width: 0; }
-    .scorebug .games { display: block; font-size: var(--fs-1); font-weight: 650; }
+    .scorebug .games { display: block; font-family: var(--display); font-size: 1.35rem; font-weight: 600; }
     .scorebug .last { font-size: var(--fs-s); color: var(--muted); text-wrap: balance; }
     .scorebug .flag { grid-column: 1 / -1; padding: 3px 8px; text-align: center; font-size: var(--fs-s); font-weight: 700; background: var(--raised); color: var(--muted); border-top: 1px solid var(--line); }
     .scorebug .flag.on { background: var(--accent); color: var(--accent-ink); border-top-color: var(--accent); }
@@ -284,7 +288,7 @@
     .sheet-art { margin: 0 -24px 16px; height: clamp(260px, 42vh, 380px); padding: 12px 24px 0; overflow: hidden; }
     .sheet-art img { width: 100%; height: 100%; object-fit: contain; object-position: center; display: block; }
     .sheet-art.blank { height: 64px; }
-    .sheet h2 { font-size: var(--fs-3); font-weight: 700; letter-spacing: -0.01em; }
+    .sheet h2 { font-size: 1.95rem; font-weight: 700; letter-spacing: -0.01em; }
     .sheet .sub { color: var(--muted); font-size: var(--fs-s); margin-top: 2px; }
     .sheet-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
     .sheet .chip { font-size: var(--fs-s); }
@@ -355,7 +359,7 @@
       main { padding: 16px; gap: 16px; }
       .col { gap: 16px; }
       .panel { padding: 16px; }
-      .state-word { font-size: var(--fs-3); }
+      .state-word { font-size: 1.95rem; }
       .roster { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
       .seg { width: 100%; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
       .seg button { flex: 1 0 auto; justify-content: center; padding: 0 10px; }
