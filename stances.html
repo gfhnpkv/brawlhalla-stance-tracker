@@ -55,8 +55,9 @@
     .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     .input, .select { padding: 9px 12px; border-radius: var(--r-s); background: var(--panel); border: 1px solid var(--line); outline: none; font-size: 16px; }
     .input:focus, .select:focus { border-color: var(--accent); }
-    .btn { padding: 9px 16px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700; }
-    .btn:hover { border-color: var(--accent); }
+    .btn { padding: 9px 16px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700; transition: transform 120ms ease-out; }
+    .btn:active, .seg button:active, .chip:active { transform: scale(.97); }
+    @media (hover: hover) { .btn:hover { border-color: var(--accent); } }
     .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
     .btn[disabled] { opacity: 0.6; cursor: progress; }
     .status { color: var(--muted); font-size: 0.86rem; min-height: 1.4em; margin: -12px 0 20px; }
@@ -107,8 +108,9 @@
     .preview-label b { color: var(--text); }
 
     .stances { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip { padding: 5px 9px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-size: 0.74rem; font-weight: 700; }
-    .chip:hover, .chip:focus-visible { border-color: var(--accent); }
+    .chip { padding: 5px 9px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-size: 0.74rem; font-weight: 700; transition: transform 120ms ease-out; }
+    .chip:focus-visible { border-color: var(--accent); }
+    @media (hover: hover) { .chip:hover { border-color: var(--accent); } }
     .chip.eq { background: var(--accent); border-color: var(--accent); color: #04141a; }
     :root[data-theme="daylight"] .chip.eq { color: #fff; }
     .chip.locked { opacity: 0.55; }
@@ -128,7 +130,7 @@
     .field { display: grid; gap: 6px; margin-bottom: 16px; font-size: 0.86rem; font-weight: 700; }
     .field textarea { min-height: 110px; resize: vertical; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); outline: none; font-weight: 400; }
     .seg { display: flex; flex-wrap: wrap; gap: 6px; }
-    .seg button { padding: 7px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700; font-size: 0.82rem; }
+    .seg button { padding: 7px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700; font-size: 0.82rem; transition: transform 120ms ease-out; }
     .seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #04141a; }
     :root[data-theme="daylight"] .seg button[aria-pressed="true"] { color: #fff; }
     .dialog-acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
