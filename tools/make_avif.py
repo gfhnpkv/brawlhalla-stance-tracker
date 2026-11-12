@@ -12,7 +12,7 @@ The PNGs stay as the fallback (Tracker.portraitHtml puts them in <picture>). Fil
 newer than their source are skipped.
 Needs macOS (uses sips, which keeps the transparency).
 
-Usage (from the project folder), e.g. after adding a legend with import_portraits.py:
+Usage (from the project folder), e.g. after adding a legend's PNGs:
     python3 tools/make_avif.py [--force]
 """
 import argparse

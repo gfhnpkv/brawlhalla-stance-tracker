@@ -8,7 +8,7 @@ const CACHE = 'stance-tracker-v20';
 const IMG_CACHE = 'stance-tracker-img-v1';
 const isPicture = url => /\/(portraits|weapons)\/.+\.(avif|png|jpe?g|webp|svg)$/i.test(url.pathname);
 const FILES = [
-  './', 'index.html', 'classic.html', 'redesign-clean.html', 'app.html', 'stances.html', 'stats.html',
+  './', 'index.html', 'app.html', 'stances.html', 'stats.html',
   'legends.js', 'stance-data.js', 'core.js', 'goals.js', 'history.js', 'summary.js', 'shareimage.js', 'crest.js', 'theme-boot.js', 'icon.svg', 'manifest.webmanifest', 'portraits/index.json', '404.html',
   'fonts/barlow-condensed-600.woff2', 'fonts/barlow-condensed-700.woff2', 'fonts/OFL.txt'
 ];

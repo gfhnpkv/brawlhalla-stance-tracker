@@ -15,7 +15,6 @@ they are cropped from the top.
 
 The pages load small AVIF copies, not these PNGs: `mini/<name>.avif` for tiles and lists, and
 `large/<name>.avif` (720px) for big art such as the tracker's spotlight. The PNGs stay as the fallback
-for browsers that can't show AVIF. Import the small icons with
-`python3 tools/import_portraits.py ../brawllhala-images/legends/mini --mini`, then (re)make the AVIF
+for browsers that can't show AVIF. Put the small icons in `mini/`, then (re)make the AVIF
 copies with `python3 tools/make_avif.py` (macOS; it skips files that are already up to date).
 After replacing a picture under the same name, bump `IMG_CACHE` in `sw.js` so returning visitors get it.

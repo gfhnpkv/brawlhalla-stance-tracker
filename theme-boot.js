@@ -1,8 +1,8 @@
 // Runs in <head> before the page draws: applies the saved theme (no flash) and sends
 // phones to app.html and computers to index.html. ?view=mobile|desktop sets a manual
 // choice, ?view=auto clears it.
-// data-page="desktop" pages (index.html, classic.html) only ever send phones to app.html;
-// only data-page="mobile" (app.html) sends computers on, so classic.html is never bounced.
+// data-page="desktop" (index.html) only ever sends phones to app.html;
+// only data-page="mobile" (app.html) sends computers on.
 // data-no-theme: the page has one fixed look (index.html), so the saved theme is not applied.
 (function () {
   var THEME_COLORS = { midnight: '#0f131a', valhalla: '#120c1f', daylight: '#f4f6fb' };
