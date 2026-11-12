@@ -410,7 +410,7 @@
         <button class="btn primary" id="syncBtn" type="submit"><svg class="icon"><use href="#i-sync"/></svg>Sync</button>
         <span class="empty id-hint" id="idHint" hidden>In Brawlhalla: Profile → the number under your name</span>
       </form>
-      <button class="switch" id="liveSwitch" role="switch" aria-checked="false" type="button" title="Checks for finished matches every 30 seconds and reminds you to switch stances"><span class="track"></span>Live</button>
+      <button class="switch" id="liveSwitch" role="switch" aria-checked="false" type="button" title="Checks for finished matches every 10 seconds (every 30 seconds once a match lands) and reminds you to switch stances"><span class="track"></span>Live</button>
       <nav class="nav" aria-label="Other pages">
         <a href="stances.html">Stance lab</a>
         <a href="stats.html">Stats</a>
@@ -628,6 +628,8 @@
     // ---------- Live mode (same polling as app.html) ----------
     // The official API's games count shows a match within seconds; levels come from dair.gg, which
     // caches for a few minutes, so they're re-synced every 5 minutes and 2 minutes after a match.
+    // Poll fast while waiting for the first match of the session, then settle to 30 s
+    const WAITING_POLL_MS = 10 * 1000;
     const ACTIVITY_POLL_MS = 30 * 1000;
     const LEVEL_POLL_MS = 5 * 60 * 1000;
     const PLAYING_WINDOW_MS = 15 * 60 * 1000;
@@ -688,7 +690,7 @@
     }
 
     async function setLive(on) {
-      clearInterval(liveTimer);
+      clearTimeout(liveTimer);
       liveTimer = null;
       live = null;
       $('liveSwitch').setAttribute('aria-checked', String(on));
@@ -710,7 +712,13 @@
       if (live !== session) return;
       await liveTick();
       if (live !== session) return;
-      liveTimer = setInterval(liveTick, ACTIVITY_POLL_MS);
+      const scheduleTick = () => {
+        liveTimer = setTimeout(async () => {
+          await liveTick();
+          if (live === session) scheduleTick();
+        }, session.lastGameTs ? ACTIVITY_POLL_MS : WAITING_POLL_MS);
+      };
+      scheduleTick();
     }
 
     // ---------- render: live ----------
@@ -729,12 +737,12 @@
         el.dataset.state = 'off';
         $('stateWord').textContent = 'Live is off';
         $('liveBody').innerHTML = state.id
-          ? `<p class="live-off-hint">Turn on Live while you play: it checks for finished matches every 30 seconds, records them, and reminds you to switch stances.</p>
+          ? `<p class="live-off-hint">Turn on Live while you play: it checks for finished matches every 10 seconds (every 30 seconds once one lands), records them, and reminds you to switch stances.</p>
           <p><button class="btn primary" type="button" data-live-on>Turn on Live</button></p>`
           : `<ol class="steps">
             <li>1. Enter your Brawlhalla ID in the top bar.</li>
             <li>2. Press Sync to load your legends.</li>
-            <li>3. Turn on Live while you play — it checks for finished matches every 30 seconds and reminds you to switch stances.</li>
+            <li>3. Turn on Live while you play — it checks for finished matches every 10 seconds (every 30 seconds once a match lands) and reminds you to switch stances.</li>
           </ol>
           <p><button class="btn primary" type="button" data-live-on disabled>Sync your ID first</button></p>`;
       } else {
@@ -753,7 +761,7 @@
             <div class="side l"><span class="num${cls.l}">${losses}</span><span class="lab">Losses</span></div>
             <div class="flag${final || playing ? ' on' : ''}">${flag}</div>
           </div>
-          <p class="checked">Checked ${live.lastCheck ? clock(live.lastCheck) : '…'} · checks every 30 seconds</p>`;
+          <p class="checked">Checked ${live.lastCheck ? clock(live.lastCheck) : '…'} · checks every ${live.lastGameTs ? 30 : 10} seconds</p>`;
       }
       renderStrip();
     }
