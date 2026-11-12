@@ -173,9 +173,10 @@
     .scorebug .last { font-size: var(--fs-s); color: var(--muted); text-wrap: balance; }
     .scorebug .flag { grid-column: 1 / -1; padding: 3px 8px; text-align: center; font-size: var(--fs-s); font-weight: 700; background: var(--raised); color: var(--muted); border-top: 1px solid var(--line); }
     .scorebug .flag.on { background: var(--accent); color: var(--accent-ink); border-top-color: var(--accent); }
-    /* A match landing: the numbers roll in and the flag reads Final */
-    .scorebug.landed .num, .scorebug.landed .games { animation: roll 220ms var(--ease); }
-    @keyframes roll { from { transform: translateY(-45%); opacity: 0.2; } to { transform: none; opacity: 1; } }
+    /* A match landing: only the numbers that changed roll in, with a flash */
+    .scorebug .roll { animation: roll 260ms cubic-bezier(.22,1,.36,1), flash 600ms ease-out; }
+    @keyframes roll { from { transform: translateY(-40%); opacity: 0; } }
+    @keyframes flash { 0% { color: var(--accent); } }
     .checked { font-size: var(--fs-s); color: var(--muted); margin: 0 0 20px; }
     .live-off-hint { font-size: var(--fs-s); color: var(--muted); margin: -6px 0 16px; }
     .steps { list-style: none; margin: -6px 0 16px; padding: 0; display: grid; gap: 6px; font-size: var(--fs-s); color: var(--muted); }
@@ -191,7 +192,8 @@
     .strip .tick.w { background: var(--win); bottom: 50%; height: 22px; }
     .strip .tick.l { background: var(--loss); top: 50%; height: 22px; }
     .strip .tick.new { animation: tickIn 250ms var(--ease); }
-    @keyframes tickIn { from { transform: scaleY(0.2); opacity: 0.4; } }
+    .strip .tick.w.new { transform-origin: 50% 100%; } .strip .tick.l.new { transform-origin: 50% 0; }
+    @keyframes tickIn { from { transform: scaleY(0); opacity: .4; } }
     .strip .now { position: absolute; top: 6px; bottom: 6px; width: 2px; margin-left: -1px; background: var(--accent); border-radius: 1px; }
     .strip-legend { display: flex; gap: 16px; margin-top: 8px; font-size: var(--fs-s); color: var(--muted); }
     .strip-legend i { display: inline-block; width: 4px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
@@ -716,11 +718,13 @@
       const mins = Math.round((Date.now() - ts) / 60000);
       return mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : clock(ts);
     }
-    // landed: a match just came in, so the score bug rolls its numbers in and its flag reads Final
+    // landed: a match just came in, so the score bug's flag reads Final; only the numbers that changed roll in
+    let prevBug = { w: null, l: null, g: null };
     function renderLive(landed) {
       const el = $('liveState');
       $('liveWho').textContent = state.profile ? `${state.profile.name} · #${state.profile.id}` : (state.id ? `#${state.id}` : '');
       if (!live) {
+        prevBug = { w: null, l: null, g: null };
         el.dataset.state = 'off';
         $('stateWord').textContent = 'Live is off';
         $('liveBody').innerHTML = state.id
@@ -739,10 +743,13 @@
         const losses = Math.max(0, live.sessionGames - live.sessionWins);
         const final = live.lastGameTs && Date.now() - live.lastGameTs < 90 * 1000;
         const flag = final ? 'Final' : playing ? 'Live session' : 'Session';
+        const roll = (k, v) => (prevBug[k] !== null && prevBug[k] !== v ? ' roll' : '');
+        const cls = { w: roll('w', live.sessionWins), l: roll('l', losses), g: roll('g', live.sessionGames) };
+        prevBug = { w: live.sessionWins, l: losses, g: live.sessionGames };
         $('liveBody').innerHTML = `<div class="scorebug${landed ? ' landed' : ''}" role="group" aria-label="This session: ${live.sessionWins} wins, ${losses} losses">
-            <div class="side w"><span class="num">${live.sessionWins}</span><span class="lab">Wins</span></div>
-            <div class="mid"><span class="games">${live.sessionGames} game${live.sessionGames === 1 ? '' : 's'}</span><span class="last">${live.lastGameTs ? `Last match ${ago(live.lastGameTs)}` : 'No match yet'}</span></div>
-            <div class="side l"><span class="num">${losses}</span><span class="lab">Losses</span></div>
+            <div class="side w"><span class="num${cls.w}">${live.sessionWins}</span><span class="lab">Wins</span></div>
+            <div class="mid"><span class="games${cls.g}">${live.sessionGames} game${live.sessionGames === 1 ? '' : 's'}</span><span class="last">${live.lastGameTs ? `Last match ${ago(live.lastGameTs)}` : 'No match yet'}</span></div>
+            <div class="side l"><span class="num${cls.l}">${losses}</span><span class="lab">Losses</span></div>
             <div class="flag${final || playing ? ' on' : ''}">${flag}</div>
           </div>
           <p class="checked">Checked ${live.lastCheck ? clock(live.lastCheck) : '…'} · checks every minute</p>`;
@@ -769,12 +776,14 @@
         // Leave room for the label before the now-line
         if (h % step === 0 && (now - t) / span > 0.12) html += `<div class="hour" style="left:${x(t)}"><span>${clock(t)}</span></div>`;
       }
+      const newest = today[today.length - 1];
       today.forEach(e => {
-        const fresh = live && e.ts >= live.freshTs && now - e.ts < 5000 ? ' new' : '';
+        // Only the newest tick animates in
+        const fresh = live && e === newest && e.ts >= live.freshTs && now - e.ts < 5000;
         // An entry can hold several games (one check saw more than one): spread them a little
         for (let i = 0; i < e.games; i++) {
           const won = i < e.wins;
-          html += `<span class="tick ${won ? 'w' : 'l'}${fresh}" style="left:calc(${x(e.ts)} - ${i * 6}px)" title="${esc(e.legend)} · ${won ? 'Win' : 'Loss'} · ${clock(e.ts)}"></span>`;
+          html += `<span class="tick ${won ? 'w' : 'l'}${fresh && i === e.games - 1 ? ' new' : ''}" style="left:calc(${x(e.ts)} - ${i * 6}px)" title="${esc(e.legend)} · ${won ? 'Win' : 'Loss'} · ${clock(e.ts)}"></span>`;
         }
       });
       html += `<span class="now" style="left:${x(now)}"></span>`;
