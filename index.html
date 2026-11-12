@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Stance Tracker</title>
   <meta name="description" content="Brawlhalla Stance Tracker: Live status, stance reminders, game history and the legend roster." />
-  <meta name="theme-color" content="#0e1116" />
+  <meta name="theme-color" content="#0f131a" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <script src="theme-boot.js" data-page="desktop" data-no-theme></script>
   <style>
@@ -14,14 +14,14 @@
     :root {
       color-scheme: dark;
       /* Ground, one panel layer, one raised layer for hover/inputs */
-      --bg: #0e1116;
-      --panel: #161a21;
-      --raised: #1d222b;
-      --line: #2a303b;
-      --line-strong: #3a4250;
+      --bg: #0f131a;
+      --panel: #161c26;
+      --raised: #1d2430;
+      --line: #283142;
+      --line-strong: #344056;
       --text: #e7eaf0;
-      --muted: #a1a9b6;
-      --faint: #8a93a3;
+      --muted: #9aa6b8;
+      --faint: #7a869a;
       /* One accent: primary action, selection, Live */
       --accent: #6ea8fe;
       --accent-ink: #0b1220;
@@ -71,8 +71,8 @@
       background: var(--raised); font-size: var(--fs-s); font-weight: 600; cursor: pointer;
       transition: background-color 150ms var(--ease), border-color 150ms var(--ease);
     }
-    .btn:hover { background: #252b36; border-color: #4a5363; }
-    .btn:active { background: #2b3240; }
+    .btn:hover { background: #232c3a; border-color: #3b4760; }
+    .btn:active { background: #1f2733; }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
     .btn.primary:hover { background: #8bb9ff; border-color: #8bb9ff; }
@@ -88,7 +88,7 @@
       background: var(--bg); font-size: var(--fs-s);
     }
     .field::placeholder { color: var(--faint); }
-    .field:hover { border-color: #4a5363; }
+    .field:hover { border-color: #3b4760; }
     .field[aria-invalid="true"] { border-color: var(--loss); }
     select.field { padding-right: 8px; }
 
@@ -214,7 +214,7 @@
     .hist-lvl { color: var(--muted); text-align: right; }
     .hist-empty { color: var(--muted); font-size: var(--fs-s); padding: 8px 0; }
     .hist-more { margin-top: 12px; width: 100%; min-height: 36px; border-radius: var(--r-s); border: 1px solid var(--line-strong); background: var(--raised); font-size: var(--fs-s); font-weight: 600; cursor: pointer; }
-    .hist-more:hover { background: #252b36; }
+    .hist-more:hover { background: #232c3a; }
 
     /* ---------- next unlocks ---------- */
     .next-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 24px; }
@@ -252,7 +252,7 @@
       background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
       transition: border-color 150ms var(--ease), transform 150ms var(--ease);
     }
-    .tile:hover { border-color: #4a5363; }
+    .tile:hover { border-color: #3b4760; }
     .tile[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
     .tile .art { aspect-ratio: 4 / 3; width: 100%; height: auto; object-fit: cover; object-position: top; background: var(--bg); display: block; }
     .tile .art.blank { display: grid; place-items: center; font-size: var(--fs-2); font-weight: 700; color: var(--faint); }

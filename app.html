@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Stance Tracker</title>
   <meta name="description" content="Mobile view of the Brawlhalla Stance Tracker." />
-  <meta name="theme-color" content="#0b101d" />
+  <meta name="theme-color" content="#0f131a" />
   <script src="theme-boot.js" data-page="mobile"></script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -15,13 +15,13 @@
   <link rel="apple-touch-icon" href="icon.svg" />
   <style>
     :root {
-      --bg: #0b101d;
-      --panel: #131b2e;
-      --card: #1a2540;
+      --bg: #0f131a;
+      --panel: #161c26;
+      --card: #1d2430;
       --card-2: #213052;
-      --line: #2a395c;
+      --line: #283142;
       --text: #f1f5f9;
-      --muted: #94a3b8;
+      --muted: #9aa6b8;
       --blue: #3b82f6;
       --cyan: #06b6d4;
       --v: #22c55e;
@@ -32,11 +32,11 @@
       --x-bg: rgba(100, 116, 139, 0.18);
       --p: #60a5fa;
       --p-bg: rgba(59, 130, 246, 0.16);
-      --header-bg: #0b101d;
-      --tabbar-bg: #131b2e;
+      --header-bg: #0f131a;
+      --tabbar-bg: #161c26;
       --avatar-grad: linear-gradient(135deg, #3b82f6, #a78bfa);
       --on-accent: #fff;
-      --toast-bg: #111827;
+      --toast-bg: #1d2430;
       --chip-bg: rgba(59,130,246,0.15);
       --chip-border: rgba(59,130,246,0.4);
       --chip-text: #bfdbfe;
@@ -404,7 +404,7 @@
         <h3>Theme</h3>
         <p>Changes the look on this device, on both the mobile and desktop views.</p>
         <div class="themes" id="themes">
-          <button class="theme-btn" data-theme-pick="midnight"><div class="swatch"><i style="background:#0b101d"></i><i style="background:#3b82f6"></i><i style="background:#06b6d4"></i></div>Midnight</button>
+          <button class="theme-btn" data-theme-pick="midnight"><div class="swatch"><i style="background:#0f131a"></i><i style="background:#3b82f6"></i><i style="background:#06b6d4"></i></div>Midnight</button>
           <button class="theme-btn" data-theme-pick="valhalla"><div class="swatch"><i style="background:#120c1f"></i><i style="background:#d99a1e"></i><i style="background:#f5c542"></i></div>Valhalla</button>
           <button class="theme-btn" data-theme-pick="daylight"><div class="swatch"><i style="background:#f4f6fb"></i><i style="background:#2563eb"></i><i style="background:#0e7490"></i></div>Daylight</button>
         </div>
@@ -1060,7 +1060,7 @@
     });
 
     // ---------- theme ----------
-    const THEME_COLORS = { midnight: '#0b101d', valhalla: '#120c1f', daylight: '#f4f6fb' };
+    const THEME_COLORS = { midnight: '#0f131a', valhalla: '#120c1f', daylight: '#f4f6fb' };
     function setTheme(name) {
       if (!THEME_COLORS[name]) name = 'midnight';
       if (name === 'midnight') document.documentElement.removeAttribute('data-theme');

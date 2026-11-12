@@ -5,7 +5,7 @@
 // only data-page="mobile" (app.html) sends computers on, so classic.html is never bounced.
 // data-no-theme: the page has one fixed look (index.html), so the saved theme is not applied.
 (function () {
-  var THEME_COLORS = { midnight: '#0b101d', valhalla: '#120c1f', daylight: '#f4f6fb' };
+  var THEME_COLORS = { midnight: '#0f131a', valhalla: '#120c1f', daylight: '#f4f6fb' };
   var script = document.currentScript;
   var page = script && script.dataset.page;
   var themed = !(script && script.hasAttribute('data-no-theme'));
