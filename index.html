@@ -423,6 +423,8 @@
           <hr />
           <button type="button" id="exportBtn"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Export backup (JSON)</button>
           <button type="button" id="importBtn"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Import backup</button>
+          <hr />
+          <button type="button" id="resetStancesBtn" title="Forget which stances you've marked as equipped, so every legend with a better stance unlocked gets reminded again">Reset stance reminders</button>
         </div>
       </details>
       <input type="file" id="importFile" accept=".json,application/json" hidden />
@@ -1050,6 +1052,13 @@
       a.click();
     });
     $('importBtn').addEventListener('click', () => { closeMenu(); $('importFile').click(); });
+    $('resetStancesBtn').addEventListener('click', () => {
+      closeMenu();
+      const n = Tracker.resetStances();
+      if (live) live.reminded.clear();
+      renderReminders(); renderRoster();
+      toast('Stance reminders reset', n ? `${n} legend${n === 1 ? '' : 's'} with a better stance unlocked. You'll be reminded for each one the next time you play it with Live on.` : 'No legend has an unconfirmed better stance right now.');
+    });
     $('importFile').addEventListener('change', e => {
       const file = e.target.files[0];
       e.target.value = '';

@@ -168,6 +168,13 @@ const Tracker = (() => {
     if (!best || best.keys.includes(confirmed[name])) return null;
     return { legend: name, stance: best.label, kind: best.kind };
   }
+  // Forget every Done (and the first-sync baseline): each legend with a better stance unlocked is
+  // pending again. Saves {} rather than removing the key, so the next load doesn't re-baseline.
+  // Returns how many legends are pending afterwards.
+  function resetStances() {
+    save(CONFIRMED_KEY, {});
+    return LEGENDS_DB.filter(l => pendingStance(l.name)).length;
+  }
   // The Done button: the player switched to the best stance unlocked now
   function confirmStance(name) {
     const legend = legendNamed(name);
@@ -411,6 +418,6 @@ const Tracker = (() => {
   return {
     KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitHtml, portraitError,
     getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
-    LAB_KEY, pendingStance, confirmStance, fetchGames, playedSince
+    LAB_KEY, pendingStance, confirmStance, resetStances, fetchGames, playedSince
   };
 })();
