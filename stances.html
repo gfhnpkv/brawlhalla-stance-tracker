@@ -2,66 +2,69 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Stance Lab</title>
   <meta name="description" content="What every Brawlhalla stance does to each legend's stats, with your own picks and notes." />
   <meta name="theme-color" content="#0f131a" />
   <script src="theme-boot.js" data-page="stances"></script>
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <style>
+    @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/barlow-condensed-600.woff2') format('woff2'); }
+    @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/barlow-condensed-700.woff2') format('woff2'); }
     :root {
-      --bg: #0f131a; --panel: #161c26; --card: #1d2430; --line: #283142; --text: #f1f5f9; --muted: #9aa6b8;
-      --accent: #06b6d4; --shadow: rgba(0,0,0,0.4);
+      color-scheme: dark;
+      /* Same palette as the main page */
+      --bg: #0f131a; --panel: #161c26; --raised: #1d2430; --line: #283142; --line-strong: #344056;
+      --text: #e7eaf0; --muted: #9aa6b8; --faint: #7a869a;
+      --accent: #6ea8fe; --accent-ink: #0b1220; --accent-soft: rgba(110, 168, 254, 0.14);
+      --shadow: rgba(0,0,0,0.4);
       --str: #f87171; --dex: #fbbf24; --def: #60a5fa; --spd: #34d399;
       --pip-off: rgba(148,163,184,0.16);
       --main: #fbbf24; --pocket: #22d3ee; --learning: #c084fc;
-      /* Same header title and main button colors as the tracker page */
-      --title-grad: linear-gradient(90deg, #60a5fa, #38bdf8, #a78bfa);
-      --btn-grad: linear-gradient(135deg, #3b82f6, #06b6d4); --on-accent: #fff;
-      color-scheme: dark;
+      --display: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+      --r: 10px; --r-s: 6px;
     }
     :root[data-theme="valhalla"] {
-      --bg: #120c1f; --panel: #1d1430; --card: #2a1d45; --line: #4a3470; --text: #fdf6e3; --muted: #b8a9d4; --accent: #f5c542;
-      --title-grad: linear-gradient(90deg, #ffe08a, #f5c542, #ff9f43);
-      --btn-grad: linear-gradient(135deg, #d99a1e, #f5c542); --on-accent: #1a1027;
+      --bg: #120c1f; --panel: #1d1430; --raised: #2a1d45; --line: #4a3470; --line-strong: #5a4388; --text: #fdf6e3; --muted: #b8a9d4; --accent: #f5c542;
+      --accent-ink: #1a1027;
     }
     :root[data-theme="daylight"] {
-      --bg: #f4f6fb; --panel: #ffffff; --card: #eef2f8; --line: #d5dce8; --text: #0f172a; --muted: #5b6678; --accent: #0e7490;
+      --bg: #f4f6fb; --panel: #ffffff; --raised: #eef2f8; --line: #d5dce8; --line-strong: #b9c3d4; --text: #0f172a; --muted: #5b6678; --accent: #0e7490;
       --str: #b91c1c; --dex: #a16207; --def: #1d4ed8; --spd: #166534; --pip-off: rgba(15,23,42,0.1); /* gold DEX, so it doesn't read as STR's red */
-      --title-grad: linear-gradient(90deg, #1d4ed8, #0e7490, #7c3aed);
-      --btn-grad: linear-gradient(135deg, #2563eb, #0e7490); --on-accent: #fff;
+      --accent-ink: #fff;
       --main: #92400e; --pocket: #0e7490; --learning: #7e22ce; --shadow: rgba(15,23,42,0.12);
       color-scheme: light;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; line-height: 1.5;
-      padding: clamp(16px, 3vw, 44px); min-height: 100vh; }
+      --pad: clamp(16px, 3vw, 44px); padding: var(--pad); min-height: 100vh;
+      padding-left: max(var(--pad), env(safe-area-inset-left)); padding-right: max(var(--pad), env(safe-area-inset-right)); padding-bottom: calc(var(--pad) + env(safe-area-inset-bottom)); }
     button, input, select, textarea { font: inherit; color: inherit; }
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .wrap { max-width: 1480px; margin: 0 auto; }
 
     header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px 28px; margin-bottom: 26px;
-      background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 30px; box-shadow: 0 8px 24px var(--shadow); }
-    h1 { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
-      background: var(--title-grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 24px 30px; }
+    h1, h2 { font-family: var(--display); font-weight: 700; letter-spacing: .01em; text-transform: none; background: none; -webkit-text-fill-color: currentColor; color: var(--text); }
+    h1 { font-size: 1.95rem; line-height: 1.2; }
     .lead { color: var(--muted); font-size: 0.86rem; margin-top: 2px; max-width: 640px; }
-    .nav { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .nav a { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--accent);
-      font-size: 0.82rem; font-weight: 700; text-decoration: none; }
-    .nav a:hover { border-color: var(--accent); }
+    .nav { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 10px; }
+    .nav a { color: var(--muted); padding: 8px 10px; min-height: 40px; display: inline-flex; align-items: center; border-radius: var(--r-s); border: 0; background: none;
+      font-size: 0.82rem; font-weight: 600; white-space: nowrap; text-decoration: none; }
+    .nav a:hover { color: var(--text); }
     .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    .input, .select { padding: 9px 12px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); outline: none; font-size: 16px; }
+    .input, .select { padding: 9px 12px; border-radius: var(--r-s); background: var(--panel); border: 1px solid var(--line); outline: none; font-size: 16px; }
     .input:focus, .select:focus { border-color: var(--accent); }
-    .btn { padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 700; }
+    .btn { padding: 9px 16px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700; }
     .btn:hover { border-color: var(--accent); }
-    .btn.primary { background: var(--btn-grad); border-color: transparent; color: var(--on-accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
     .btn[disabled] { opacity: 0.6; cursor: progress; }
     .status { color: var(--muted); font-size: 0.86rem; min-height: 1.4em; margin: -12px 0 20px; }
 
     /* summary */
     .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 26px; }
     .summary[hidden] { display: none; }
-    .sum { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+    .sum { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; }
     .sum .k { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 800; }
     .sum .v { font-size: 1.5rem; font-weight: 900; margin-top: 2px; }
     .sum .v small { font-size: 0.8rem; color: var(--muted); font-weight: 700; margin-left: 4px; }
@@ -74,12 +77,12 @@
 
     /* cards */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 20px; }
-    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; display: flex; flex-direction: column; gap: 14px; }
     .card.cmp { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
     .card-head { display: flex; gap: 14px; align-items: center; }
     .crest-box { width: 54px; flex: none; }
     .crest-box .crest { width: 100%; height: auto; display: block; }
-    .crest-box.photo { width: 64px; height: 64px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--card); }
+    .crest-box.photo { width: 64px; height: 64px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--raised); }
     .crest-box.photo img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
     .who { flex: 1; min-width: 0; }
     .who .n { font-weight: 900; font-size: 1.08rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -104,7 +107,7 @@
     .preview-label b { color: var(--text); }
 
     .stances { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip { padding: 5px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-size: 0.74rem; font-weight: 700; }
+    .chip { padding: 5px 9px; border-radius: var(--r-s); border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-size: 0.74rem; font-weight: 700; }
     .chip:hover, .chip:focus-visible { border-color: var(--accent); }
     .chip.eq { background: var(--accent); border-color: var(--accent); color: #04141a; }
     :root[data-theme="daylight"] .chip.eq { color: #fff; }
@@ -112,7 +115,7 @@
     .chip small { font-weight: 600; opacity: 0.8; margin-left: 3px; }
     .chip.more { border-style: dashed; color: var(--muted); }
 
-    .notes { font-size: 0.82rem; color: var(--muted); background: var(--card); border-radius: 10px; padding: 9px 11px; white-space: pre-wrap; word-break: break-word; }
+    .notes { font-size: 0.82rem; color: var(--muted); background: var(--raised); border-radius: 10px; padding: 9px 11px; white-space: pre-wrap; word-break: break-word; }
     .card-acts { display: flex; gap: 8px; margin-top: auto; }
     .card-acts .btn { padding: 7px 12px; font-size: 0.82rem; }
 
@@ -120,12 +123,12 @@
     .scrim { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,0.5); display: none; place-items: center; padding: 16px; }
     .scrim.open { display: grid; }
     .dialog { width: min(760px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--panel); border: 1px solid var(--line);
-      border-radius: 18px; padding: 26px; box-shadow: 0 24px 60px var(--shadow); }
-    .dialog h2 { font-size: 1.3rem; margin-bottom: 16px; }
+      border-radius: var(--r); padding: 26px; box-shadow: 0 24px 60px var(--shadow); }
+    .dialog h2 { font-size: 1.5rem; margin-bottom: 16px; }
     .field { display: grid; gap: 6px; margin-bottom: 16px; font-size: 0.86rem; font-weight: 700; }
     .field textarea { min-height: 110px; resize: vertical; padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); outline: none; font-weight: 400; }
     .seg { display: flex; flex-wrap: wrap; gap: 6px; }
-    .seg button { padding: 7px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font-weight: 700; font-size: 0.82rem; }
+    .seg button { padding: 7px 12px; border-radius: 99px; border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700; font-size: 0.82rem; }
     .seg button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #04141a; }
     :root[data-theme="daylight"] .seg button[aria-pressed="true"] { color: #fff; }
     .dialog-acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
@@ -169,7 +172,7 @@
       <div>
         <h1>Stance Lab</h1>
         <p class="lead">What every stance does to each legend's stats. Hover or tap a stance to preview it, then save your pick, role and notes.</p>
-        <nav class="nav" aria-label="Pages"><a href="index.html?view=auto">← Stance tracker</a><a href="app.html?view=mobile">📱 Mobile view</a><a href="stats.html">📊 Player stats</a></nav>
+        <nav class="nav" aria-label="Pages"><a href="index.html?view=auto">← Stance tracker</a><a href="app.html?view=mobile">Mobile view</a><a href="stats.html">Player stats</a></nav>
       </div>
       <div class="actions">
         <input class="input" id="idInput" inputmode="numeric" placeholder="Your Brawlhalla ID" aria-label="Brawlhalla ID" autocomplete="off" />
