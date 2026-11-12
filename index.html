@@ -861,18 +861,28 @@
       // Drop ones confirmed elsewhere (another tab, or the legend details)
       [...reminders.keys()].forEach(name => { if (!Tracker.pendingStance(name)) reminders.delete(name); });
       const list = [...reminders.values()];
-      $('remCount').innerHTML = list.length ? `<span class="count-badge" aria-label="${list.length} open">${list.length}</span>` : '';
-      $('reminders').innerHTML = list.length ? list.map(p => `
+      // Every other legend with a better stance unlocked but not confirmed (e.g. after a reset)
+      const others = LEGENDS_DB.filter(l => !reminders.has(l.name)).map(l => Tracker.pendingStance(l.name)).filter(Boolean);
+      const total = list.length + others.length;
+      $('remCount').innerHTML = total ? `<span class="count-badge" aria-label="${total} open">${total}</span>` : '';
+      const row = (p, played) => `
         <div class="reminder">
           ${avatar(p.legend)}
-          <div><div class="title">Switch ${esc(p.legend)} to ${esc(p.stance)}</div><div class="sub">${p.kind === 'best' ? 'Best' : 'Standard'} stance unlocked. Press Done once it's equipped.</div></div>
+          <div><div class="title">Switch ${esc(p.legend)} to ${esc(p.stance)}</div><div class="sub">${p.kind === 'best' ? 'Best' : 'Standard'} stance unlocked${played ? ' · you just played it' : ''}. Press Done once it's equipped.</div></div>
           <button class="btn primary" type="button" data-done="${esc(p.legend)}">${icon('check')}Done</button>
-        </div>`).join('')
+        </div>`;
+      const shown = others.slice(0, remLimit);
+      $('reminders').innerHTML = total
+        ? list.map(p => row(p, true)).join('')
+          + (list.length && others.length ? `<p class="hist-note">Not played yet this session:</p>` : '')
+          + shown.map(p => row(p, false)).join('')
+          + (others.length > shown.length ? `<p><button class="btn" type="button" data-rem-more>Show ${others.length - shown.length} more</button></p>` : '')
         : state.id
-          ? `<p class="empty">No stances to switch. After a match, Live tells you here when a legend you played has a better stance to equip.</p>`
+          ? `<p class="empty">Every unlocked stance is confirmed. After a match, Live tells you here when a legend you played has a better stance to equip.</p>`
           : `<p class="empty">Sync your ID, then turn on Live to get stance reminders here.</p>`;
     }
 
+    let remLimit = 8;
     let histLimit = 10;
     function renderHistory() {
       $('history').innerHTML = state.id
@@ -1042,9 +1052,10 @@
     $('idInput').addEventListener('input', () => $('idInput').removeAttribute('aria-invalid'));
     $('liveSwitch').addEventListener('click', () => setLive(!live));
     document.addEventListener('click', e => {
-      const t = e.target.closest('[data-legend], [data-done], [data-filter], [data-live-on], [data-hist-more], [data-clear], [data-queue]');
+      const t = e.target.closest('[data-legend], [data-done], [data-filter], [data-live-on], [data-hist-more], [data-rem-more], [data-clear], [data-queue]');
       if (!t || t.closest('dialog')) return;
       if (t.dataset.legend) openSheet(t.dataset.legend);
+      else if (t.hasAttribute('data-rem-more')) { remLimit += 20; renderReminders(); }
       else if (t.dataset.queue) { if (t.dataset.queue === 'shuffle') queue = []; else queue.shift(); fillQueue(); renderLive(); }
       else if (t.dataset.done) done(t.dataset.done);
       else if (t.dataset.filter) { filter = t.dataset.filter; renderFilters(); renderRoster(); }
