@@ -178,6 +178,21 @@
     @keyframes roll { from { transform: translateY(-40%); opacity: 0; } }
     @keyframes flash { 0% { color: var(--accent); } }
     .checked { font-size: var(--fs-s); color: var(--muted); margin: 0 0 20px; }
+    /* Up next: a random queue of legends to play this session */
+    .queue { margin: -8px 0 16px; }
+    .queue-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .queue-head h3 { margin: 0; font-family: var(--display); font-size: 1.1rem; font-weight: 700; letter-spacing: .01em; }
+    .queue-head .btn { min-height: 30px; padding: 0 10px; font-size: var(--fs-s); }
+    .queue ol { list-style: none; margin: 0; padding: 0; }
+    .queue li { display: grid; grid-template-columns: 18px 28px 1fr; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); font-size: var(--fs-s); }
+    .queue li .n { color: var(--faint); font-variant-numeric: tabular-nums; }
+    .queue li .avatar { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; object-position: top; display: grid; place-items: center; background: var(--raised); font-size: 0.7rem; }
+    .queue li .who { display: grid; line-height: 1.25; min-width: 0; }
+    .queue li .who b { font-size: var(--fs-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .queue li .who small { color: var(--muted); font-size: var(--fs-s); }
+    .queue li.pend .who small { color: var(--accent); }
+    .queue li.up { background: var(--accent-soft); border-radius: var(--r-s); padding-left: 6px; padding-right: 6px; margin: 0 -6px; border-top-color: transparent; }
+    .queue li.up .n { color: var(--accent); font-weight: 700; }
     .live-off-hint { font-size: var(--fs-s); color: var(--muted); margin: -6px 0 16px; }
     .steps { list-style: none; margin: -6px 0 16px; padding: 0; display: grid; gap: 6px; font-size: var(--fs-s); color: var(--muted); }
 
@@ -639,6 +654,39 @@
     let live = null;
     const sumWins = g => Object.values(g.wins || {}).reduce((s, n) => s + (n || 0), 0);
 
+    // ---------- up next: a random queue of legends for the session ----------
+    // Drawn from legends you've played (all of them when fewer than the queue size), legends with a
+    // better stance pending first. A legend leaves the queue when a match with it lands.
+    const QUEUE_KEY = 'bh_live_queue_v1', QUEUE_SIZE = 5;
+    let queue = [];
+    const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    function queueCandidates() {
+      const played = LEGENDS_DB.filter(l => Tracker.hasPlayed(l.name)).map(l => l.name);
+      const pool = (played.length >= QUEUE_SIZE ? played : LEGENDS_DB.map(l => l.name)).filter(n => !queue.includes(n));
+      return shuffle(pool.filter(n => Tracker.pendingStance(n))).concat(shuffle(pool.filter(n => !Tracker.pendingStance(n))));
+    }
+    function saveQueue() { try { localStorage.setItem(QUEUE_KEY, JSON.stringify({ id: state.id, names: queue })); } catch (err) { /* storage unavailable */ } }
+    function fillQueue() { queue = queue.concat(queueCandidates().slice(0, Math.max(0, QUEUE_SIZE - queue.length))); saveQueue(); }
+    function loadQueue() {
+      try {
+        const v = JSON.parse(localStorage.getItem(QUEUE_KEY) || 'null');
+        queue = v && v.id === state.id && Array.isArray(v.names) ? v.names.filter(n => LEGENDS_DB.some(l => l.name === n)) : [];
+      } catch (err) { queue = []; }
+      fillQueue();
+    }
+    function advanceQueue(names) { if (names.length && queue.some(n => names.includes(n))) { queue = queue.filter(n => !names.includes(n)); fillQueue(); } }
+    function queueHtml() {
+      if (!queue.length) return '';
+      const row = (n, i) => {
+        const p = Tracker.pendingStance(n);
+        const l = LEGENDS_DB.find(x => x.name === n);
+        const best = l && Tracker.bestStances(l, Tracker.getLevel(n));
+        const use = p ? `Switch to ${esc(p.stance)} (${p.kind} stance)` : best ? `${esc(best.label)} stance` : 'No stance unlocked yet';
+        return `<li class="${i === 0 ? 'up' : ''}${p ? ' pend' : ''}"><span class="n">${i + 1}</span>${avatar(n)}<span class="who"><b>${esc(n)}</b><small>${use}</small></span></li>`;
+      };
+      return `<div class="queue"><div class="queue-head"><h3>Up next</h3><span><button class="btn" type="button" data-queue="skip" title="Drop the first legend and draw another">Skip</button> <button class="btn" type="button" data-queue="shuffle" title="Draw five new legends">Reshuffle</button></span></div><ol>${queue.map(row).join('')}</ol></div>`;
+    }
+
     function remindStances(names) {
       const due = [...new Set(names)].filter(name => !live.reminded.has(name)).map(Tracker.pendingStance).filter(Boolean);
       due.forEach(p => {
@@ -678,7 +726,9 @@
           live.lastGameTs = now;
           landed = true;
           live.nextLevelSync = Math.min(live.nextLevelSync, now + 2 * 60 * 1000);
-          remindStances(Tracker.playedSince(live.games, games));
+          const played = Tracker.playedSince(live.games, games);
+          remindStances(played);
+          advanceQueue(played);
         }
         live.games = games;
       }
@@ -709,6 +759,7 @@
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
       // The first sync sets the baseline; unlocks found there are logged, not announced
       const session = live = { games: null, sessionGames: 0, sessionWins: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + LEVEL_POLL_MS, reminded: new Set(), freshTs: 0 };
+      loadQueue();
       renderLive();
       await doSync({ live: true });
       if (live !== session) return;
@@ -763,7 +814,8 @@
             <div class="side l"><span class="num${cls.l}">${losses}</span><span class="lab">Losses</span></div>
             <div class="flag${final || playing ? ' on' : ''}">${flag}</div>
           </div>
-          <p class="checked">Checked ${live.lastCheck ? clock(live.lastCheck) : '…'} · checks every ${live.lastGameTs ? 30 : 10} seconds</p>`;
+          <p class="checked">Checked ${live.lastCheck ? clock(live.lastCheck) : '…'} · checks every ${live.lastGameTs ? 30 : 10} seconds</p>
+          ${queueHtml()}`;
       }
       renderStrip();
     }
@@ -990,9 +1042,10 @@
     $('idInput').addEventListener('input', () => $('idInput').removeAttribute('aria-invalid'));
     $('liveSwitch').addEventListener('click', () => setLive(!live));
     document.addEventListener('click', e => {
-      const t = e.target.closest('[data-legend], [data-done], [data-filter], [data-live-on], [data-hist-more], [data-clear]');
+      const t = e.target.closest('[data-legend], [data-done], [data-filter], [data-live-on], [data-hist-more], [data-clear], [data-queue]');
       if (!t || t.closest('dialog')) return;
       if (t.dataset.legend) openSheet(t.dataset.legend);
+      else if (t.dataset.queue) { if (t.dataset.queue === 'shuffle') queue = []; else queue.shift(); fillQueue(); renderLive(); }
       else if (t.dataset.done) done(t.dataset.done);
       else if (t.dataset.filter) { filter = t.dataset.filter; renderFilters(); renderRoster(); }
       else if (t.hasAttribute('data-live-on')) setLive(true);

@@ -418,6 +418,6 @@ const Tracker = (() => {
   return {
     KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitHtml, portraitError,
     getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
-    LAB_KEY, pendingStance, confirmStance, resetStances, fetchGames, playedSince
+    LAB_KEY, bestStances, pendingStance, confirmStance, resetStances, fetchGames, playedSince
   };
 })();
