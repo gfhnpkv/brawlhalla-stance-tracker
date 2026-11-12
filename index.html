@@ -337,10 +337,11 @@
 
     footer { max-width: 1440px; margin: 0 auto; padding: 8px 24px 40px; font-size: var(--fs-s); color: var(--faint); }
 
+    /* Reduced motion: keep the feedback (instant), drop only the loops */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation: none !important; transition: none !important; }
-      dialog.sheet { transform: none !important; transition-duration: 1ms !important; }
-      dialog.sheet::backdrop { transition-duration: 1ms !important; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .live-dot, .live-dot::after, .btn.loading .icon { animation: none !important; }
+      dialog.sheet { transform: none !important; }
     }
 
     /* ---------- tablet and phone ---------- */

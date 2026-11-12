@@ -306,8 +306,12 @@
       main, .header > .inner { max-width: 640px; margin: 0 auto; }
       .sheet { max-width: 640px; margin: 0 auto; }
     }
+    /* Reduced motion: keep the feedback (instant), drop only the loops; the sheet fades instead of sliding */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation: none !important; transition: none !important; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .live-dot, .live-dot.on, .sync-btn.spinning span { animation: none !important; }
+      .sheet { transform: none !important; opacity: 0; pointer-events: none; transition-property: opacity; }
+      .sheet.open { opacity: 1; pointer-events: auto; }
     }
   </style>
 </head>

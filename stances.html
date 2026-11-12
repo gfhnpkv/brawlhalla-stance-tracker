@@ -152,6 +152,10 @@
     /* Type floor: nothing under 12px */
     small, .preview-label, .w, .w b, .badge, .chip, .who .w, .credit, .cmp-row .k, .sum .k { font-size: .75rem; }
 
+    /* Reduced motion: keep the feedback (instant), drop only the loops */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
     @media (pointer: coarse) {
       .chip { min-height: 44px; padding: 10px 12px; font-size: 0.875rem; }
       .btn { min-height: 44px; }
