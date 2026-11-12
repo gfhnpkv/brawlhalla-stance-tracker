@@ -215,6 +215,11 @@
       background: var(--accent); color: var(--accent-ink); min-height: 44px;
     }
     .btn.secondary { background: var(--panel); border: 1px solid var(--line); color: var(--text); font-weight: 700; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .switch:disabled { opacity: 0.5; cursor: not-allowed; }
+    .steps { list-style: none; margin: 0 0 14px; padding: 12px 14px; display: grid; gap: 6px; font-size: 0.88rem; color: var(--muted); background: var(--raised); border: 1px solid var(--line); border-radius: var(--r); }
+    .steps[hidden] { display: none; }
+    .who-sub a { color: var(--accent); font-weight: 700; text-decoration: none; }
     .btn + .btn { margin-top: 8px; }
     .btn-row { display: flex; gap: 8px; }
     .btn-row .btn { margin-top: 0; }
@@ -333,6 +338,11 @@
 
   <main>
     <section class="view" id="view-legends">
+      <ol class="steps" id="firstSteps" hidden>
+        <li>1. Enter your Brawlhalla ID in the Me tab.</li>
+        <li>2. Press Sync to load your legends.</li>
+        <li>3. Turn on Live while you play — it checks for finished matches every minute and reminds you to switch stances.</li>
+      </ol>
       <div class="controls">
         <input class="search" id="search" type="search" aria-label="Search legends" placeholder="Search legend, stance, weapon" autocomplete="off" />
         <select class="sort" id="sort" aria-label="Sort">
@@ -382,9 +392,9 @@
     <section class="view" id="view-me" hidden>
       <div class="card">
         <h3>Your Brawlhalla ID</h3>
-        <p>The number on your in-game profile. Levels come from dair.gg, with the official Brawlhalla API as a backup.</p>
-        <input class="field" id="idInput" aria-label="Brawlhalla ID" inputmode="numeric" pattern="[0-9]*" placeholder="Your Brawlhalla ID" autocomplete="off" />
-        <button class="btn" id="syncBtn2">Sync now</button>
+        <p>In Brawlhalla: Profile → the number under your name. Then press Sync.</p>
+        <input class="field" id="idInput" aria-label="Brawlhalla ID" inputmode="numeric" pattern="[0-9]*" placeholder="Your Brawlhalla ID (e.g. 1234567)" autocomplete="off" />
+        <button class="btn" id="syncBtn2" disabled>Sync now</button>
       </div>
 
       <div class="card" id="profileCard" hidden>
@@ -394,19 +404,20 @@
       </div>
 
       <div class="card">
-        <h3>Game history</h3>
-        <div id="historyList"></div>
-      </div>
-
-      <div class="card">
         <div class="toggle">
           <div>
             <h3>Live mode</h3>
             <p style="margin:0">Checks every minute while this page is open. Shows when you're playing and alerts you on new unlocks.</p>
+            <p style="margin:4px 0 0">Keep this page open.</p>
           </div>
-          <button class="switch" id="liveSwitch" role="switch" aria-checked="false" aria-label="Live mode"></button>
+          <button class="switch" id="liveSwitch" role="switch" aria-checked="false" aria-label="Live mode" title="Checks for finished matches every minute and reminds you to switch stances" disabled></button>
         </div>
         <div class="status-line" id="activityLine"></div>
+      </div>
+
+      <div class="card">
+        <h3>Game history</h3>
+        <div id="historyList"></div>
       </div>
 
       <div class="card">
@@ -541,8 +552,10 @@
       } else {
         $('avatar').textContent = '?';
         $('whoName').textContent = 'Stance Tracker';
-        $('whoSub').textContent = savedBhId ? `ID #${savedBhId} · not synced yet` : 'Add your Brawlhalla ID in the Me tab';
+        if (savedBhId) $('whoSub').textContent = `ID #${savedBhId} · not synced yet`;
+        else $('whoSub').innerHTML = '<a href="#" data-go="me">Start here: add your ID in the Me tab →</a>';
       }
+      $('firstSteps').hidden = !!p;
     }
 
     function rowHtml(l) {
@@ -651,6 +664,9 @@
     function renderMe() {
       if (document.activeElement !== $('idInput')) $('idInput').value = savedBhId;
       const p = playerProfile;
+      $('syncBtn2').disabled = !/\d/.test($('idInput').value) || syncing;
+      $('syncBtn2').textContent = syncing ? 'Syncing…' : 'Sync now';
+      $('liveSwitch').disabled = !p;
       $('profileCard').hidden = !p;
       if (!p) return;
       $('profileName').textContent = `${p.name} #${p.id}`;
@@ -769,6 +785,7 @@
       const bhId = savedBhId;
       if (!/^\d+$/.test(bhId)) {
         $('statusLine').textContent = 'Add your Brawlhalla ID in the Me tab.';
+        toast('Add your ID first', 'In Brawlhalla: Profile → the number under your name.');
         showTab('me');
         return null;
       }
@@ -784,6 +801,7 @@
       }
       syncing = true;
       $('syncBtn').classList.add('spinning');
+      renderMe();
       if (!quiet) $('statusLine').textContent = 'Syncing…';
 
       // A different player starts fresh, so there are no earlier levels to compare goals against
@@ -794,16 +812,18 @@
       syncing = false;
       $('syncBtn').classList.remove('spinning');
       if (r.error) {
-        $('statusLine').textContent = `Sync failed: ${r.error}`;
+        $('statusLine').textContent = "Couldn't sync. Check your ID (Profile → number under your name) and try again.";
+        renderMe();
         return null;
       }
       const counts = MatchHistory.fromStats(legendStats);
       MatchHistory.record(bhId, counts, Tracker.getLevel);
       MatchHistory.fillLevels(bhId, counts, Tracker.getLevel);
 
-      $('statusLine').textContent = r.updated
-        ? `✓ Synced ${r.updated} legends${r.missing ? ` (${r.missing} never played)` : ''} · ${new Date().toLocaleTimeString()}`
-        : 'Synced, but no legend levels came back (dair.gg may be down). Set levels by hand.';
+      $('statusLine').textContent = !r.updated
+        ? 'Synced, but no legend levels came back (dair.gg may be down). Set levels by hand.'
+        : !live ? `✓ Synced ${r.updated} legends. Now turn on Live (Me tab) so we can remind you to switch stances.`
+        : `✓ Synced ${r.updated} legends${r.missing ? ` (${r.missing} never played)` : ''} · ${new Date().toLocaleTimeString()}`;
       renderAll();
       const goalAlerts = Goals.alerts(beforeLevels, playerLevels);
       goalAlerts.forEach(a => {
@@ -1001,9 +1021,14 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
     $('syncBtn').addEventListener('click', () => sync());
+    $('idInput').addEventListener('input', () => { $('syncBtn2').disabled = !/\d/.test($('idInput').value) || syncing; });
+    $('whoSub').addEventListener('click', e => {
+      const a = e.target.closest('[data-go]');
+      if (a) { e.preventDefault(); showTab(a.dataset.go); $('idInput').focus(); }
+    });
     $('syncBtn2').addEventListener('click', () => {
       const v = $('idInput').value.trim();
-      if (!/^\d+$/.test(v)) { $('statusLine').textContent = 'Brawlhalla ID must be a number.'; return; }
+      if (!/^\d+$/.test(v)) { $('statusLine').textContent = 'Brawlhalla ID must be a number.'; toast('Add your ID first', 'Digits only, e.g. 1234567.'); return; }
       savedBhId = v;
       save(KEYS.id, v);
       sync();
