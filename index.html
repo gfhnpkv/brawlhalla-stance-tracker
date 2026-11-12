@@ -261,7 +261,7 @@
     .tile .nmrow { display: flex; align-items: center; gap: 6px; min-width: 0; }
     .tile .wpns { display: flex; gap: 4px; margin-left: auto; color: var(--faint); flex: none; }
     .tile .nm { font-weight: 600; font-size: var(--fs-s); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tile .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+    .tile .row { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
     .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
     .chip .icon { width: 13px; height: 13px; }
     .chip.v { color: var(--best); } .chip.b { color: var(--standard); } .chip.p { color: var(--progress); } .chip.x { color: var(--locked); }
@@ -497,7 +497,7 @@
     const STATUS = {
       v: { cls: 'v', short: 'Best', long: 'Best stance unlocked', icon: 'best' },
       '!': { cls: 'b', short: 'Standard', long: 'Standard stance unlocked', icon: 'standard' },
-      p: { cls: 'p', short: 'In progress', long: 'Played, no stance yet', icon: 'progress' },
+      p: { cls: 'p', short: 'Progress', long: 'Played, no stance yet', icon: 'progress' },
       x: { cls: 'x', short: 'Locked', long: 'Locked (not played / not owned)', icon: 'lock' }
     };
     const chip = (st, long) => `<span class="chip ${STATUS[st].cls}">${icon(STATUS[st].icon)}${long ? STATUS[st].long : STATUS[st].short}</span>`;
