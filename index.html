@@ -751,16 +751,19 @@
       liveTimer = null;
       live = null;
       $('liveSwitch').setAttribute('aria-checked', String(on));
-      try { localStorage.setItem('bh_live_v1', on ? '1' : '0'); } catch (err) { /* storage unavailable */ }
-      if (!on) { renderLive(); return; }
+      const saveLive = v => { try { localStorage.setItem('bh_live_v1', v); } catch (err) { /* storage unavailable */ } };
+      if (!on) { saveLive('0'); renderLive(); return; }
       const bhId = $('idInput').value.trim();
       if (!/^\d+$/.test(bhId)) {
+        // Live stays off, so a reload doesn't try to turn it on again
+        saveLive('0');
         $('liveSwitch').setAttribute('aria-checked', 'false');
         $('idInput').setAttribute('aria-invalid', 'true');
         setStatus('Enter your Brawlhalla ID before turning on Live.', true);
         $('idInput').focus();
         return;
       }
+      saveLive('1');
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
       // The first sync sets the baseline; unlocks found there are logged, not announced
       const session = live = { games: null, sessionGames: 0, sessionWins: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + LEVEL_POLL_MS, reminded: new Set(), freshTs: 0 };
@@ -930,13 +933,13 @@
       $('rosterCount').textContent = state.profile ? `${counts.v} of ${LEGENDS_DB.length} with their best stance` : '';
     }
     function renderRoster() {
-      const q = $('search').value.trim().toLowerCase();
+      const q = Tracker.fold($('search').value.trim());
       const sort = $('sort').value;
       const remaining = l => { const lvl = Tracker.getLevel(l.name); return lvl >= l.vLvl ? 999 : lvl >= l.bangLvl ? l.vLvl - lvl : l.bangLvl - lvl; };
       const list = LEGENDS_DB.filter(l => {
         if (filter !== 'ALL' && statusOf(l) !== filter) return false;
         if (!q) return true;
-        return [l.name, l.title, l.target, l.alt, ...Object.values(l.stances)].join(' ').toLowerCase().includes(q);
+        return Tracker.fold([l.name, l.title, l.target, l.alt, ...Object.values(l.stances)].join(' ')).includes(q);
       }).sort((a, b) => {
         const la = Tracker.getLevel(a.name), lb = Tracker.getLevel(b.name);
         if (sort === 'level_desc') return lb - la || a.order - b.order;
@@ -1113,8 +1116,7 @@
     // Backups use the same JSON as app.html, so each page imports the other's files
     $('exportBtn').addEventListener('click', () => {
       closeMenu();
-      const payload = { playerLevels: state.levels, improvementsLog: state.log, savedBhId: state.id, legendStats: state.stats, playerProfile: state.profile, matchHistory: MatchHistory.all(), goals: Goals.list() };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(Tracker.exportBackup(), null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'brawlhalla_stance_tracker_backup.json';
@@ -1134,26 +1136,17 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
+        let parsed;
+        try { parsed = JSON.parse(ev.target.result); } catch (err) { parsed = null; }
+        // Only checked values are kept, all or nothing (see Tracker.importBackup)
+        const r = Tracker.importBackup(parsed);
+        if (!r.ok) {
+          if (r.error === 'storage') toast('Import failed', 'Could not save the backup on this device (storage full or blocked). Nothing was changed.');
+          else toast('Import failed', 'That file is not a valid backup.');
+          return;
+        }
         try {
-          const parsed = JSON.parse(ev.target.result);
-          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not a backup');
-          // Only checked values are kept (see Tracker.clean)
-          const { clean } = Tracker;
-          const next = { levels: state.levels, log: state.log, stats: state.stats, profile: state.profile, id: state.id };
-          if (parsed.playerLevels) next.levels = clean.levels(parsed.playerLevels);
-          if (parsed.improvementsLog) next.log = clean.log(parsed.improvementsLog);
-          if (parsed.matchHistory) MatchHistory.replace(parsed.matchHistory);
-          if (parsed.legendStats) { next.stats = clean.stats(parsed.legendStats); localStorage.setItem('bh_legend_stats_v1', JSON.stringify(next.stats)); }
-          if (parsed.playerProfile && clean.profile(parsed.playerProfile)) { next.profile = clean.profile(parsed.playerProfile); localStorage.setItem('bh_profile_v1', JSON.stringify(next.profile)); }
-          if (clean.id(parsed.savedBhId)) {
-            next.id = clean.id(parsed.savedBhId);
-            localStorage.setItem('bh_player_id_v1', next.id);
-            $('idInput').value = next.id;
-          }
-          if (Array.isArray(parsed.goals)) { localStorage.setItem('bh_goals_v1', JSON.stringify(parsed.goals)); Goals.reload(); }
-          localStorage.setItem('bh_levels_v1', JSON.stringify(next.levels));
-          localStorage.setItem('bh_improvements_v1', JSON.stringify(next.log));
-          Object.assign(Tracker.state, next);
+          if (Tracker.clean.id(parsed.savedBhId)) $('idInput').value = state.id;
           renderAll();
           if (sheetLegend) renderSheet();
           toast('Backup imported', 'Your levels, game history and goals are restored.');

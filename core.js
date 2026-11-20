@@ -49,7 +49,9 @@ const Tracker = (() => {
         games: toNum(v.games), wins: toNum(v.wins), time: toNum(v.time), syncedAt: toNum(v.syncedAt) || 0
       };
     },
-    id: v => (/^\d+$/.test(String(v || '')) ? String(v) : '')
+    id: v => (/^\d+$/.test(String(v || '')) ? String(v) : ''),
+    // Pinned goal names; goals.js applies its own limit when it reads them
+    goals: v => (Array.isArray(v) ? [...new Set(v.filter(n => typeof n === 'string' && legendNamed(n)))] : [])
   };
   function save(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* storage unavailable */ }
@@ -69,7 +71,9 @@ const Tracker = (() => {
   }
   const isDataKey = key => key == null || Object.values(KEYS).includes(key);
 
-  const normalizeName = str => (str || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+  // Lower case without accents, for searches: fold('Bödvar') === 'bodvar'. Spaces are kept.
+  const fold = str => String(str ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const normalizeName = str => fold(str || '').replace(/[^a-z0-9]/g, '');
   const getLevel = name => state.levels[name] || 1;
   // A legend counts as played once it has games in the synced stats or a level above 1.
   // The API can't tell owned from not owned, so an unplayed legend is shown as locked either way.
@@ -153,10 +157,13 @@ const Tracker = (() => {
   }
   // Everything already unlocked counts as switched, so old unlocks never bring reminders.
   // Taken on the first run ever and after a first sync (or a sync of a different player).
-  function baselineStances() {
+  function stanceBaseline() {
     const out = {};
     LEGENDS_DB.forEach(l => { const b = bestStances(l, getLevel(l.name)); if (b) out[l.name] = b.keys[0]; });
-    save(CONFIRMED_KEY, out);
+    return out;
+  }
+  function baselineStances() {
+    save(CONFIRMED_KEY, stanceBaseline());
   }
   // { legend, stance, kind } when a better stance is unlocked but not confirmed yet, else null
   function pendingStance(name) {
@@ -413,9 +420,68 @@ const Tracker = (() => {
     return { updated, missing, unlocks };
   }
 
+  // ---------- backup ----------
+  // The file format both pages have always used. matchHistory and goals come from history.js and
+  // goals.js when the page loaded them.
+  const GOALS_KEY = 'bh_goals_v1';
+  const hasHistory = () => typeof MatchHistory !== 'undefined';
+  const hasGoals = () => typeof Goals !== 'undefined';
+  function exportBackup() {
+    const out = { playerLevels: state.levels, improvementsLog: state.log, savedBhId: state.id, legendStats: state.stats, playerProfile: state.profile };
+    if (hasHistory()) out.matchHistory = MatchHistory.all();
+    if (hasGoals()) out.goals = Goals.list();
+    return out;
+  }
+  // Restores a parsed backup file. Every value goes through clean.*, and parts missing from the
+  // file (older backups) keep what is saved now. All keys are written together: if storage fails
+  // part way, the keys already written are put back and nothing changes.
+  // Returns { ok: true } or { ok: false, error: 'invalid' | 'storage' }.
+  function importBackup(p) {
+    if (!isObj(p)) return { ok: false, error: 'invalid' };
+    const next = { levels: state.levels, stats: state.stats, profile: state.profile, id: state.id };
+    const writes = [];
+    if (p.playerLevels) { next.levels = clean.levels(p.playerLevels); writes.push([KEYS.levels, JSON.stringify(next.levels)]); }
+    if (p.legendStats) { next.stats = clean.stats(p.legendStats); writes.push([KEYS.stats, JSON.stringify(next.stats)]); }
+    if (clean.profile(p.playerProfile)) { next.profile = clean.profile(p.playerProfile); writes.push([KEYS.profile, JSON.stringify(next.profile)]); }
+    // The ID is stored as plain text, like setId does
+    if (clean.id(p.savedBhId)) { next.id = clean.id(p.savedBhId); writes.push([KEYS.id, next.id]); }
+    const before = { levels: state.levels, stats: state.stats };
+    // The log's statuses and the stance baseline are worked out from the imported levels and stats
+    try {
+      state.levels = next.levels; state.stats = next.stats;
+      next.log = p.improvementsLog ? clean.log(p.improvementsLog) : state.log;
+      if (p.improvementsLog) writes.push([KEYS.log, JSON.stringify(next.log)]);
+      // Unlocks already in the imported levels count as switched, as after a first sync
+      if (p.playerLevels) writes.push([CONFIRMED_KEY, JSON.stringify(stanceBaseline())]);
+    } finally {
+      Object.assign(state, before);
+    }
+    if (p.matchHistory && hasHistory()) writes.push([MatchHistory.KEY, JSON.stringify(MatchHistory.clean(p.matchHistory))]);
+    if (Array.isArray(p.goals) && hasGoals()) writes.push([GOALS_KEY, JSON.stringify(clean.goals(p.goals))]);
+
+    const done = [];
+    try {
+      writes.forEach(([key, value]) => {
+        const old = localStorage.getItem(key);
+        localStorage.setItem(key, value);
+        done.push([key, old]);
+      });
+    } catch (err) {
+      // Put back what was written. Everything is removed first to free space, so the old values
+      // (which fitted before) can be written back even when storage is full.
+      done.forEach(([key]) => { try { localStorage.removeItem(key); } catch (e) { /* best effort */ } });
+      done.forEach(([key, old]) => { if (old != null) try { localStorage.setItem(key, old); } catch (e) { /* best effort */ } });
+      return { ok: false, error: 'storage' };
+    }
+    Object.assign(state, next);
+    if (p.matchHistory && hasHistory()) MatchHistory.reload();
+    if (Array.isArray(p.goals) && hasGoals()) Goals.reload();
+    return { ok: true };
+  }
+
   return {
     KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitHtml, portraitError,
-    getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
-    bestStances, pendingStance, confirmStance, resetStances, fetchGames, playedSince
+    fold, getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
+    bestStances, pendingStance, confirmStance, resetStances, fetchGames, playedSince, exportBackup, importBackup
   };
 })();

@@ -517,17 +517,8 @@
     const STATUS_ICON = { v: '✓', '!': '!', p: '…', x: '🔒' };
     const STATUS_WORD = { v: 'Best stance unlocked', '!': 'Standard stance unlocked', p: 'Played, no stance yet', x: 'Locked (not played / not owned)' };
     const STATUS_SHORT = { v: 'best', '!': 'standard', p: 'in progress', x: 'locked' };
-    function nextTarget(legend, lvl) {
-      if (lvl < legend.bangLvl) return { lvl: legend.bangLvl, status: '!', what: legend.alt };
-      if (lvl < legend.vLvl) return { lvl: legend.vLvl, status: 'v', what: legend.target };
-      return null;
-    }
-    function progressToNext(legend, lvl) {
-      const next = nextTarget(legend, lvl);
-      if (!next) return 1;
-      const xpPct = (legendStats[legend.name] && legendStats[legend.name].xpPct) || 0;
-      return Math.min(1, Math.max(0, (lvl - 1 + xpPct) / Math.max(1, next.lvl - 1)));
-    }
+    const nextTarget = (legend, lvl) => Tracker.nextTarget(legend, lvl);
+    const progressToNext = (legend, lvl) => Tracker.progressToNext(legend, lvl);
     function fmtHours(seconds) {
       if (!seconds) return '0h';
       const h = seconds / 3600;
@@ -589,14 +580,14 @@
     }
 
     function renderLegends() {
-      const q = $('search').value.trim().toLowerCase();
+      const q = Tracker.fold($('search').value.trim());
       const sortBy = $('sort').value;
       const list = LEGENDS_DB.filter(l => {
         const st = statusOf(l, getLevel(l.name));
         if (statusFilter !== 'ALL' && st !== statusFilter) return false;
         if (!q) return true;
         const weapons = ((legendStats[l.name] && legendStats[l.name].weapons) || []).join(' ');
-        return `${l.name} ${l.target} ${l.alt} ${l.title} ${weapons}`.toLowerCase().includes(q);
+        return Tracker.fold(`${l.name} ${l.target} ${l.alt} ${l.title} ${weapons} ${Object.values(l.stances).join(' ')}`).includes(q);
       });
       const need = l => { const lvl = getLevel(l.name); const n = nextTarget(l, lvl); return n ? n.lvl - lvl : 999; };
       const games = l => (legendStats[l.name] && legendStats[l.name].games) || 0;
@@ -958,13 +949,15 @@
       liveTimer = null;
       live = null;
       $('liveSwitch').setAttribute('aria-checked', String(on));
-      save(KEYS.live, on ? '1' : '0');
-      if (!on) { renderActivity(); renderHeader(); return; }
+      if (!on) { save(KEYS.live, '0'); renderActivity(); renderHeader(); return; }
       if (!/^\d+$/.test(savedBhId)) {
+        // Live stays off, so a reload doesn't try to turn it on again
+        save(KEYS.live, '0');
         $('liveSwitch').setAttribute('aria-checked', 'false');
         $('activityLine').textContent = 'Add your Brawlhalla ID first.';
         return;
       }
+      save(KEYS.live, '1');
       if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
       const session = live = { games: null, sessionGames: 0, lastGameTs: null, lastCheck: null, nextLevelSync: Date.now() + 5 * 60 * 1000, reminded: new Set() };
       renderActivity();
@@ -1059,6 +1052,8 @@
       if (!improvementsLog.length || !confirm('Clear the improvements log?')) return;
       improvementsLog = [];
       save(KEYS.log, improvementsLog);
+      // Keep core.js's copy in step, as the import does, so a later sync doesn't bring the old log back
+      Tracker.state.log = improvementsLog;
       renderLog();
     });
     $('shareBtn').addEventListener('click', () => {
@@ -1077,7 +1072,9 @@
       }
     });
     $('exportBtn').addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify({ playerLevels, improvementsLog, savedBhId, legendStats, playerProfile, matchHistory: MatchHistory.all(), goals: Goals.list() }, null, 2)], { type: 'application/json' });
+      // core.js's copy of the data is this page's (takeTrackerState), so the export is the same
+      Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile, id: savedBhId });
+      const blob = new Blob([JSON.stringify(Tracker.exportBackup(), null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = 'brawlhalla_stance_tracker_backup.json';
@@ -1095,19 +1092,18 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = ev => {
+        let p;
+        try { p = JSON.parse(ev.target.result); } catch (err) { p = null; }
+        // Hand core.js this page's current data, then import: only checked values are kept, all or nothing
+        Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile, id: savedBhId });
+        const r = Tracker.importBackup(p);
+        if (!r.ok) {
+          if (r.error === 'storage') toast('Import failed', 'Could not save the backup on this device (storage full or blocked). Nothing was changed.');
+          else toast('Import failed', 'That file is not a valid backup.');
+          return;
+        }
+        takeTrackerState();
         try {
-          const p = JSON.parse(ev.target.result);
-          if (!p || typeof p !== 'object' || Array.isArray(p)) throw new Error('not a backup');
-          // Only checked values are kept (see Tracker.clean)
-          const { clean } = Tracker;
-          if (p.playerLevels) { playerLevels = clean.levels(p.playerLevels); save(KEYS.levels, playerLevels); }
-          if (p.improvementsLog) { improvementsLog = clean.log(p.improvementsLog); save(KEYS.log, improvementsLog); }
-          if (p.matchHistory) MatchHistory.replace(p.matchHistory);
-          if (Array.isArray(p.goals)) { localStorage.setItem('bh_goals_v1', JSON.stringify(p.goals)); Goals.reload(); }
-          if (p.legendStats) { legendStats = clean.stats(p.legendStats); save(KEYS.stats, legendStats); }
-          if (clean.profile(p.playerProfile)) { playerProfile = clean.profile(p.playerProfile); save(KEYS.profile, playerProfile); }
-          if (clean.id(p.savedBhId)) { savedBhId = clean.id(p.savedBhId); save(KEYS.id, savedBhId); }
-          Object.assign(Tracker.state, { levels: playerLevels, log: improvementsLog, stats: legendStats, profile: playerProfile, id: savedBhId });
           renderAll();
           toast('Backup imported', 'Your levels and log are restored.');
         } catch (err) {
