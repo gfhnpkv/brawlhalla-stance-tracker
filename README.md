@@ -10,7 +10,7 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (`index.html`: Live status, stance reminders, game history and the legend roster; phones are sent to the phone view)
 - **Phone:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/app.html (mobile view; add it to your home screen)
 - **Stance lab:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stances.html (what each stance does to every legend's stats, with your picks and notes)
-- **Stats:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stats.html (best legends and weapons for any player; includes a Coach panel: ranked 1v1 weak spots from derived stats plus a training plan that updates as you play)
+- **Stats:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stats.html (best legends and weapons for any player; includes a Coach panel: ranked 1v1 weak spots from derived stats, weapon-based advice for random mains (a weapon is judged after 5 ranked games) plus a training plan that updates as you play)
 - **Locally:** `python3 -m http.server`, then open http://localhost:8000
 
 The card collection, stance matrix, roadmap, compare, legend select and terminal pages were removed in

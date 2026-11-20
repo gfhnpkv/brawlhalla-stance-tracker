@@ -288,6 +288,7 @@
         <div class="panel-head"><h2 id="legendH"></h2></div>
         <div class="toolbar">
           <label class="ctl">Sort <select class="field" id="legendSort"></select></label>
+          <label class="ctl"><select class="field" id="legendDir" aria-label="Legend sort order"><option value="best">Best first</option><option value="worst">Worst first</option></select></label>
           <label class="ctl">Min. games <select class="field" id="legendMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
         </div>
         <p class="note" id="legendNote"></p>
@@ -298,6 +299,7 @@
         <div class="panel-head"><h2 id="weaponH">Best weapons</h2></div>
         <div class="toolbar" id="weaponTools">
           <label class="ctl">Sort <select class="field" id="weaponSort"></select></label>
+          <label class="ctl"><select class="field" id="weaponDir" aria-label="Weapon sort order"><option value="best">Best first</option><option value="worst">Worst first</option></select></label>
           <label class="ctl">Min. games <select class="field" id="weaponMin"><option>1</option><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
         </div>
         <p class="note" id="weaponNote"></p>
@@ -342,6 +344,13 @@
     try { if (['all', '1v1', '2v2'].includes(localStorage.getItem(MODE_KEY))) mode = localStorage.getItem(MODE_KEY); } catch (err) { /* storage unavailable */ }
     // The chosen sort, per mode and list
     const sortBy = { all: {}, '1v1': {}, '2v2': {} };
+    // Best first or worst first, per mode and list; remembered across visits
+    const DIR_KEY = 'bh_sortdir_v1';
+    const sortDir = { all: {}, '1v1': {}, '2v2': {} };
+    try {
+      const saved = JSON.parse(localStorage.getItem(DIR_KEY) || 'null') || {};
+      Object.keys(sortDir).forEach(m => ['legend', 'weapon'].forEach(k => { if (saved[m] && saved[m][k] === 'worst') sortDir[m][k] = 'worst'; }));
+    } catch (err) { /* storage unavailable */ }
 
     // dair.gg's answer, reduced to the numbers this page uses. Anything missing becomes 0, so a
     // changed or broken answer (or old cache) shows empty sections instead of crashing.
@@ -514,6 +523,17 @@
       sel.innerHTML = entries.map(([k, m]) => `<option value="${k}"${k === active ? ' selected' : ''}>${m.label}</option>`).join('');
       return metrics[active];
     }
+    const dirOf = key => sortDir[mode][key] || 'best';
+    // Best first by the metric's meaning (metrics with better: 'lower' rank low values first), or the exact
+    // reverse. Values that aren't numbers stay last in both directions.
+    function sortItems(items, metric, dir) {
+      const sign = (metric.better === 'lower' ? 1 : -1) * (dir === 'worst' ? -1 : 1);
+      const val = x => metric.value(x);
+      return items.slice().sort((a, b) => {
+        const va = val(a), vb = val(b), na = !Number.isFinite(va), nb = !Number.isFinite(vb);
+        return na || nb ? na - nb : sign * (va - vb);
+      });
+    }
     function artHtml(name) {
       return portraits[Tracker.portraitSlug(name)]
         ? Tracker.portraitHtml(name, 'tiny', { cls: 'art', width: 34, height: 34, fallback: `el.outerHTML = '<span class="art blank"></span>';` })
@@ -529,13 +549,13 @@
     // A teammate dair.gg can't name (also caught in an older cached copy, by the player's own name)
     const UNKNOWN_TIP = 'dair.gg doesn\'t know this teammate\'s account';
     const mateOf = t => (t.unknown || t.name === data.name ? { ...t, name: 'Unknown teammate', unknown: true } : t);
-    // Top 10 by the metric, as bars scaled to the best value (or to metric.full)
-    function bars(items, metric, min, art, empty) {
+    // Top 10 by the metric (best or worst first), as bars scaled to the best value (or to metric.full)
+    function bars(items, metric, min, art, empty, dir) {
       if (!items.length) return `<div class="empty">${empty}</div>`;
       const pool = items.filter(x => (!metric.rate && mode === 'all') || x.games >= min);
-      const top = pool.slice().sort((a, b) => metric.value(b) - metric.value(a)).slice(0, 10);
+      const top = sortItems(pool, metric, dir).slice(0, 10);
       if (!top.length) return `<div class="empty">Nothing with at least ${min} games yet. Lower the minimum.</div>`;
-      const max = metric.full || Math.max(...top.map(metric.value)) || 1;
+      const max = metric.full || Math.max(...top.map(x => num(metric.value(x)))) || 1;
       return top.map((x, i) => `
         <div class="bar-row" title="${esc(x.name)}: ${esc(metric.show(x))} · ${esc(metric.sub(x))}">
           <span class="rank">${i + 1}</span>
@@ -553,6 +573,7 @@
 
     function renderLegends() {
       const min = Number($('legendMin').value);
+      $('legendDir').value = dirOf('legend');
       const noDair = 'Ranked stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.';
       if (mode === '2v2') {
         $('legendH').textContent = 'Ranked 2v2 teams';
@@ -560,7 +581,7 @@
         $('legendNote').textContent = 'The game reports ranked 2v2 per team, not per legend, so this lists your teams.';
         const teams = data.ranked && data.ranked.duo ? data.ranked.duo.teams.filter(t => t.games > 0).map(mateOf) : [];
         $('legendBars').innerHTML = bars(teams, m, min, () => `<span class="art blank">${icon('users')}</span>`,
-          data.partial || !data.ranked ? noDair : 'No ranked 2v2 games this season.');
+          data.partial || !data.ranked ? noDair : 'No ranked 2v2 games this season.', dirOf('legend'));
         return;
       }
       $('legendH').textContent = 'Best legends';
@@ -568,15 +589,16 @@
       if (mode === '1v1') {
         $('legendNote').textContent = `Ranked 1v1 this season, legends with at least ${min} games.`;
         $('legendBars').innerHTML = bars(soloLegends(), m, min, l => artHtml(l.name),
-          data.partial ? noDair : 'No ranked 1v1 games this season.');
+          data.partial ? noDair : 'No ranked 1v1 games this season.', dirOf('legend'));
         return;
       }
       $('legendNote').textContent = m.rate ? `Legends with at least ${min} games.` : 'All legends you\'ve played.';
-      $('legendBars').innerHTML = bars(data.legends, m, min, l => artHtml(l.name), 'No legend stats yet.');
+      $('legendBars').innerHTML = bars(data.legends, m, min, l => artHtml(l.name), 'No legend stats yet.', dirOf('legend'));
     }
 
     function renderWeapons() {
       const min = Number($('weaponMin').value);
+      $('weaponDir').value = dirOf('weapon');
       $('weaponTools').hidden = mode === '2v2';
       if (mode === '2v2') {
         $('weaponNote').textContent = '';
@@ -587,7 +609,7 @@
       if (mode === '1v1') {
         $('weaponNote').textContent = 'Summed from your legends\' ranked 1v1 games: each legend\'s games count for both its weapons.' + (` At least ${min} games.`);
         $('weaponBars').innerHTML = bars(soloWeapons(), m, min, w => weaponArt(w.name),
-          data.partial ? 'Ranked stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.' : 'No ranked 1v1 games this season.');
+          data.partial ? 'Ranked stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.' : 'No ranked 1v1 games this season.', dirOf('weapon'));
         return;
       }
       if (!data.weapons.length) {
@@ -596,7 +618,7 @@
         return;
       }
       $('weaponNote').textContent = 'A weapon\'s games count every match on a legend that carries it.' + (m.rate ? ` At least ${min} games.` : '');
-      $('weaponBars').innerHTML = bars(data.weapons, m, min, w => weaponArt(w.name), '');
+      $('weaponBars').innerHTML = bars(data.weapons, m, min, w => weaponArt(w.name), '', dirOf('weapon'));
     }
 
     function renderTiles() {
@@ -683,7 +705,7 @@
       $('ranked').innerHTML = bracketHtml(`${icon('user')}1v1`, r.solo) + bracketHtml(`${icon('users')}2v2 (best team)`, duo, teams) + bracketHtml(`${icon('rotate')}3v3 / rotating`, r.rotating);
     }
 
-    // Coach panel: ranked 1v1 metrics, a short plan and the weakest legends (all from coach.js)
+    // Coach panel: ranked 1v1 metrics, a short plan and weapon weak spots (all from coach.js)
     function renderCoach() {
       const ids = ['coachNote', 'coachStats', 'coachPlan'];
       if (typeof Coach === 'undefined' || !data) { ids.forEach(id => { $(id).innerHTML = ''; }); $('coachH').closest('section').hidden = true; return; }
@@ -722,17 +744,17 @@
         const done = p.state === 'done';
         return `<div class="plan-item${done ? ' done' : ''}"><div>
             <h3>${esc(p.title)}</h3>
-            <div class="cur">${numK(p.key, p.current)} → target ${numK(p.key, p.target)}</div>${trend}
+            <div class="cur">${p.curText ? esc(p.curText) : `${numK(p.key, p.current)} → target ${numK(p.key, p.target)}`}</div>${trend}
             <p>${esc(p.why)}</p><p>${esc(p.drill)}</p></div>
           <div class="plan-actions">
             <button class="btn" type="button" data-item="${esc(p.id)}" data-act="${done ? 'reopen' : 'done'}">${done ? 'Undo' : 'Done'}</button>
             <button class="btn" type="button" data-item="${esc(p.id)}" data-act="dismissed">Dismiss</button>
           </div></div>`;
       }).join('')) || (placing || noRanked || partial ? '' : '<div class="empty">No open coaching items. Nice work.</div>');
-      const pool = (a.pool || []).slice().sort((x, y) => (y.gap || 0) - (x.gap || 0)).slice(0, 5);
-      if (pool.length && !noRanked) {
-        $('coachPlan').innerHTML += `<div class="coach-pool"><h3>Legends to look at</h3>${pool.map(l =>
-          `<div><span>${esc(l.name)}${l.sample === 'low' ? ' <span class="chip low">low sample</span>' : ''}</span><span>${num(l.rating)} (peak ${num(l.peak)}), ${fmt(l.wins)}W ${fmt(l.games - l.wins)}L</span></div>`).join('')}</div>`;
+      const wp = (a.weaponPool || []).slice(0, 8);
+      if (wp.length && !noRanked) {
+        $('coachPlan').innerHTML += `<div class="coach-pool"><h3>Weapons to look at</h3>${wp.map(w =>
+          `<div><span>${esc(w.name)}${w.sample === 'none' ? ' <span class="chip low">under 5 ranked games</span>' : w.sample === 'early' ? ' <span class="chip low">early read</span>' : ''}</span><span>${w.games ? `${Math.round(w.wr * 100)}% win rate, ${fmt(w.wins)}W ${fmt(w.games - w.wins)}L` : 'no ranked games'}</span></div>`).join('')}</div>`;
       }
     }
 
@@ -761,6 +783,12 @@
     });
     $('legendSort').addEventListener('change', () => { sortBy[mode].legend = $('legendSort').value; if (data) renderLegends(); });
     $('weaponSort').addEventListener('change', () => { sortBy[mode].weapon = $('weaponSort').value; if (data) renderWeapons(); });
+    function setDir(key, value) {
+      sortDir[mode][key] = value === 'worst' ? 'worst' : 'best';
+      try { localStorage.setItem(DIR_KEY, JSON.stringify(sortDir)); } catch (err) { /* storage unavailable */ }
+    }
+    $('legendDir').addEventListener('change', () => { setDir('legend', $('legendDir').value); if (data) renderLegends(); });
+    $('weaponDir').addEventListener('change', () => { setDir('weapon', $('weaponDir').value); if (data) renderWeapons(); });
     $('legendMin').addEventListener('change', () => data && renderLegends());
     $('weaponMin').addEventListener('change', () => data && renderWeapons());
     $('idForm').addEventListener('submit', e => {

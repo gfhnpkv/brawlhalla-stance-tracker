@@ -24,7 +24,12 @@ const Coach = (() => {
     rankedWr:      { label: 'Ranked win rate',       scope: 'ranked', target: 0.52, better: 'higher', tol: 0.05, min: 30 }
   };
   const KEYS = Object.keys(RULES);
-  const POOL_MIN_GAMES = 10;   // ranked games before a legend counts as "weakest"
+  const LEGEND_MIN_GAMES = 1;  // ranked games before a legend counts at all (random mains play each one rarely)
+  const WEAPON_MIN_GAMES = 5;  // ranked games (across the legends using it) before a weapon is judged
+  const WEAPON_EARLY_GAMES = 10; // below this a weapon read is only an "early read"
+  const WEAPON_GAP = 0.05;     // win rate this far under the overall ranked win rate makes a weapon "needs work"
+  const UNFAMILIAR_GAMES = 20; // all-mode games with a weapon below this count as unfamiliar
+  const MAX_WEAPON_ITEMS = 3;
   const RECOVER_GAP = 150;     // peak minus rating that makes a legend worth recovering
   const LOW_SAMPLE_WEIGHT = 0.3;
 
@@ -128,7 +133,7 @@ const Coach = (() => {
   }
 
   function analyze(data) {
-    const out = { ok: false, reason: null, solo: null, metrics: [], pool: [] };
+    const out = { ok: false, reason: null, solo: null, metrics: [], pool: [], weaponPool: [] };
     if (!data || !data.stats || !Array.isArray(data.legends)) { out.reason = 'no-data'; return out; }
     if (data.partial) { out.reason = 'partial'; return out; }
     const st = data.stats, rs = data.ranked && data.ranked.solo;
@@ -161,8 +166,23 @@ const Coach = (() => {
 
     out.pool = data.legends.filter(l => l.rk && l.rk.games > 0).map(l => ({
       name: l.name, rating: n(l.rk.rating), peak: n(l.rk.peak), gap: Math.max(0, n(l.rk.peak) - n(l.rk.rating)),
-      games: n(l.rk.games), wins: n(l.rk.wins), wr: div(l.rk.wins, l.rk.games), sample: l.rk.games < POOL_MIN_GAMES ? 'low' : 'ok'
-    })).sort((a, b) => a.rating - b.rating);
+      games: n(l.rk.games), wins: n(l.rk.wins), wr: div(l.rk.wins, l.rk.games), sample: l.rk.games < LEGEND_MIN_GAMES ? 'low' : 'ok'
+    })).filter(p => p.games >= LEGEND_MIN_GAMES).sort((a, b) => a.rating - b.rating);
+
+    // Ranked 1v1 per weapon: each legend's ranked games and wins count for both its weapons.
+    // Weapons of legends with no ranked games are listed too (0 games) so blind spots show up.
+    const lifetime = {};
+    (Array.isArray(data.weapons) ? data.weapons : []).forEach(w => { if (w && w.name) lifetime[w.name] = n(w.games); });
+    const by = {};
+    data.legends.forEach(l => (Array.isArray(l.weapons) ? l.weapons : []).forEach(w => {
+      if (!w) return;
+      const e = by[w] = by[w] || { name: w, games: 0, wins: 0, ratingSum: 0 };
+      if (l.rk && l.rk.games > 0) { e.games += n(l.rk.games); e.wins += n(l.rk.wins); e.ratingSum += n(l.rk.rating) * n(l.rk.games); }
+    }));
+    out.weaponPool = Object.values(by).map(e => ({
+      name: e.name, games: e.games, wins: e.wins, wr: div(e.wins, e.games), rating: e.games ? Math.round(e.ratingSum / e.games) : null,
+      allGames: lifetime[e.name] || 0, sample: e.games >= WEAPON_MIN_GAMES ? (e.games < WEAPON_EARLY_GAMES ? 'early' : 'ok') : 'none'
+    })).sort((a, b) => (a.wr == null) - (b.wr == null) || a.wr - b.wr || a.name.localeCompare(b.name));
     return out;
   }
 
@@ -211,16 +231,35 @@ const Coach = (() => {
         priority: dist * (m.status === 'low-sample' ? LOW_SAMPLE_WEIGHT : 1)
       });
     });
-    const weakest = analysis.pool.find(p => p.games >= POOL_MIN_GAMES);
-    if (weakest && analysis.pool.length > 1) {
-      items.push({
-        id: `practice:${weakest.name}`, key: 'practice', title: `Practice ${weakest.name}`, current: weakest.rating,
-        target: analysis.solo ? analysis.solo.rating : weakest.peak, trend: null,
-        drill: `Play a block of ranked games on ${weakest.name} only, and write down the one habit that loses you stocks.`,
-        why: `${weakest.name} is your lowest rated ranked legend (${weakest.rating} over ${weakest.games} games).`,
-        priority: Math.min(1, (analysis.solo ? Math.max(0, analysis.solo.rating - weakest.rating) : 0) / 500)
-      });
-    }
+    // Weapons drive the advice: with a new legend most games, per-legend samples stay tiny
+    const overall = analysis.solo ? div(analysis.solo.wins, analysis.solo.games) : null;
+    const pct = v => `${Math.round(v * 100)}%`;
+    const wItems = [];
+    (analysis.weaponPool || []).forEach(w => {
+      if (overall == null) return;
+      if (w.games >= WEAPON_MIN_GAMES) {
+        const gap = overall - w.wr;
+        if (gap < WEAPON_GAP) return;
+        const early = w.games < WEAPON_EARLY_GAMES;
+        wItems.push({
+          id: `weapon:${w.name}`, key: 'weapon', title: `Work on ${w.name}`, current: round(w.wr, 4), target: round(overall, 4), trend: null,
+          curText: `${pct(w.wr)} win rate with ${w.name} → ${pct(overall)} overall ranked`,
+          why: `${w.name} wins ${pct(w.wr)} of your ranked games (${w.wins}W ${w.games - w.wins}L over ${w.games} games${early ? ', early read' : ''}), against ${pct(overall)} overall.`,
+          drill: `Play your next ranked games as usual and, when random gives you a ${w.name} legend, play it on purpose instead of drifting. In the training room practice its core combos: one string, one finisher and one recovery.`,
+          priority: Math.min(1, gap / 0.25) * (early ? 0.6 : 1)
+        });
+      } else {
+        const unfamiliar = w.allGames < UNFAMILIAR_GAMES;
+        wItems.push({
+          id: `explore:${w.name}`, key: 'explore', title: `Get comfortable with ${w.name}`, current: w.games, target: WEAPON_MIN_GAMES, trend: null,
+          curText: `${w.games} of ${WEAPON_MIN_GAMES} ranked games with ${w.name}`,
+          why: `You have only ${w.games} ranked 1v1 game${w.games === 1 ? '' : 's'} with ${w.name}${unfamiliar ? ` and ${w.allGames} in all modes` : ''}, so it is a blind spot when random hands it to you.`,
+          drill: `Spend a few minutes in the training room with a ${w.name} legend: one combo string, one finisher and one recovery. Then play your next ranked games and use it whenever random gives it to you.`,
+          priority: 0.25 + 0.15 * (1 - w.games / WEAPON_MIN_GAMES) + (unfamiliar ? 0.1 : 0)
+        });
+      }
+    });
+    items.push(...wItems.sort((a, b) => b.priority - a.priority).slice(0, MAX_WEAPON_ITEMS));
     const rec = analysis.pool.filter(p => p.gap >= RECOVER_GAP).sort((a, b) => b.gap - a.gap)[0];
     if (rec) {
       items.push({
@@ -229,11 +268,6 @@ const Coach = (() => {
         why: `${rec.name} is ${rec.gap} below its peak this season.`,
         priority: Math.min(1, rec.gap / 400)
       });
-    }
-    // the same legend must not be both "Practice X" and "Recover X": keep the higher priority
-    const pr = items.find(i => i.key === 'practice'), rc = items.find(i => i.key === 'recover');
-    if (pr && rc && pr.id.slice('practice:'.length) === rc.id.slice('recover:'.length)) {
-      items.splice(items.indexOf(rc.priority > pr.priority ? pr : rc), 1);
     }
     const out = [];
     items.forEach(it => {
