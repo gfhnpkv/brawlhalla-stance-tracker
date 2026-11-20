@@ -10,7 +10,7 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (`index.html`: Live status, stance reminders, game history and the legend roster; phones are sent to the phone view)
 - **Phone:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/app.html (mobile view; add it to your home screen)
 - **Stance lab:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stances.html (what each stance does to every legend's stats, with your picks and notes)
-- **Stats:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stats.html (best legends and weapons for any player)
+- **Stats:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stats.html (best legends and weapons for any player; includes a Coach panel: ranked 1v1 weak spots from derived stats plus a training plan that updates as you play)
 - **Locally:** `python3 -m http.server`, then open http://localhost:8000
 
 The card collection, stance matrix, roadmap, compare, legend select and terminal pages were removed in
@@ -22,6 +22,8 @@ Backups (More → Export backup) use the same JSON on every page, so they import
 dair.gg doesn't reliably allow direct browser requests, so it goes through a relay:
 - the Cloudflare Worker in `worker/` (https://brawlhalla-tracker-relay.gfhnpkv.workers.dev). It only relays
   numeric player IDs and only answers requests from the GitHub Pages site and localhost (anything else gets a 403).
+
+Coach keeps daily stat snapshots in your browser's localStorage (`bh_coach_v1`) to show progress; nothing is sent anywhere.
 
 To redeploy the Worker after changing it: `cd worker && npx wrangler@4 deploy`
 

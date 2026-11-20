@@ -179,6 +179,23 @@
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
       .btn.loading .icon { animation: none !important; }
     }
+    /* coach panel */
+    .metric-tag { display: inline-block; font-size: 0.75rem; color: var(--faint); border: 1px solid var(--line); border-radius: var(--r-s); padding: 0 6px; margin-left: 6px; vertical-align: middle; }
+    .chip.low { color: var(--muted); }
+    .plan { display: grid; gap: 12px; margin-top: 16px; }
+    .plan-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: start; background: var(--raised); border: 1px solid var(--line-strong); border-radius: var(--r); padding: 16px; transition: opacity 150ms var(--ease); }
+    .plan-item.done { opacity: .6; }
+    .plan-item h3 { font-size: var(--fs-0); }
+    .plan-item p { font-size: var(--fs-s); color: var(--muted); margin-top: 4px; }
+    .plan-item .cur { font-size: var(--fs-s); color: var(--text); margin-top: 4px; }
+    .plan-actions { display: flex; gap: 8px; }
+    .plan-actions .btn { min-height: 44px; }
+    .trend { font-size: var(--fs-s); color: var(--muted); }
+    .trend.up { color: var(--win); }
+    .trend.down { color: var(--loss); }
+    .coach-pool { margin-top: 16px; font-size: var(--fs-s); color: var(--muted); }
+    .coach-pool h3 { font-size: var(--fs-0); color: var(--text); margin-bottom: 4px; }
+    .coach-pool div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-top: 1px solid var(--line); }
     @media (max-width: 820px) { .field, select.field { font-size: 16px; min-height: 44px; } }
     @media (max-width: 640px) {
       .topbar { position: static; }
@@ -198,6 +215,8 @@
       .toolbar select { flex: 1; }
       .bar-row { grid-template-columns: 16px 30px minmax(0, 1fr) 56px 52px; gap: 8px; }
       .art { width: 30px; height: 30px; }
+      .plan-item { grid-template-columns: minmax(0, 1fr); }
+      .plan-actions .btn { flex: 1 1 0; }
       .days { gap: 3px; }
       .days .d { font-size: 0.75rem; }
       .day:nth-child(even) .d { visibility: hidden; }
@@ -246,6 +265,13 @@
       <div class="panel-head"><h2 id="rankedH">Ranked season</h2></div>
       <p class="note" id="rankedNote"></p>
       <div class="ranked" id="ranked"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="coachH">
+      <div class="panel-head"><h2 id="coachH">Coach</h2></div>
+      <p class="note" id="coachNote"></p>
+      <div class="kpis" id="coachStats"></div>
+      <div class="plan" id="coachPlan"></div>
     </section>
 
     <div class="modebar">
@@ -298,6 +324,7 @@
   <script src="legends.js"></script>
   <script src="core.js"></script>
   <script src="history.js"></script>
+  <script src="coach.js"></script>
   <script>
     const $ = id => document.getElementById(id);
     const esc = str => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -406,6 +433,7 @@
         if (!shaped) throw new Error('dair.gg sent an answer this page can\'t read.');
         data = shaped;
         try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (err) { /* storage full or unavailable */ }
+        try { if (typeof Coach !== 'undefined') Coach.record(id, data); } catch (err) { /* coach history is optional */ }
         setStatus(`Loaded ${data.name} (#${id}). dair.gg updates a few minutes after each match.`);
       } catch (err) {
         const cached = readCache(id);
@@ -655,18 +683,72 @@
       $('ranked').innerHTML = bracketHtml(`${icon('user')}1v1`, r.solo) + bracketHtml(`${icon('users')}2v2 (best team)`, duo, teams) + bracketHtml(`${icon('rotate')}3v3 / rotating`, r.rotating);
     }
 
+    // Coach panel: ranked 1v1 metrics, a short plan and the weakest legends (all from coach.js)
+    function renderCoach() {
+      const ids = ['coachNote', 'coachStats', 'coachPlan'];
+      if (typeof Coach === 'undefined' || !data) { ids.forEach(id => { $(id).innerHTML = ''; }); $('coachH').closest('section').hidden = true; return; }
+      $('coachH').closest('section').hidden = false;
+      let a, saved, plan = [];
+      try {
+        a = Coach.analyze(data);
+        saved = Coach.load(data.id) || {};
+        if (a && a.ok) plan = Coach.plan(a, saved.snaps || [], saved.marks || {}) || [];
+      } catch (err) { a = null; }
+      if (!a) { $('coachNote').textContent = 'Coach is unavailable right now.'; $('coachStats').innerHTML = ''; $('coachPlan').innerHTML = ''; return; }
+      const metrics = a.metrics || [], solo = a.solo;
+      const partial = a.reason === 'partial';
+      const PCT = { rankedWr: 1, unarmedShare: 1 };
+      const numK = (key, v) => (Number.isFinite(v) ? (PCT[key] ? `${Math.round(v * 100)}%` : fmt(v, Math.abs(v) < 10 && v % 1 ? 1 : 0)) : '–');
+      const noRanked = !partial && (a.reason === 'no-ranked' || !solo || !solo.games);
+      const placing = !!(solo && solo.placement);
+            const lead = partial ? 'Stats look incomplete or you may be offline. Try refreshing to load the full numbers.'
+        : noRanked ? 'Play ranked 1v1 to unlock rating goals. Showing all-mode numbers only.'
+        : placing ? 'In placements: finish your placement matches to get a rating and rating goals.'
+        : `${esc(solo.tier || '')} ${fmt(solo.rating)} rating, peak ${fmt(solo.peak)}, ${fmt(solo.games)} ranked 1v1 games.`;
+      $('coachNote').innerHTML = `${lead} Targets are rough rules of thumb, not official numbers.`;
+      $('coachStats').innerHTML = metrics.map(m => {
+        const v = numK(m.key, m.value);
+        const low = m.status === 'low-sample';
+        return `<div class="kpi"><div class="k">${esc(m.label)}<span class="metric-tag">${m.scope === 'ranked' ? 'ranked' : 'all modes'}</span></div>
+          <div class="v">${v}</div>
+          <div class="s">target ${Number.isFinite(m.target) ? (m.better === 'lower' ? '≤ ' : '≥ ') + numK(m.key, m.target) : '–'}${low ? ' <span class="chip low">low sample</span>' : ''}</div></div>`;
+      }).join('') || '<div class="empty">No coach numbers yet.</div>';
+      const num = v => numK('', v);
+      $('coachPlan').innerHTML = (placing ? '' : plan.map(p => {
+        const m = metrics.find(x => x.key === p.key);
+        const t = p.trend && Number.isFinite(p.trend.from) && Number.isFinite(p.trend.to) ? p.trend : null;
+        const improving = t && m && (m.better === 'lower' ? t.to < t.from : t.to > t.from);
+        const trend = t ? `<div class="trend ${t.to === t.from ? '' : improving ? 'up' : 'down'}">${esc(m ? m.label : p.title)} ${numK(p.key, t.from)} → ${numK(p.key, t.to)} over ${fmt(t.days)} days</div>` : '';
+        const done = p.state === 'done';
+        return `<div class="plan-item${done ? ' done' : ''}"><div>
+            <h3>${esc(p.title)}</h3>
+            <div class="cur">${numK(p.key, p.current)} → target ${numK(p.key, p.target)}</div>${trend}
+            <p>${esc(p.why)}</p><p>${esc(p.drill)}</p></div>
+          <div class="plan-actions">
+            <button class="btn" type="button" data-item="${esc(p.id)}" data-act="${done ? 'reopen' : 'done'}">${done ? 'Undo' : 'Done'}</button>
+            <button class="btn" type="button" data-item="${esc(p.id)}" data-act="dismissed">Dismiss</button>
+          </div></div>`;
+      }).join('')) || (placing || noRanked || partial ? '' : '<div class="empty">No open coaching items. Nice work.</div>');
+      const pool = (a.pool || []).slice().sort((x, y) => (y.gap || 0) - (x.gap || 0)).slice(0, 5);
+      if (pool.length && !noRanked) {
+        $('coachPlan').innerHTML += `<div class="coach-pool"><h3>Legends to look at</h3>${pool.map(l =>
+          `<div><span>${esc(l.name)}${l.sample === 'low' ? ' <span class="chip low">low sample</span>' : ''}</span><span>${num(l.rating)} (peak ${num(l.peak)}), ${fmt(l.wins)}W ${fmt(l.games - l.wins)}L</span></div>`).join('')}</div>`;
+      }
+    }
+
     function renderLists() { renderMode(); renderLegends(); renderWeapons(); }
     function render() {
       renderMode();
       if (!data) {
         ['tiles', 'weaponBars', 'days', 'extras', 'ranked', 'rankedNote', 'legendNote', 'weaponNote', 'daysNote'].forEach(id => { $(id).innerHTML = ''; });
+        renderCoach();
         $('legendH').textContent = 'Best legends';
         $('legendBars').innerHTML = '<div class="empty">Enter your Brawlhalla ID and press Load.</div>';
         return;
       }
       $('title').textContent = data.name;
       $('lead').textContent = `#${data.id} · ${data.partial ? 'last synced legend stats' : 'from dair.gg'}${data.fetchedAt ? `, ${new Date(data.fetchedAt).toLocaleString()}` : ''}`;
-      renderTiles(); renderRanked(); renderLists(); renderDays(); renderExtras();
+      renderTiles(); renderRanked(); renderCoach(); renderLists(); renderDays(); renderExtras();
     }
 
     // ---------- events ----------
@@ -694,6 +776,19 @@
     });
     $('idInput').addEventListener('input', () => $('idInput').removeAttribute('aria-invalid'));
     window.addEventListener('storage', e => { if (data && MatchHistory.isKey(e.key)) { MatchHistory.reload(); renderDays(); } });
+
+    $('coachPlan').addEventListener('click', e => {
+      const b = e.target.closest('[data-item]');
+      if (!b || !data || typeof Coach === 'undefined') return;
+      try { Coach.mark(data.id, b.dataset.item, b.dataset.act === 'reopen' ? null : b.dataset.act); } catch (err) { /* storage unavailable */ }
+      const item = b.dataset.item;
+      renderCoach();
+      const box = $('coachPlan');
+      const same = Array.from(box.querySelectorAll('[data-item]')).filter(x => x.dataset.item === item);
+      const next = same.find(x => x.dataset.act !== 'dismissed') || same[0];
+      if (next) next.focus();
+      else { box.setAttribute('tabindex', '-1'); box.focus(); }
+    });
 
     // Starts with the tracker's saved ID (or ?id= from a link): the cached copy shows right away
     const startId = [new URLSearchParams(location.search).get('id'), Tracker.state.id].find(v => /^\d+$/.test(v || '')) || '';
