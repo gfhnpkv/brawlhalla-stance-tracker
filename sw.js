@@ -4,12 +4,12 @@
 // they rarely change, so repeat visits show them with no network at all. Bump IMG_CACHE after
 // replacing a picture under the same name.
 // API calls to other sites are not touched, and saved data stays in localStorage.
-const CACHE = 'stance-tracker-v35';
+const CACHE = 'stance-tracker-v36';
 const IMG_CACHE = 'stance-tracker-img-v1';
 const WEAPONS = ['Axe', 'Boots', 'Bow', 'Cannon', 'Chakram', 'Fists', 'Greatsword', 'Hammer', 'Katar', 'Orb', 'Pistol', 'RocketLance', 'Scythe', 'Spear', 'Sword'].map(w => `weapons/${w}.svg`);
 const isPicture = url => /\/(portraits|weapons)\/.+\.(avif|png|jpe?g|webp|svg)$/i.test(url.pathname);
 const FILES = [
-  './', 'index.html', 'app.html', 'stats.html',
+  './', 'index.html', 'stats.html',
   'legends.js', 'core.js', 'goals.js', 'history.js', 'summary.js', 'shareimage.js', 'coach.js', 'theme-boot.js', 'icon.svg', 'manifest.webmanifest', 'portraits/index.json', '404.html',
   'fonts/barlow-condensed-600.woff2', 'fonts/barlow-condensed-700.woff2', 'fonts/OFL.txt'
 ];

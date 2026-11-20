@@ -1,4 +1,4 @@
-// Shared legend data for index.html and app.html.
+// Shared legend data for index.html and stats.html.
 // Stances per level, target (v) and standard (!) stances, and official API legend IDs.
 const LEGENDS_DB = [
   {"order": 1, "name": "Bödvar", "title": "The Unconquered Viking", "target": "Strength or Super Speed", "alt": "Speed or Strength", "vLvl": 8, "bangLvl": 3, "stances": {"3": "Speed", "4": "Defense", "6": "Dexterity", "8": "Strength", "11": "Super Speed", "13": "Super Defense", "15": "Super Dexterity", "17": "Super Strength"}, "colors": {"1": "Blue, Yellow, Brown", "2": "Orange", "5": "Purple", "10": "Cyan", "12": "Green", "14": "Sunset", "16": "Gray", "18": "Pink", "20": "Red"}},

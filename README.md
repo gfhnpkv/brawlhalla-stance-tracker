@@ -7,8 +7,7 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 - **🔒**: locked: you haven't played this legend or don't own it (the API can't tell those apart)
 
 ## Use it
-- **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (`index.html`: Live status, stance reminders, game history and the legend roster; phones are sent to the phone view)
-- **Phone:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/app.html (mobile view; add it to your home screen)
+- **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (`index.html`: Live status, stance reminders, game history and the legend roster; responsive on phones too — add it to your home screen)
 - **Stats:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stats.html (best legends and weapons for any player; includes a Coach panel: ranked 1v1 weak spots from derived stats, weapon-based advice for random mains (a weapon is judged after 5 ranked games; each item suggests legends to practice it with, and weapons you have never played show up too) plus a training plan and a since-last-visit summary that update as you play)
 - **Locally:** `python3 -m http.server`, then open http://localhost:8000
 
@@ -18,9 +17,9 @@ November 2026. Old links to them show a "page not found" page that links to the 
 Backups (More → Export backup) use the same JSON on every page, so they import on any of them.
 
 ## File map
-- `index.html`, `app.html`, `stats.html`, `404.html`: the pages (inline CSS and page script each)
+- `index.html`, `stats.html`, `404.html`: the pages (inline CSS and page script each)
 - `core.js` (shared storage, levels, portraits), `legends.js`, `goals.js`, `history.js`, `summary.js`, `shareimage.js`, `coach.js`: shared scripts
-- `theme-boot.js`: applies the saved theme and the phone/desktop redirect before the page draws
+- `theme-boot.js`: applies the saved theme before the page draws
 - `sw.js`, `manifest.webmanifest`, `icon.svg`: offline support and install; bump `CACHE` in `sw.js` after changes
 - `portraits/`, `weapons/`, `fonts/`: pictures and fonts; `tools/`: image scripts; `worker/`: the Cloudflare relay
 
@@ -46,7 +45,7 @@ Enter your numeric Brawlhalla ID and click **Sync API**. No API key needed from 
 2. Official Brawlhalla API v1.0 (2000 requests / 5 min), through the relay only: fallback; omits levels for some accounts. It works only once `BRAWLHALLA_API_KEY` is set as a Worker secret (see above); without it, sync uses dair.gg alone.
 
 ## Stance reminders
-Turn on **Live** (main page or phone view). The game's API doesn't say which stance you have equipped, so the
+Turn on **Live** (main page, on desktop or phone). The game's API doesn't say which stance you have equipped, so the
 tracker reminds you instead of checking:
 - **On unlock:** when a level-up unlocks a better stance, a pop-up says which one to switch to, e.g.
   "🔓 Bödvar hit level 8: switch to Strength (best stance)".

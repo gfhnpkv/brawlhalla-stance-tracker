@@ -1,13 +1,10 @@
-// Runs in <head> before the page draws: applies the saved theme (no flash) and sends
-// phones to app.html and computers to index.html. ?view=mobile|desktop sets a manual
-// choice, ?view=auto clears it.
-// data-page="desktop" (index.html) only ever sends phones to app.html;
-// only data-page="mobile" (app.html) sends computers on.
-// data-no-theme: the page has one fixed look (index.html), so the saved theme is not applied.
+// Runs in <head> before the page draws: applies the saved theme (no flash).
+// The old phone view was removed in November 2026; index.html is
+// responsive, so there is no phone/desktop redirect anymore. A stale ?view=
+// parameter or stored bh_view_v1 choice from the old view is cleaned up.
 (function () {
   var THEME_COLORS = { midnight: '#0f131a', valhalla: '#120c1f', daylight: '#f4f6fb' };
   var script = document.currentScript;
-  var page = script && script.dataset.page;
   var themed = !(script && script.hasAttribute('data-no-theme'));
   try {
     var theme = localStorage.getItem('bh_theme_v1');
@@ -19,18 +16,11 @@
 
     var params = new URLSearchParams(location.search);
     var view = params.get('view');
-    if (view === 'auto') localStorage.removeItem('bh_view_v1');
-    else if (view === 'mobile' || view === 'desktop') localStorage.setItem('bh_view_v1', view);
-    params.delete('view');
-    var choice = localStorage.getItem('bh_view_v1');
-
-    var isPhone = /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent) ||
-      window.matchMedia('(max-width: 820px) and (pointer: coarse)').matches;
-    var want = choice || (isPhone ? 'mobile' : 'desktop');
-    var target = want === 'mobile' && page === 'desktop' ? 'app.html'
-      : want === 'desktop' && page === 'mobile' ? 'index.html' : null;
-    var query = params.toString();
-    if (target) location.replace(target + (query ? '?' + query : '') + location.hash);
-    else if (view) history.replaceState(null, '', location.pathname + (query ? '?' + query : '') + location.hash);
-  } catch (err) { /* storage or matchMedia unavailable: stay on this page */ }
+    localStorage.removeItem('bh_view_v1');
+    if (view) {
+      params.delete('view');
+      var query = params.toString();
+      history.replaceState(null, '', location.pathname + (query ? '?' + query : '') + location.hash);
+    }
+  } catch (err) { /* storage unavailable: stay on this page */ }
 })();

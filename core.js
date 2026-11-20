@@ -1,5 +1,5 @@
 // Shared tracker state and sync (needs legends.js loaded first).
-// Uses the same localStorage keys as index.html and app.html, so all views share data.
+// Uses the same localStorage keys on every page, so all views share data.
 const Tracker = (() => {
   // legends.js must load first: without LEGENDS_DB every lookup below would throw a
   // ReferenceError and the whole tracker would be undefined. Show the failure instead

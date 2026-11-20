@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0f131a" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <script src="theme-boot.js" data-page="desktop" data-no-theme></script>
+  <script src="theme-boot.js" data-no-theme></script>
   <style>
     .skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: #fff; color: #0f131a; font-weight: 700; text-decoration: none; }
     .skip:focus { top: 8px; }
@@ -438,7 +438,6 @@
       <nav class="nav" aria-label="Other pages">
         <a href="index.html" aria-current="page">Tracker</a>
         <a href="stats.html">Stats</a>
-        <a href="app.html?view=mobile">Phone view</a>
       </nav>
       <details class="menu" id="moreMenu">
         <summary class="btn"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg>More</summary>
@@ -528,7 +527,7 @@
     const $ = id => document.getElementById(id);
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const icon = (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
-    // Status copy shared with the phone view
+    // Status copy shared across pages
     const STATUS = {
       v: { cls: 'v', short: 'Best', long: 'Best stance unlocked', icon: 'best' },
       '!': { cls: 'b', short: 'Standard', long: 'Standard stance unlocked', icon: 'standard' },
@@ -653,7 +652,7 @@
       return { unlocks: r.unlocks.filter(u => !reached.has(`${u.legend}:${u.lvl}`)) };
     }
 
-    // ---------- Live mode (same polling as app.html) ----------
+    // ---------- Live mode ----------
     // The official API's games count shows a match within seconds; levels come from dair.gg, which
     // caches for a few minutes, so they're re-synced every 5 minutes and 2 minutes after a match.
     // Poll fast while waiting for the first match of the session, then settle to 30 s
@@ -1134,7 +1133,7 @@
         toast('Could not make the image', err.message || 'Try again.');
       }
     });
-    // Backups use the same JSON as app.html, so each page imports the other's files
+    // Backups use the same JSON on every page
     $('exportBtn').addEventListener('click', () => {
       closeMenu();
       const blob = new Blob([JSON.stringify(Tracker.exportBackup(), null, 2)], { type: 'application/json' });
