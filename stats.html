@@ -268,7 +268,7 @@
     </section>
 
     <section class="panel" aria-labelledby="coachH">
-      <div class="panel-head"><h2 id="coachH">Coach</h2></div>
+      <div class="panel-head"><h2 id="coachH">Coach</h2><button class="btn" type="button" id="coachReset" aria-label="Reset advice: bring back every item marked Done or Dismissed" hidden>Reset advice</button></div>
       <p class="note" id="coachNote"></p>
       <div class="kpis" id="coachStats"></div>
       <div class="plan" id="coachPlan"></div>
@@ -710,12 +710,14 @@
       const ids = ['coachNote', 'coachStats', 'coachPlan'];
       if (typeof Coach === 'undefined' || !data) { ids.forEach(id => { $(id).innerHTML = ''; }); $('coachH').closest('section').hidden = true; return; }
       $('coachH').closest('section').hidden = false;
+      $('coachReset').hidden = true;
       let a, saved, plan = [];
       try {
         a = Coach.analyze(data);
         saved = Coach.load(data.id) || {};
         if (a && a.ok) plan = Coach.plan(a, saved.snaps || [], saved.marks || {}) || [];
       } catch (err) { a = null; }
+      $('coachReset').hidden = !Object.keys((saved && saved.marks) || {}).length;
       if (!a) { $('coachNote').textContent = 'Coach is unavailable right now.'; $('coachStats').innerHTML = ''; $('coachPlan').innerHTML = ''; return; }
       const metrics = a.metrics || [], solo = a.solo;
       const partial = a.reason === 'partial';
@@ -816,6 +818,14 @@
       const next = same.find(x => x.dataset.act !== 'dismissed') || same[0];
       if (next) next.focus();
       else { box.setAttribute('tabindex', '-1'); box.focus(); }
+    });
+
+    $('coachReset').addEventListener('click', () => {
+      if (!data || typeof Coach === 'undefined') return;
+      try { Coach.resetMarks(data.id); } catch (err) { /* storage unavailable */ }
+      renderCoach();
+      const box = $('coachPlan');
+      box.setAttribute('tabindex', '-1'); box.focus();
     });
 
     // Starts with the tracker's saved ID (or ?id= from a link): the cached copy shows right away

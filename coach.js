@@ -122,6 +122,13 @@ const Coach = (() => {
     return cur.marks;
   }
 
+  // Clears every Done/Dismissed mark for one player; snapshots (trend history) are kept. Returns the new marks.
+  function resetMarks(id) {
+    const cur = load(id);
+    save(id, { snaps: cur.snaps, marks: {} });
+    return {};
+  }
+
   // ---------- analysis ----------
   function statusOf(rule, value, games) {
     if (value == null) return 'low-sample';
@@ -280,5 +287,5 @@ const Coach = (() => {
     return out.sort((a, b) => b.priority - a.priority).slice(0, MAX_ITEMS);
   }
 
-  return { RULES, analyze, plan, load, record, mark };
+  return { RULES, analyze, plan, load, record, mark, resetMarks };
 })();
