@@ -9,7 +9,6 @@ Tracks your level on all 70 legends and shows which stance you've unlocked:
 ## Use it
 - **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (`index.html`: Live status, stance reminders, game history and the legend roster; phones are sent to the phone view)
 - **Phone:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/app.html (mobile view; add it to your home screen)
-- **Stance lab:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stances.html (what each stance does to every legend's stats, with your picks and notes)
 - **Stats:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/stats.html (best legends and weapons for any player; includes a Coach panel: ranked 1v1 weak spots from derived stats, weapon-based advice for random mains (a weapon is judged after 5 ranked games; each item suggests legends to practice it with, and weapons you have never played show up too) plus a training plan and a since-last-visit summary that update as you play)
 - **Locally:** `python3 -m http.server`, then open http://localhost:8000
 
@@ -17,6 +16,13 @@ The card collection, stance matrix, roadmap, compare, legend select and terminal
 November 2026. Old links to them show a "page not found" page that links to the pages above.
 
 Backups (More → Export backup) use the same JSON on every page, so they import on any of them.
+
+## File map
+- `index.html`, `app.html`, `stats.html`, `404.html`: the pages (inline CSS and page script each)
+- `core.js` (shared storage, levels, portraits), `legends.js`, `goals.js`, `history.js`, `summary.js`, `shareimage.js`, `coach.js`: shared scripts
+- `theme-boot.js`: applies the saved theme and the phone/desktop redirect before the page draws
+- `sw.js`, `manifest.webmanifest`, `icon.svg`: offline support and install; bump `CACHE` in `sw.js` after changes
+- `portraits/`, `weapons/`, `fonts/`: pictures and fonts; `tools/`: image scripts; `worker/`: the Cloudflare relay
 
 ## How data is fetched
 dair.gg doesn't reliably allow direct browser requests, so it goes through a relay:
@@ -43,8 +49,7 @@ tracker reminds you instead of checking:
 - Stances you had already unlocked before your first sync (or before reminders existed) count as switched, so
   old unlocks never bring reminders.
 
-Confirmations are saved in your browser (`bh_stance_confirmed_v1`). The equipped stance you mark in the
-**Stance lab** is only for your notes; reminders don't use it.
+Confirmations are saved in your browser (`bh_stance_confirmed_v1`).
 
 When a level is missing, your manually entered level is kept. Set levels with + / − on any legend.
 

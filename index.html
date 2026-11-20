@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Stance Tracker</title>
+  <title>Tracker · Stance Tracker</title>
   <meta name="description" content="Brawlhalla Stance Tracker: Live status, stance reminders, game history and the legend roster." />
   <meta name="theme-color" content="#0f131a" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <script src="theme-boot.js" data-page="desktop" data-no-theme></script>
   <style>
+    .skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: #fff; color: #0f131a; font-weight: 700; text-decoration: none; }
+    .skip:focus { top: 8px; }
     @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/barlow-condensed-600.woff2') format('woff2'); }
     @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/barlow-condensed-700.woff2') format('woff2'); }
     :root {
@@ -107,7 +110,7 @@
       border-bottom: 1px solid var(--line);
     }
     .topbar-inner { max-width: 1440px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--fs-0); margin-right: auto; }
+    .brand { display: flex; align-items: center; gap: 10px; font-family: inherit; font-weight: 700; font-size: var(--fs-0); margin-right: auto; }
     .brand img { width: 24px; height: 24px; }
     .idform { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .idform .field { width: 200px; }
@@ -395,6 +398,7 @@
   </style>
 </head>
 <body>
+  <a class="skip" href="#main">Skip to content</a>
   <!-- One icon set: 24px grid, 1.75 stroke, round caps -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></symbol>
@@ -418,7 +422,7 @@
 
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="brand"><img src="icon.svg" alt="" />Stance Tracker</div>
+      <h1 class="brand"><img src="icon.svg" alt="" />Stance Tracker</h1>
       <form class="idform" id="idForm" novalidate>
         <label class="sr-only" for="idInput">Brawlhalla ID</label>
         <input class="field" id="idInput" inputmode="numeric" autocomplete="off" placeholder="Your Brawlhalla ID (e.g. 1234567)" />
@@ -427,8 +431,9 @@
       </form>
       <button class="switch" id="liveSwitch" role="switch" aria-checked="false" type="button" title="Checks for finished matches every 10 seconds (every 30 seconds once a match lands) and reminds you to switch stances"><span class="track"></span>Live</button>
       <nav class="nav" aria-label="Other pages">
-        <a href="stances.html">Stance lab</a>
+        <a href="index.html" aria-current="page">Tracker</a>
         <a href="stats.html">Stats</a>
+        <a href="app.html?view=mobile">Phone view</a>
       </nav>
       <details class="menu" id="moreMenu">
         <summary class="btn"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg>More</summary>
@@ -447,7 +452,7 @@
     <div class="sync-status" id="syncStatus" role="status"></div>
   </header>
 
-  <main>
+  <main id="main">
     <div class="col col-left">
       <section class="panel live" aria-labelledby="liveH">
         <div class="panel-head"><h2 id="liveH">Live</h2><span class="aside" id="liveWho"></span></div>

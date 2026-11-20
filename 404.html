@@ -25,17 +25,19 @@
     nav { display: flex; flex-wrap: wrap; gap: 8px; }
     a { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); color: var(--accent); font-weight: 700; text-decoration: none; }
     a:hover { border-color: var(--accent); }
+    .skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: #fff; color: #0f131a; font-weight: 700; text-decoration: none; }
+    .skip:focus { top: 8px; }
   </style>
 </head>
 <body>
-  <main>
+  <a class="skip" href="#main">Skip to content</a>
+  <main id="main">
     <h1>Page not found</h1>
-    <p>This page doesn't exist. The card collection, stance matrix, roadmap, compare, legend select and terminal pages were removed; the tracker, the phone view, the stance lab and the stats page are still here.</p>
+    <p>This page doesn't exist. The card collection, stance matrix, roadmap, compare, legend select and terminal pages were removed; the tracker, the phone view and the stats page are still here.</p>
     <nav aria-label="Pages">
-      <a href="/brawlhalla-stance-tracker/index.html?view=auto">Stance tracker</a>
-      <a href="/brawlhalla-stance-tracker/app.html?view=mobile">Phone view</a>
-      <a href="/brawlhalla-stance-tracker/stances.html">Stance lab</a>
+      <a href="/brawlhalla-stance-tracker/index.html">Tracker</a>
       <a href="/brawlhalla-stance-tracker/stats.html">Stats</a>
+      <a href="/brawlhalla-stance-tracker/app.html?view=mobile">Phone view</a>
     </nav>
   </main>
 </body>

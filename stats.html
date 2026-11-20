@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Player Stats</title>
+  <title>Stats · Stance Tracker</title>
   <meta name="description" content="Your best Brawlhalla legends and weapons, with win rates, KOs, damage, ranked and recent form." />
   <meta name="theme-color" content="#0f131a" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <style>
+    .skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: #fff; color: #0f131a; font-weight: 700; text-decoration: none; }
+    .skip:focus { top: 8px; }
     /* Tokens and components from index.html (the main page) */
     @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/barlow-condensed-600.woff2') format('woff2'); }
     @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/barlow-condensed-700.woff2') format('woff2'); }
@@ -225,6 +228,7 @@
   </style>
 </head>
 <body>
+  <a class="skip" href="#main">Skip to content</a>
   <!-- One icon set: 24px grid, 1.75 stroke, round caps (as in index.html) -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></symbol>
@@ -247,13 +251,14 @@
       </form>
       <nav class="nav" aria-label="Other pages">
         <a href="index.html">Tracker</a>
-        <a href="stances.html">Stance lab</a>
+        <a href="stats.html" aria-current="page">Stats</a>
+        <a href="app.html?view=mobile">Phone view</a>
       </nav>
     </div>
     <div class="sync-status" id="status" role="status"></div>
   </header>
 
-  <main>
+  <main id="main">
     <div class="page-head">
       <h1 id="title">Stats</h1>
       <p id="lead">Your best legends and weapons, from dair.gg and the Brawlhalla API.</p>

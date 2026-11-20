@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Stance Tracker</title>
-  <meta name="description" content="Mobile view of the Brawlhalla Stance Tracker." />
+  <title>Phone view · Stance Tracker</title>
+  <meta name="description" content="Phone view of the Brawlhalla Stance Tracker." />
   <meta name="theme-color" content="#0f131a" />
   <script src="theme-boot.js" data-page="mobile"></script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,6 +14,9 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
   <style>
+    .skip { position: absolute; left: 8px; top: -64px; z-index: 100; padding: 10px 14px; border-radius: 8px; background: #fff; color: #0f131a; font-weight: 700; text-decoration: none; }
+    .skip:focus { top: 8px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
     @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url('fonts/barlow-condensed-600.woff2') format('woff2'); }
     @font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('fonts/barlow-condensed-700.woff2') format('woff2'); }
     :root {
@@ -317,8 +320,10 @@
   </style>
 </head>
 <body>
+  <a class="skip" href="#main">Skip to content</a>
   <header class="header">
     <div class="inner">
+      <h1 class="sr-only">Stance Tracker</h1>
       <div class="who">
         <div class="avatar" id="avatar">?</div>
         <div class="who-meta">
@@ -341,7 +346,7 @@
     </div>
   </header>
 
-  <main>
+  <main id="main">
     <section class="view" id="view-legends">
       <ol class="steps" id="firstSteps" hidden>
         <li>1. Enter your Brawlhalla ID in the Me tab.</li>
@@ -449,7 +454,7 @@
       </div>
 
       <p style="text-align:center;font-size:0.82rem;margin:16px 0">
-        <a class="link" href="stances.html">Stance lab</a> &nbsp;·&nbsp; <a class="link" href="stats.html">Stats</a> &nbsp;·&nbsp; <a class="link" href="index.html?view=desktop">Desktop view →</a>
+        <a class="link" href="index.html?view=desktop">Tracker</a> &nbsp;·&nbsp; <a class="link" href="stats.html">Stats</a> &nbsp;·&nbsp; <a class="link" href="app.html?view=mobile" aria-current="page">Phone view</a>
       </p>
       <p style="text-align:center;font-size:0.72rem;color:var(--muted);margin-bottom:8px">
         Data from the Brawlhalla API and dair.gg. Not affiliated with Blue Mammoth Games or Ubisoft.
@@ -475,7 +480,7 @@
   <script src="summary.js"></script>
   <script src="shareimage.js"></script>
   <script>
-    // Mobile view of the tracker. Uses the same localStorage keys as index.html,
+    // Phone view of the tracker. Uses the same localStorage keys as index.html,
     // so both pages show the same levels, stats and log.
     const KEYS = {
       levels: 'bh_levels_v1', log: 'bh_improvements_v1', id: 'bh_player_id_v1',
