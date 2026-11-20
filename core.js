@@ -1,6 +1,41 @@
 // Shared tracker state and sync (needs legends.js loaded first).
 // Uses the same localStorage keys as index.html and app.html, so all views share data.
 const Tracker = (() => {
+  // legends.js must load first: without LEGENDS_DB every lookup below would throw a
+  // ReferenceError and the whole tracker would be undefined. Show the failure instead
+  // and return a safe stub, so the pages can still load and say what went wrong.
+  if (typeof LEGENDS_DB === 'undefined' || !Array.isArray(LEGENDS_DB) || !LEGENDS_DB.length) {
+    const LEGENDS_ERROR = 'Legend data failed to load (legends.js). Check your connection and refresh the page.';
+    const showLegendsError = () => {
+      try {
+        if (typeof document === 'undefined' || document.querySelector('[data-legends-error]')) return;
+        const banner = document.createElement('div');
+        banner.setAttribute('data-legends-error', '');
+        banner.setAttribute('role', 'alert');
+        banner.style.cssText = 'position:fixed;inset:0 0 auto 0;z-index:9999;padding:12px 16px;background:#7f1d1d;color:#fff;font:16px/1.4 system-ui,sans-serif;text-align:center';
+        banner.textContent = LEGENDS_ERROR;
+        document.body.appendChild(banner);
+      } catch (err) { /* nowhere to show it */ }
+    };
+    if (typeof document !== 'undefined') {
+      if (document.body) showLegendsError();
+      else document.addEventListener('DOMContentLoaded', showLegendsError);
+    }
+    if (typeof console !== 'undefined' && console.error) console.error(LEGENDS_ERROR);
+    return {
+      KEYS: { levels: 'bh_levels_v1', log: 'bh_improvements_v1', id: 'bh_player_id_v1', stats: 'bh_legend_stats_v1', profile: 'bh_profile_v1' },
+      state: { levels: {}, stats: {}, log: [], profile: null, id: '' },
+      clean: { levels: () => ({}), log: () => [], stats: () => ({}), profile: () => null, id: () => '', goals: () => [] },
+      reload() {}, isDataKey: () => false, wouldReplace: () => false, replaceWarning: () => LEGENDS_ERROR,
+      portraitSlug: () => '', loadPortraits: async () => ({}), portraitSrc: () => '', portraitHtml: () => '', portraitError: () => false,
+      fold: s => String(s ?? ''), recentLegends: () => [], noteRecent: () => [],
+      getLevel: () => 1, hasPlayed: () => false, statusOf: () => 'x', nextTarget: () => null, progressToNext: () => 0,
+      setLevel() {}, setId() {}, sync: async () => ({ error: LEGENDS_ERROR }),
+      bestStances: () => null, pendingStance: () => null, confirmStance() {}, resetStances: () => 0,
+      fetchGames: async () => null, playedSince: () => [], exportBackup: () => ({}),
+      importBackup: () => ({ ok: false, error: 'invalid' })
+    };
+  }
   const KEYS = {
     levels: 'bh_levels_v1', log: 'bh_improvements_v1', id: 'bh_player_id_v1',
     stats: 'bh_legend_stats_v1', profile: 'bh_profile_v1'
@@ -53,8 +88,10 @@ const Tracker = (() => {
     // Pinned goal names; goals.js applies its own limit when it reads them
     goals: v => (Array.isArray(v) ? [...new Set(v.filter(n => typeof n === 'string' && legendNamed(n)))] : [])
   };
+  // Returns true when the value was stored, false when storage failed (full, blocked,
+  // private mode). Callers that report success to the user must check this.
   function save(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* storage unavailable */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (err) { /* storage unavailable */ return false; }
   }
 
   const state = {};
@@ -277,7 +314,9 @@ const Tracker = (() => {
   }
 
   // dair.gg has per-legend levels for every account (through the relay, since it doesn't
-  // reliably allow browser requests); the official API is the fallback.
+  // reliably allow browser requests); the official API is reached only through the relay too —
+  // it needs an API key, which lives as a secret on the Worker (see worker/worker.js) and must
+  // never be called directly from the browser, where the key would be visible to everyone.
   function relayBase() {
     return /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/api' : RELAY_URL;
   }
@@ -301,7 +340,6 @@ const Tracker = (() => {
     const relay = relayBase();
     const sources = [
       { url: `${relay}/dair/${bhId}`, transform: fromDair },
-      { url: `https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all` },
       { url: `${relay}/player/${bhId}` }
     ];
     let error = 'Could not reach the Brawlhalla API.';
@@ -325,27 +363,28 @@ const Tracker = (() => {
   }
 
   // Total and per-legend games (and per-legend wins, for the game history) from the official API (seconds old, unlike dair.gg), so Live mode
-  // can tell when a match ended and which legend it was on. Null when neither source answers.
+  // can tell when a match ended and which legend it was on. Only the relay is called, never the
+  // official API directly — it needs a key, which only the Worker holds. Null when the relay doesn't answer.
   async function fetchGames(bhId) {
-    for (const url of [`https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${bhId}&mode=all`, `${relayBase()}/player/${bhId}`]) {
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) continue;
-        const json = await res.json();
-        if (!Number.isFinite(json.games)) continue;
-        const legends = {}, wins = {};
-        if (Array.isArray(json.legends)) parsePlayer(bhId, json).legends.forEach(l => { legends[l.name] = l.stats.games; wins[l.name] = l.stats.wins; });
-        return { games: json.games, legends, wins };
-      } catch (err) { /* try next source */ }
-    }
-    return null;
+    try {
+      const res = await fetch(`${relayBase()}/player/${bhId}`, { cache: 'no-store' });
+      if (!res.ok) return null;
+      const json = await res.json();
+      if (!Number.isFinite(json.games)) return null;
+      const legends = {}, wins = {};
+      if (Array.isArray(json.legends)) parsePlayer(bhId, json).legends.forEach(l => { legends[l.name] = l.stats.games; wins[l.name] = l.stats.wins; });
+      return { games: json.games, legends, wins };
+    } catch (err) { return null; }
   }
   // Legends whose game count went up between two fetchGames results
   const playedSince = (before, after) => Object.keys(after.legends).filter(name => after.legends[name] > (before.legends[name] || 0));
 
-  // Turn an API response into { profile fields, legends: [{ name, legend, level (or null), stats }] }
+  // Turn an API response into { profile fields, legends: [{ name, legend, level (or null), stats }],
+  // unknown: [names/ids the API returned that aren't in legends.js] }. Unknown legends are
+  // counted in `missing` by sync() and reported, instead of being dropped silently — that is
+  // how a new legend (71+) shows up, and it needs legends.js to be updated, not quiet data loss.
   function parsePlayer(bhId, data) {
-    const legends = [];
+    const legends = [], unknown = [];
     data.legends.forEach(apiLeg => {
       let name = null;
       if (apiLeg.legend_name_key) {
@@ -354,7 +393,7 @@ const Tracker = (() => {
       }
       if (!name) name = BRAWLHALLA_ID_MAP[apiLeg.legend_id];
       const legend = LEGENDS_DB.find(l => l.name === name);
-      if (!legend) return;
+      if (!legend) { unknown.push(apiLeg.legend_name_key || (apiLeg.legend_id != null ? `id:${apiLeg.legend_id}` : 'unknown legend')); return; }
       const lvl = parseInt(apiLeg.level, 10);
       legends.push({
         name, legend,
@@ -370,7 +409,7 @@ const Tracker = (() => {
     return {
       id: bhId, name: data.name || 'Player', level: data.level || null, games: data.games, wins: data.wins,
       time: data.time || data.legends.reduce((sum, l) => sum + (l.match_time || 0), 0),
-      legends
+      legends, unknown
     };
   }
 
@@ -387,7 +426,7 @@ const Tracker = (() => {
       // Different player: start fresh so data doesn't mix between accounts
       state.levels = {}; state.stats = {}; state.log = [];
     }
-    let updated = 0, missing = 0;
+    let updated = 0, missing = (player.unknown || []).length;
     const unlocks = [];
     player.legends.forEach(({ name, legend, level, stats }) => {
       state.stats[name] = { ...stats, weapons: stats.weapons || (state.stats[name] && state.stats[name].weapons) || [] };
@@ -407,17 +446,20 @@ const Tracker = (() => {
       updated++;
     });
 
-    const { legends, ...profile } = player;
+    const { legends, unknown, ...profile } = player;
     state.profile = { ...profile, syncedAt: Date.now() };
-    save(KEYS.levels, state.levels);
-    save(KEYS.log, state.log);
-    save(KEYS.stats, state.stats);
-    save(KEYS.profile, state.profile);
+    // Report a failed save instead of claiming success: without this the page would show
+    // "synced" while the data vanishes on refresh (storage full or blocked).
+    const savedOk = [save(KEYS.levels, state.levels), save(KEYS.log, state.log), save(KEYS.stats, state.stats), save(KEYS.profile, state.profile)]
+      .every(ok => ok);
+    if (!savedOk) {
+      return { error: 'Synced, but the data could not be saved on this device (storage unavailable or full). It may be lost on refresh — export a backup.', updated, missing, unknown, unlocks: firstSync ? [] : unlocks };
+    }
     if (firstSync) {
       baselineStances();
-      return { updated, missing, unlocks: [] };
+      return { updated, missing, unknown, unlocks: [] };
     }
-    return { updated, missing, unlocks };
+    return { updated, missing, unknown, unlocks };
   }
 
   // ---------- backup ----------
@@ -435,9 +477,17 @@ const Tracker = (() => {
   // Restores a parsed backup file. Every value goes through clean.*, and parts missing from the
   // file (older backups) keep what is saved now. All keys are written together: if storage fails
   // part way, the keys already written are put back and nothing changes.
+  // A field of the wrong type is rejected outright ({ ok: false, error: 'invalid' }) — it must
+  // never silently replace saved data with an empty object/array, which is what used to happen
+  // when e.g. playerLevels was a string: clean.levels() returned {} and the levels were wiped.
   // Returns { ok: true } or { ok: false, error: 'invalid' | 'storage' }.
   function importBackup(p) {
     if (!isObj(p)) return { ok: false, error: 'invalid' };
+    if (p.playerLevels !== undefined && !isObj(p.playerLevels)) return { ok: false, error: 'invalid' };
+    if (p.legendStats !== undefined && !isObj(p.legendStats)) return { ok: false, error: 'invalid' };
+    if (p.improvementsLog !== undefined && !Array.isArray(p.improvementsLog)) return { ok: false, error: 'invalid' };
+    if (p.playerProfile !== undefined && p.playerProfile !== null && !isObj(p.playerProfile)) return { ok: false, error: 'invalid' };
+    if (p.matchHistory !== undefined && p.matchHistory !== null && !Array.isArray(p.matchHistory)) return { ok: false, error: 'invalid' };
     const next = { levels: state.levels, stats: state.stats, profile: state.profile, id: state.id };
     const writes = [];
     if (p.playerLevels) { next.levels = clean.levels(p.playerLevels); writes.push([KEYS.levels, JSON.stringify(next.levels)]); }

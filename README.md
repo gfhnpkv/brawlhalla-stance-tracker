@@ -28,15 +28,22 @@ Backups (More → Export backup) use the same JSON on every page, so they import
 dair.gg doesn't reliably allow direct browser requests, so it goes through a relay:
 - the Cloudflare Worker in `worker/` (https://brawlhalla-tracker-relay.gfhnpkv.workers.dev). It only relays
   numeric player IDs and only answers requests from the GitHub Pages site and localhost (anything else gets a 403).
+- The browser never calls the official Brawlhalla API directly: it needs an API key, and the key lives
+  only as a Worker secret, never in this repo — set it with `cd worker && npx wrangler secret put BRAWLHALLA_API_KEY`,
+  then redeploy (`npx wrangler deploy`). Until the secret is set, the Worker's `/player` route answers 503
+  and the tracker syncs through dair.gg only (Live mode's fresh game counts need the official API, so
+  they are unavailable until then).
 
-Coach keeps daily stat snapshots in your browser's localStorage (`bh_coach_v1`) to show progress, including a per-weapon win/loss trend and an optional one-week weapon focus with its own progress counter (7 days, then it clears itself; Reset advice keeps it); nothing is sent anywhere.
+Coach keeps daily stat snapshots in your browser's localStorage (`bh_coach_v1`) to show progress, including a per-weapon win/loss trend and an optional one-week weapon focus with its own progress counter (7 days, then it clears itself; Reset advice keeps it); nothing is sent anywhere. Weapon win rates are estimates, not measurements: the API doesn't report wins per weapon, so each legend's ranked games count for both of its weapons, and Coach labels them as estimates.
+
+Real win/loss per weapon is not measurable from either data source, and that was verified, not assumed: against a live dair.gg response, every weapon's games and wins are exact sums over the legends carrying that weapon (e.g. Blasters: 786 games / 465 wins, exactly the sum of its legends). What *is* measured per weapon is KOs, damage, time held and mastery level (all-mode, from dair.gg), plus ranked win rate per legend — Coach anchors its weapon advice in those measured per-legend ranked records.
 
 To redeploy the Worker after changing it: `cd worker && npx wrangler@4 deploy`
 
 ## Sync
-Enter your numeric Brawlhalla ID and click **Sync API**. No API key needed. Sources, in order:
+Enter your numeric Brawlhalla ID and click **Sync API**. No API key needed from you — the relay holds it. Sources, in order:
 1. [dair.gg](https://api.dair.gg/) community API: returns per-legend levels for every account.
-2. Official Brawlhalla API v1.0 (2000 requests / 5 min): fallback; omits levels for some accounts.
+2. Official Brawlhalla API v1.0 (2000 requests / 5 min), through the relay only: fallback; omits levels for some accounts. It works only once `BRAWLHALLA_API_KEY` is set as a Worker secret (see above); without it, sync uses dair.gg alone.
 
 ## Stance reminders
 Turn on **Live** (main page or phone view). The game's API doesn't say which stance you have equipped, so the

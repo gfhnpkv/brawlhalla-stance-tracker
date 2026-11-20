@@ -4,6 +4,10 @@
 // origins are answered; anything else (other sites, scripts, sandboxed pages) gets a 403.
 //   GET /dair/{id}    -> https://api.dair.gg/v1/brawlhalla/players/{id}   (has legend levels)
 //   GET /player/{id}  -> https://api.brawlhalla.com/v1/player/stats?...    (official, fresh games count)
+// The official API needs a key, so the browser never calls it directly: the key lives only as a
+// Worker secret — `cd worker && npx wrangler secret put BRAWLHALLA_API_KEY` — and is never
+// committed to the repo. Until that secret is set, /player answers 503 (the tracker still syncs
+// through /dair) instead of passing the official API's 401 through.
 // The Origin check stops other websites, but scripts can fake it, so each IP is also rate limited
 // (the LIMITER binding in wrangler.toml) to keep the free daily request quota from being used up.
 
@@ -12,7 +16,11 @@ const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 const ROUTES = {
   dair: { url: id => `https://api.dair.gg/v1/brawlhalla/players/${id}`, cacheTtl: 120 },
-  player: { url: id => `https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${id}&mode=all`, cacheTtl: 30 },
+  player: {
+    url: (id, apiKey) => `https://api.brawlhalla.com/v1/player/stats?brawlhalla_id=${id}&mode=all&api_key=${encodeURIComponent(apiKey)}`,
+    cacheTtl: 30,
+    needsKey: true,
+  },
 };
 
 const isAllowed = origin => !!origin && (ALLOWED_ORIGINS.includes(origin) || LOCAL_ORIGIN.test(origin));
@@ -46,8 +54,13 @@ export default {
     if (!match) return json(404, { error: 'Use /dair/{brawlhalla_id} or /player/{brawlhalla_id}' }, cors);
 
     const route = ROUTES[match[1]];
+    // The official API needs a key: without the Worker secret there is no point calling it —
+    // it would just answer 401. Say so plainly instead of passing the 401 through.
+    if (route.needsKey && !(env && env.BRAWLHALLA_API_KEY)) {
+      return json(503, { error: 'Official Brawlhalla API key is not configured on this relay (set BRAWLHALLA_API_KEY as a Worker secret)' }, cors);
+    }
     try {
-      const upstream = await fetch(route.url(match[2]), {
+      const upstream = await fetch(route.url(match[2], env && env.BRAWLHALLA_API_KEY), {
         headers: { 'User-Agent': 'BrawlhallaStanceTracker/1.0 (+https://github.com/gfhnpkv/brawlhalla-stance-tracker)' },
         // Only successful answers are cached, so one upstream error isn't replayed to everyone
         cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': route.cacheTtl, '300-599': 0 } },

@@ -202,10 +202,12 @@ const Coach = (() => {
   // ---------- analysis ----------
   function statusOf(rule, value, games) {
     if (value == null) return 'low-sample';
+    // A good value on a tiny sample is not trusted either: a lucky 5-game streak at 60%
+    // used to be marked 'good' and vanish from the plan, even though the rule needs 30 games.
+    if (games < rule.min) return 'low-sample';
     const t = rule.target;
     const miss = rule.better === 'higher' ? (t - value) / t : (value - t) / t; // > 0 means short of target
-    if (miss <= 0) return 'good'; // meeting the target is good whatever the sample size
-    if (games < rule.min) return 'low-sample';
+    if (miss <= 0) return 'good'; // meeting the target is good, once the sample is big enough
     return miss <= rule.tol ? 'ok' : 'weak';
   }
 
@@ -220,7 +222,9 @@ const Coach = (() => {
     } else {
       out.reason = 'no-ranked';
     }
-    out.ok = true;
+    // No ranked games means no plan: plan() returns [] when ok is false, so a player
+    // without ranked 1v1 must not get an all-mode plan presented as a ranked plan.
+    out.ok = out.reason == null;
 
     const values = {
       fallsPerGame: div(st.falls, st.games),
@@ -248,14 +252,21 @@ const Coach = (() => {
     })).filter(p => p.games >= LEGEND_MIN_GAMES).sort((a, b) => a.rating - b.rating);
 
     // Ranked 1v1 per weapon: each legend's ranked games and wins count for both its weapons.
-    // Weapons of legends with no ranked games are listed too (0 games) so blind spots show up.
+    // The API does not report wins per weapon, so a weapon's win rate is only an APPROXIMATION
+    // by legend — the weighted average of the legends that use it — not a measured weapon win
+    // rate, and the weapon game total is roughly double the real ranked games. plan() must say
+    // so (see `approx` below) instead of presenting it as a fact. Weapons of legends with no
+    // ranked games are listed too (0 games) so blind spots show up.
     const lifetime = {};
     (Array.isArray(data.weapons) ? data.weapons : []).forEach(w => { if (w && w.name) lifetime[w.name] = n(w.games); });
     const by = {};
     data.legends.forEach(l => (Array.isArray(l.weapons) ? l.weapons : []).forEach(w => {
       if (!w) return;
       const e = by[w] = by[w] || { name: w, games: 0, wins: 0, ratingSum: 0, legs: [], unplayed: false };
-      e.legs.push({ name: l.name, rating: l.rk && l.rk.games > 0 ? n(l.rk.rating) : -1, games: n(l.games) });
+      // rkGames/rkWins are MEASURED per legend (ranked 1v1) — the anchor that makes the
+      // weapon estimate honest: plan() shows the weakest legends using this weapon with
+      // their real ranked records, instead of only the estimated weapon win rate.
+      e.legs.push({ name: l.name, rating: l.rk && l.rk.games > 0 ? n(l.rk.rating) : -1, games: n(l.games), rkGames: n(l.rk && l.rk.games), rkWins: n(l.rk && l.rk.wins) });
       if (l.rk && l.rk.games > 0) { e.games += n(l.rk.games); e.wins += n(l.rk.wins); e.ratingSum += n(l.rk.rating) * n(l.rk.games); }
     }));
     // Weapons whose legends you have never played (0 games in any mode) are not in `data.legends` at all, so add them from the catalog.
@@ -270,6 +281,11 @@ const Coach = (() => {
       .slice(0, MAX_PRACTICE).map(x => x.name);
     out.weaponPool = Object.values(by).map(e => ({
       name: e.name, games: e.games, wins: e.wins, wr: div(e.wins, e.games), rating: e.games ? Math.round(e.ratingSum / e.games) : null,
+      // wr is an estimate from the legends using this weapon, not a measured weapon win rate
+      approx: true,
+      // Measured per-legend ranked records behind the estimate (see plan()): the weakest
+      // legends using this weapon, with their real ranked W/L.
+      legs: e.legs,
       unplayed: e.unplayed, practice: practiceOf(e),
       allGames: lifetime[e.name] || 0, sample: e.games >= WEAPON_MIN_GAMES ? (e.games < WEAPON_EARLY_GAMES ? 'early' : 'ok') : 'none'
     })).sort((a, b) => (a.wr == null) - (b.wr == null) || a.wr - b.wr || a.name.localeCompare(b.name));
@@ -377,10 +393,19 @@ const Coach = (() => {
         const gap = overall - w.wr;
         if (gap < WEAPON_GAP) return;
         const early = w.games < WEAPON_EARLY_GAMES;
+        // The estimate, anchored in what IS measured: the weakest legends using this weapon,
+        // with their real ranked 1v1 records. A random main's weapon problem is really a
+        // legend problem — these are the legends dragging the estimate down.
+        const measured = (w.legs || []).filter(x => x.rkGames >= WEAPON_MIN_GAMES)
+          .map(x => ({ ...x, wr: x.rkWins / x.rkGames })).sort((a, b) => a.wr - b.wr).slice(0, 2);
+        const measuredText = measured.length
+          ? ` Measured behind it: ${measured.map(x => `${x.name} ${pct(x.wr)} (${x.rkWins}W ${x.rkGames - x.rkWins}L ranked)`).join(', ')}.`
+          : '';
         wItems.push({
           id: `weapon:${w.name}`, key: 'weapon', title: `Work on ${w.name}`, current: round(w.wr, 4), target: round(overall, 4), trend: null, wtrend: weaponTrend(w.name, snaps, w, now),
-          curText: `${pct(w.wr)} win rate with ${w.name} → ${pct(overall)} overall ranked`,
-          why: `${w.name} wins ${pct(w.wr)} of your ranked games (${w.wins}W ${w.games - w.wins}L over ${w.games} games${early ? ', early read' : ''}), against ${pct(overall)} overall.`,
+          approx: true,
+          curText: `~${pct(w.wr)} win rate with ${w.name} (estimate) → ${pct(overall)} overall ranked`,
+          why: `${w.name} is estimated at ${pct(w.wr)} of your ranked games (${w.wins}W ${w.games - w.wins}L over ${w.games} games${early ? ', early read' : ''}), against ${pct(overall)} overall. The API does not report wins per weapon, so this is an estimate from the legends that use it — each legend's ranked games count for both of its weapons.${measuredText}`,
           drill: `Play your next ranked games as usual and, when random gives you a ${w.name} legend, play it on purpose instead of drifting. In the training room practice its core combos: one string, one finisher and one recovery.`,
           practice: w.practice, priority: Math.min(1, gap / 0.25) * (early ? 0.6 : 1)
         });

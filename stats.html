@@ -637,7 +637,7 @@
       }
       const m = fillSort($('weaponSort'), WEAPON_METRICS[mode], 'weapon');
       if (mode === '1v1') {
-        $('weaponNote').textContent = 'Summed from your legends\' ranked 1v1 games: each legend\'s games count for both its weapons.' + (` At least ${min} games.`);
+        $('weaponNote').textContent = 'Summed from your legends\' ranked 1v1 games: each legend\'s games count for both its weapons, so win rates here are estimates, not measured per weapon.' + (` At least ${min} games.`);
         $('weaponBars').innerHTML = bars(soloWeapons(), m, min, w => weaponArt(w.name),
           data.partial ? 'Ranked stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.' : 'No ranked 1v1 games this season.', dirOf('weapon'));
         return;
@@ -647,7 +647,7 @@
         $('weaponBars').innerHTML = '<div class="empty">Weapon stats come from dair.gg, which couldn\'t be reached. Try Load again in a minute.</div>';
         return;
       }
-      $('weaponNote').textContent = 'A weapon\'s games count every match on a legend that carries it.' + (m.rate ? ` At least ${min} games.` : '');
+      $('weaponNote').textContent = 'A weapon\'s games count every match on a legend that carries it. Win rates are estimates from the legends using it — neither the official API nor dair.gg reports wins per weapon (dair.gg\'s per-weapon wins are the same sum over legends).' + (m.rate ? ` At least ${min} games.` : '');
       $('weaponBars').innerHTML = bars(data.weapons, m, min, w => weaponArt(w.name), '', dirOf('weapon'));
     }
 
@@ -817,8 +817,8 @@
       // Weapons with a ranked record first (worst first), then ones with none
       const wp = (a.weaponPool || []).slice().sort((x, y) => (x.wr == null) - (y.wr == null)).slice(0, 8);
       if (wp.length && !noRanked && !placing) {
-        $('coachPlan').innerHTML += `<div class="coach-pool"><h3>Weapons to look at</h3>${wp.map(w =>
-          `<div><span>${esc(w.name)}${w.sample === 'none' ? ' <span class="chip low">under 5 ranked games</span>' : w.sample === 'early' ? ' <span class="chip low">early read</span>' : ''}</span><span>${w.games ? `${Math.round(w.wr * 100)}% win rate, ${fmt(w.wins)}W ${fmt(w.games - w.wins)}L` : 'no ranked games'}</span></div>`).join('')}</div>`;
+        $('coachPlan').innerHTML += `<div class="coach-pool"><h3>Weapons to look at</h3><p class="note">Win rates here are estimates, not measured per weapon: each legend's ranked games count for both of its weapons. The per-legend records behind each estimate are in the plan items above.</p>${wp.map(w =>
+          `<div><span>${esc(w.name)}${w.sample === 'none' ? ' <span class="chip low">under 5 ranked games</span>' : w.sample === 'early' ? ' <span class="chip low">early read</span>' : ''}</span><span>${w.games ? `${Math.round(w.wr * 100)}% win rate (est.), ${fmt(w.wins)}W ${fmt(w.games - w.wins)}L` : 'no ranked games'}</span></div>`).join('')}</div>`;
       }
     }
 

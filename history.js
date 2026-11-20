@@ -1,9 +1,12 @@
 // Game history, shared by every view (needs legends.js loaded first).
 // Neither API lists matches, so the history is built here: each time fresh per-legend counts arrive
 // (a sync, or Live mode's check) they're compared with the last counts seen for that player, and
-// only the increase is recorded. Counts never move the baseline down, so a slower source (dair.gg
-// caches for a few minutes) can't make the same match count twice. The first counts seen for a
-// player only set the baseline.
+// only the increase is recorded. A slower source (dair.gg caches for a few minutes) can't make the
+// same match count twice. The first counts seen for a player only set the baseline.
+// Season reset: when a legend's game count drops below the baseline, the season restarted and the
+// counter restarted with it — the baseline is reset to the new count, so the games played since
+// the reset are recorded instead of being ignored until the old season's total is passed again
+// (the same reset detection Coach already uses in since()/focusProgress()).
 const MatchHistory = (() => {
   const KEY = 'bh_match_history_v1';
   const SNAP_KEY = 'bh_match_snapshot_v1';
@@ -69,7 +72,10 @@ const MatchHistory = (() => {
     Object.keys(counts).forEach(name => {
       const games = count(counts[name].games), wins = count(counts[name].wins) || 0;
       if (!isLegend(name) || games == null) return;
-      const before = base[name] || { games: 0, wins: 0 };
+      let before = base[name] || { games: 0, wins: 0 };
+      // Season reset: the counter restarted below the old baseline, so the new count is
+      // entirely new games — reset the baseline instead of waiting to pass the old total.
+      if (!first && games < before.games) before = base[name] = { games: 0, wins: 0 };
       if (!first && games > before.games) {
         const n = games - before.games;
         const level = levelOf ? levelOf(name) : null;
