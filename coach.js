@@ -13,15 +13,17 @@ const Coach = (() => {
   // Rough rules of thumb from general play experience, NOT official numbers and not from
   // Blue Mammoth. `tol` is how far past the target (as a fraction of it) still counts as "ok".
   // `min` is the games needed before a metric is trusted (ranked games or all-mode games).
+  // `dp` is the decimals the page shows (a share shows one decimal as a percent); verdicts use the value rounded to it,
+  // so the shown number never contradicts the verdict.
   const RULES = {
-    fallsPerGame:  { label: 'Falls per game',        scope: 'all',    target: 2.5,  better: 'lower',  tol: 0.2, min: 100 },
-    kosPerGame:    { label: 'KOs per game',          scope: 'all',    target: 2.5,  better: 'higher', tol: 0.2, min: 100 },
-    koFall:        { label: 'KO / fall ratio',       scope: 'all',    target: 1.2,  better: 'higher', tol: 0.2, min: 100 },
-    dmgPerKo:      { label: 'Damage per KO',         scope: 'all',    target: 450,  better: 'lower',  tol: 0.2, min: 100 },
-    takenPerGame:  { label: 'Damage taken per game', scope: 'all',    target: 1000, better: 'lower',  tol: 0.2, min: 100 },
-    kosPerMin:     { label: 'KOs per minute',        scope: 'all',    target: 0.5,  better: 'higher', tol: 0.2, min: 100 },
-    unarmedShare:  { label: 'Unarmed KO share',      scope: 'all',    target: 0.05, better: 'higher', tol: 0.5, min: 100 },
-    rankedWr:      { label: 'Ranked win rate',       scope: 'ranked', target: 0.52, better: 'higher', tol: 0.05, min: 30 }
+    fallsPerGame:  { label: 'Falls per game',        scope: 'all',    target: 2.5,  better: 'lower',  tol: 0.2, min: 100, dp: 2 },
+    kosPerGame:    { label: 'KOs per game',          scope: 'all',    target: 2.5,  better: 'higher', tol: 0.2, min: 100, dp: 2 },
+    koFall:        { label: 'KO / fall ratio',       scope: 'all',    target: 1.2,  better: 'higher', tol: 0.2, min: 100, dp: 2 },
+    dmgPerKo:      { label: 'Damage per KO',         scope: 'all',    target: 450,  better: 'lower',  tol: 0.2, min: 100, dp: 0 },
+    takenPerGame:  { label: 'Damage taken per game', scope: 'all',    target: 1000, better: 'lower',  tol: 0.2, min: 100, dp: 0 },
+    kosPerMin:     { label: 'KOs per minute',        scope: 'all',    target: 0.5,  better: 'higher', tol: 0.2, min: 100, dp: 2 },
+    unarmedShare:  { label: 'Unarmed KO share',      scope: 'all',    target: 0.05, better: 'higher', tol: 0.5, min: 100, dp: 3 },
+    rankedWr:      { label: 'Ranked win rate',       scope: 'ranked', target: 0.52, better: 'higher', tol: 0.05, min: 30, dp: 3 }
   };
   const KEYS = Object.keys(RULES);
   const LEGEND_MIN_GAMES = 1;  // ranked games before a legend counts at all (random mains play each one rarely)
@@ -30,6 +32,7 @@ const Coach = (() => {
   const WEAPON_GAP = 0.05;     // win rate this far under the overall ranked win rate makes a weapon "needs work"
   const UNFAMILIAR_GAMES = 20; // all-mode games with a weapon below this count as unfamiliar
   const MAX_WEAPON_ITEMS = 3;
+  const MAX_PRACTICE = 3;      // legends suggested per weapon
   const RECOVER_GAP = 150;     // peak minus rating that makes a legend worth recovering
   const LOW_SAMPLE_WEIGHT = 0.3;
 
@@ -41,7 +44,7 @@ const Coach = (() => {
     takenPerGame: 'Review replays for the hits you take most. Practice dodging and spacing against one specific habit at a time.',
     kosPerMin: 'Play more proactively: pressure from neutral instead of waiting. Aim to start the next exchange as soon as the last one ends.',
     unarmedShare: 'Add unarmed and weapon-throw finishers to your edgeguards in the training room, so you keep dealing damage when you drop your weapons.',
-    rankedWr: 'Queue ranked with your two best legends only, and review one lost game each session for the single mistake that cost the most.'
+    rankedWr: 'Review one lost ranked game each session for the single mistake that cost the most, then focus your practice on the weapons flagged below.'
   };
 
   const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -139,7 +142,8 @@ const Coach = (() => {
     return miss <= rule.tol ? 'ok' : 'weak';
   }
 
-  function analyze(data) {
+  // `catalog` (optional) maps each legend name to its two weapons, named as in `data`; it lets weapons you have never played show up.
+  function analyze(data, catalog) {
     const out = { ok: false, reason: null, solo: null, metrics: [], pool: [], weaponPool: [] };
     if (!data || !data.stats || !Array.isArray(data.legends)) { out.reason = 'no-data'; return out; }
     if (data.partial) { out.reason = 'partial'; return out; }
@@ -167,7 +171,7 @@ const Coach = (() => {
       const value = values[key];
       return {
         key, label: r.label, value: value == null ? null : round(value, 4), scope: r.scope, games,
-        target: r.target, better: r.better, status: statusOf(r, value, games)
+        target: r.target, better: r.better, dp: r.dp, status: statusOf(r, value == null ? null : round(value, r.dp), games)
       };
     });
 
@@ -183,11 +187,23 @@ const Coach = (() => {
     const by = {};
     data.legends.forEach(l => (Array.isArray(l.weapons) ? l.weapons : []).forEach(w => {
       if (!w) return;
-      const e = by[w] = by[w] || { name: w, games: 0, wins: 0, ratingSum: 0 };
+      const e = by[w] = by[w] || { name: w, games: 0, wins: 0, ratingSum: 0, legs: [], unplayed: false };
+      e.legs.push({ name: l.name, rating: l.rk && l.rk.games > 0 ? n(l.rk.rating) : -1, games: n(l.games) });
       if (l.rk && l.rk.games > 0) { e.games += n(l.rk.games); e.wins += n(l.rk.wins); e.ratingSum += n(l.rk.rating) * n(l.rk.games); }
     }));
+    // Weapons whose legends you have never played (0 games in any mode) are not in `data.legends` at all, so add them from the catalog.
+    const cat = isObj(catalog) ? catalog : {};
+    Object.keys(cat).sort().forEach(ln => (Array.isArray(cat[ln]) ? cat[ln] : []).forEach(w => {
+      if (!w) return;
+      const e = by[w] = by[w] || { name: w, games: 0, wins: 0, ratingSum: 0, legs: [], unplayed: true };
+      if (e.unplayed) e.legs.push({ name: ln, rating: -1, games: 0 });
+    }));
+    // Legends to practice a weapon with: best ranked rating first, then most all-mode games
+    const practiceOf = e => e.legs.slice().sort((a, b) => b.rating - a.rating || b.games - a.games || a.name.localeCompare(b.name))
+      .slice(0, MAX_PRACTICE).map(x => x.name);
     out.weaponPool = Object.values(by).map(e => ({
       name: e.name, games: e.games, wins: e.wins, wr: div(e.wins, e.games), rating: e.games ? Math.round(e.ratingSum / e.games) : null,
+      unplayed: e.unplayed, practice: practiceOf(e),
       allGames: lifetime[e.name] || 0, sample: e.games >= WEAPON_MIN_GAMES ? (e.games < WEAPON_EARLY_GAMES ? 'early' : 'ok') : 'none'
     })).sort((a, b) => (a.wr == null) - (b.wr == null) || a.wr - b.wr || a.name.localeCompare(b.name));
     return out;
@@ -208,11 +224,18 @@ const Coach = (() => {
       default: return null;
     }
   }
-  // Newest snapshot against the oldest one at least 7 days before it
+  // Newest snapshot against the nearest one at least 7 days before it. For the ranked win rate a base with more
+  // ranked games than the newest (a season reset) is skipped, since the counts are not comparable.
   function trendFor(key, snaps) {
     if (!Array.isArray(snaps) || snaps.length < 2) return null;
     const newest = snaps[snaps.length - 1];
-    const base = snaps.find(s => dayNum(newest.d) - dayNum(s.d) >= TREND_MIN_DAYS);
+    let base = null;
+    for (let i = snaps.length - 2; i >= 0 && !base; i--) {
+      const s = snaps[i];
+      if (dayNum(newest.d) - dayNum(s.d) < TREND_MIN_DAYS) continue;
+      if (key === 'rankedWr' && s.rkGames > newest.rkGames) continue;
+      base = s;
+    }
     if (!base) return null;
     const to = deltaValue(key, base, newest);
     if (to == null) return null;
@@ -220,6 +243,29 @@ const Coach = (() => {
     const zero = Object.fromEntries(NUM_FIELDS.map(k => [k, 0]));
     const from = deltaValue(key, zero, base);
     return { from: from == null ? null : round(from, 4), to: round(to, 4), days: Math.round(dayNum(newest.d) - dayNum(base.d)) };
+  }
+
+  // What changed between the newest snapshot and the one before it on an earlier day; null with fewer than two days of history.
+  function since(snaps) {
+    if (!Array.isArray(snaps) || snaps.length < 2) return null;
+    const cur = snaps[snaps.length - 1];
+    const prev = snaps.slice(0, -1).reverse().find(s => s.d < cur.d);
+    if (!prev) return null;
+    const out = { days: Math.round(dayNum(cur.d) - dayNum(prev.d)), newSeason: cur.rkGames < prev.rkGames, rating: null, games: 0, wins: 0, losses: 0 };
+    if (out.newSeason) return out;
+    out.games = cur.rkGames - prev.rkGames;
+    out.wins = Math.max(0, cur.rkWins - prev.rkWins);
+    out.losses = Math.max(0, out.games - out.wins);
+    if (prev.rating > 0 && cur.rating > 0) out.rating = cur.rating - prev.rating;
+    return out;
+  }
+
+  // 'done' | 'dismissed' while a mark still applies, else null (expired marks are ignored)
+  function activeMark(m, now) {
+    if (!m) return null;
+    if (m.s === 'dismissed') return now - m.at < DISMISS_DAYS * DAY ? 'dismissed' : null;
+    if (m.s === 'done') return now - m.at < DONE_HIDE_DAYS * DAY ? 'done' : null;
+    return null;
   }
 
   function plan(analysis, snaps, marks, now = Date.now()) {
@@ -253,16 +299,17 @@ const Coach = (() => {
           curText: `${pct(w.wr)} win rate with ${w.name} → ${pct(overall)} overall ranked`,
           why: `${w.name} wins ${pct(w.wr)} of your ranked games (${w.wins}W ${w.games - w.wins}L over ${w.games} games${early ? ', early read' : ''}), against ${pct(overall)} overall.`,
           drill: `Play your next ranked games as usual and, when random gives you a ${w.name} legend, play it on purpose instead of drifting. In the training room practice its core combos: one string, one finisher and one recovery.`,
-          priority: Math.min(1, gap / 0.25) * (early ? 0.6 : 1)
+          practice: w.practice, priority: Math.min(1, gap / 0.25) * (early ? 0.6 : 1)
         });
       } else {
         const unfamiliar = w.allGames < UNFAMILIAR_GAMES;
         wItems.push({
           id: `explore:${w.name}`, key: 'explore', title: `Get comfortable with ${w.name}`, current: w.games, target: WEAPON_MIN_GAMES, trend: null,
           curText: `${w.games} of ${WEAPON_MIN_GAMES} ranked games with ${w.name}`,
-          why: `You have only ${w.games} ranked 1v1 game${w.games === 1 ? '' : 's'} with ${w.name}${unfamiliar ? ` and ${w.allGames} in all modes` : ''}, so it is a blind spot when random hands it to you.`,
+          why: w.unplayed ? `You have never played a ${w.name} legend, so it is a blind spot when random hands you one.`
+            : `You have only ${w.games} ranked 1v1 game${w.games === 1 ? '' : 's'} with ${w.name}${unfamiliar ? ` and ${w.allGames} in all modes` : ''}, so it is a blind spot when random hands it to you.`,
           drill: `Spend a few minutes in the training room with a ${w.name} legend: one combo string, one finisher and one recovery. Then play your next ranked games and use it whenever random gives it to you.`,
-          priority: 0.25 + 0.15 * (1 - w.games / WEAPON_MIN_GAMES) + (unfamiliar ? 0.1 : 0)
+          practice: w.practice, unplayed: !!w.unplayed, priority: 0.25 + 0.15 * (1 - w.games / WEAPON_MIN_GAMES) + (unfamiliar ? 0.1 : 0)
         });
       }
     });
@@ -278,14 +325,20 @@ const Coach = (() => {
     }
     const out = [];
     items.forEach(it => {
-      const m = mk[it.id];
-      let state = 'open';
-      if (m && m.s === 'dismissed' && now - m.at < DISMISS_DAYS * DAY) return;
-      if (m && m.s === 'done' && now - m.at < DONE_HIDE_DAYS * DAY) state = 'done';
+      const am = activeMark(mk[it.id], now);
+      if (am === 'dismissed') return;
+      const state = am === 'done' ? 'done' : 'open';
       out.push({ ...it, priority: round(it.priority, 4), state });
     });
     return out.sort((a, b) => b.priority - a.priority).slice(0, MAX_ITEMS);
   }
 
-  return { RULES, analyze, plan, load, record, mark, resetMarks };
+  // True when a live mark is changing what the plan shows (a hidden or struck-through item); expired marks do not count.
+  function hiding(analysis, snaps, marks, now = Date.now()) {
+    const mk = isObj(marks) ? marks : {};
+    if (!Object.keys(mk).length) return false;
+    return plan(analysis, snaps, {}, now).some(it => !!activeMark(mk[it.id], now));
+  }
+
+  return { RULES, analyze, plan, since, hiding, load, record, mark, resetMarks };
 })();

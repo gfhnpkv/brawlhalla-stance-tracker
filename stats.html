@@ -705,6 +705,15 @@
       $('ranked').innerHTML = bracketHtml(`${icon('user')}1v1`, r.solo) + bracketHtml(`${icon('users')}2v2 (best team)`, duo, teams) + bracketHtml(`${icon('rotate')}3v3 / rotating`, r.rotating);
     }
 
+    // Each legend's two weapons under dair.gg's weapon names (the inverse of WEAPON_FILES), so coach.js can find unplayed weapons
+    function weaponCatalog() {
+      if (typeof LEGEND_WEAPONS === 'undefined') return {};
+      const dair = {};
+      Object.keys(WEAPON_FILES).forEach(k => { dair[WEAPON_FILES[k]] = k; });
+      const out = {};
+      Object.keys(LEGEND_WEAPONS).forEach(name => { out[name] = LEGEND_WEAPONS[name].map(w => dair[w] || w); });
+      return out;
+    }
     // Coach panel: ranked 1v1 metrics, a short plan and weapon weak spots (all from coach.js)
     function renderCoach() {
       const ids = ['coachNote', 'coachStats', 'coachPlan'];
@@ -713,23 +722,37 @@
       $('coachReset').hidden = true;
       let a, saved, plan = [];
       try {
-        a = Coach.analyze(data);
+        a = Coach.analyze(data, weaponCatalog());
         saved = Coach.load(data.id) || {};
         if (a && a.ok) plan = Coach.plan(a, saved.snaps || [], saved.marks || {}) || [];
       } catch (err) { a = null; }
-      $('coachReset').hidden = !Object.keys((saved && saved.marks) || {}).length;
+      const placing = !!(a && a.solo && a.solo.placement);
+      // Only offer the reset while a live Done/Dismissed mark is actually changing the plan
+      try { $('coachReset').hidden = placing || !(a && a.ok && Coach.hiding(a, saved.snaps || [], saved.marks || {})); } catch (err) { $('coachReset').hidden = true; }
       if (!a) { $('coachNote').textContent = 'Coach is unavailable right now.'; $('coachStats').innerHTML = ''; $('coachPlan').innerHTML = ''; return; }
       const metrics = a.metrics || [], solo = a.solo;
       const partial = a.reason === 'partial';
       const PCT = { rankedWr: 1, unarmedShare: 1 };
-      const numK = (key, v) => (Number.isFinite(v) ? (PCT[key] ? `${Math.round(v * 100)}%` : fmt(v, Math.abs(v) < 10 && v % 1 ? 1 : 0)) : '–');
+      // Same precision coach.js uses for its verdicts (RULES[key].dp), minus trailing zeros, so a shown number never contradicts the verdict
+      const numK = (key, v) => {
+        if (!Number.isFinite(v)) return '–';
+        const rule = Coach.RULES[key];
+        if (!rule) return fmt(v, Math.abs(v) < 10 && v % 1 ? 1 : 0);
+        const trim = (x, d) => x.toLocaleString(undefined, { maximumFractionDigits: d });
+        return PCT[key] ? `${trim(v * 100, rule.dp - 2)}%` : trim(v, rule.dp);
+      };
       const noRanked = !partial && (a.reason === 'no-ranked' || !solo || !solo.games);
-      const placing = !!(solo && solo.placement);
-            const lead = partial ? 'Stats look incomplete or you may be offline. Try refreshing to load the full numbers.'
+      const lead = partial ? 'Stats look incomplete or you may be offline. Try refreshing to load the full numbers.'
         : noRanked ? 'Play ranked 1v1 to unlock rating goals. Showing all-mode numbers only.'
         : placing ? 'In placements: finish your placement matches to get a rating and rating goals.'
         : `${esc(solo.tier || '')} ${fmt(solo.rating)} rating, peak ${fmt(solo.peak)}, ${fmt(solo.games)} ranked 1v1 games.`;
-      $('coachNote').innerHTML = `${lead} Targets are rough rules of thumb, not official numbers.`;
+      const sn = !partial && !placing && !noRanked ? Coach.since(saved.snaps || []) : null;
+      let sinceText = '';
+      if (sn) {
+        sinceText = sn.newSeason ? ' A new ranked season started since your last visit.'
+          : ` Since ${sn.days === 1 ? 'yesterday' : `${fmt(sn.days)} days ago`}: ${sn.rating == null ? '' : `rating ${sn.rating > 0 ? '+' : ''}${fmt(sn.rating)}, `}${sn.games ? `${fmt(sn.games)} ranked game${sn.games === 1 ? '' : 's'}, ${fmt(sn.wins)}W ${fmt(sn.losses)}L` : 'no ranked games'}.`;
+      }
+      $('coachNote').innerHTML = `${lead}${sinceText} Targets are rough rules of thumb, not official numbers.`;
       $('coachStats').innerHTML = metrics.map(m => {
         const v = numK(m.key, m.value);
         const low = m.status === 'low-sample';
@@ -747,14 +770,15 @@
         return `<div class="plan-item${done ? ' done' : ''}"><div>
             <h3>${esc(p.title)}</h3>
             <div class="cur">${p.curText ? esc(p.curText) : `${numK(p.key, p.current)} → target ${numK(p.key, p.target)}`}</div>${trend}
-            <p>${esc(p.why)}</p><p>${esc(p.drill)}</p></div>
+            <p>${esc(p.why)}</p>${p.practice && p.practice.length ? `<p>${p.unplayed ? 'Try' : 'Practice it with'}: ${esc(p.practice.join(', '))}.</p>` : ''}<p>${esc(p.drill)}</p></div>
           <div class="plan-actions">
             <button class="btn" type="button" data-item="${esc(p.id)}" data-act="${done ? 'reopen' : 'done'}">${done ? 'Undo' : 'Done'}</button>
             <button class="btn" type="button" data-item="${esc(p.id)}" data-act="dismissed">Dismiss</button>
           </div></div>`;
       }).join('')) || (placing || noRanked || partial ? '' : '<div class="empty">No open coaching items. Nice work.</div>');
-      const wp = (a.weaponPool || []).slice(0, 8);
-      if (wp.length && !noRanked) {
+      // Weapons with a ranked record first (worst first), then ones with none
+      const wp = (a.weaponPool || []).slice().sort((x, y) => (x.wr == null) - (y.wr == null)).slice(0, 8);
+      if (wp.length && !noRanked && !placing) {
         $('coachPlan').innerHTML += `<div class="coach-pool"><h3>Weapons to look at</h3>${wp.map(w =>
           `<div><span>${esc(w.name)}${w.sample === 'none' ? ' <span class="chip low">under 5 ranked games</span>' : w.sample === 'early' ? ' <span class="chip low">early read</span>' : ''}</span><span>${w.games ? `${Math.round(w.wr * 100)}% win rate, ${fmt(w.wins)}W ${fmt(w.games - w.wins)}L` : 'no ranked games'}</span></div>`).join('')}</div>`;
       }
