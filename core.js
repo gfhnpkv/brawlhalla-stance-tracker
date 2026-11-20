@@ -112,8 +112,6 @@ const Tracker = (() => {
   // The API can't tell which stance is equipped, so after a better stance unlocks the pages remind
   // the player to switch until they press Done. CONFIRMED_KEY holds, per legend, the stance key
   // confirmed last: 'base', a stat ('str') or 'super_' + stat.
-  // The stance lab (stances.html) keeps its own equipped marking under LAB_KEY; reminders don't read it.
-  const LAB_KEY = 'bh_stance_lab_v1';
   const CONFIRMED_KEY = 'bh_stance_confirmed_v1';
   const STAT_KEY = { Strength: 'str', Dexterity: 'dex', Dex: 'dex', Defense: 'def', Speed: 'spd' };
   const STAT_LABEL = { str: 'Strength', dex: 'Dexterity', def: 'Defense', spd: 'Speed' };
@@ -418,6 +416,6 @@ const Tracker = (() => {
   return {
     KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitHtml, portraitError,
     getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
-    LAB_KEY, bestStances, pendingStance, confirmStance, resetStances, fetchGames, playedSince
+    bestStances, pendingStance, confirmStance, resetStances, fetchGames, playedSince
   };
 })();
