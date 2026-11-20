@@ -270,6 +270,11 @@
     .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
     .dot.v { background: var(--best); } .dot.b { background: var(--standard); } .dot.p { background: var(--progress); } .dot.x { background: transparent; border: 1.5px solid var(--locked); }
 
+    .recents { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .recents[hidden] { display: none; }
+    .recents .lbl { color: var(--faint); font-size: var(--fs-s); font-weight: 600; }
+    .recents button { min-height: 34px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: var(--r-s); background: var(--raised); color: var(--text); font-size: var(--fs-s); font-weight: 600; cursor: pointer; }
+    @media (hover: hover) { .recents button:hover { border-color: var(--accent); } }
     .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
     .tile {
       display: flex; flex-direction: column; text-align: left; padding: 0; overflow: hidden; cursor: pointer;
@@ -502,6 +507,7 @@
           </select>
         </div>
         <p class="empty" id="rosterHint" hidden>Sync your ID to see your levels and unlock progress.</p>
+        <div class="recents" id="recents" role="group" aria-label="Recently opened legends" hidden></div>
         <div class="roster" id="roster"></div>
       </section>
     </div>
@@ -1014,7 +1020,14 @@
     function markCurrent() {
       document.querySelectorAll('.tile').forEach(t => t.setAttribute('aria-current', String(t.dataset.legend === sheetLegend)));
     }
+    function renderRecents() {
+      const names = Tracker.recentLegends();
+      $('recents').hidden = !names.length;
+      $('recents').innerHTML = names.length ? `<span class="lbl">Recent</span>` + names.map(n => `<button type="button" data-legend="${esc(n)}" aria-label="Open ${esc(n)}">${esc(n)}</button>`).join('') : '';
+    }
     function openSheet(name) {
+      Tracker.noteRecent(name);
+      renderRecents();
       sheetLegend = name;
       renderSheet();
       markCurrent();
@@ -1053,6 +1066,7 @@
       renderNext();
       renderFilters();
       renderRoster();
+      renderRecents();
     }
 
     // ---------- events ----------
@@ -1073,6 +1087,13 @@
     });
     let searchTimer;
     $('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderRoster, 120); });
+    $('search').addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      e.preventDefault();
+      clearTimeout(searchTimer); renderRoster(); // make sure the list reflects what was just typed
+      const first = $('roster').querySelector('[data-legend]');
+      if (first) openSheet(first.dataset.legend);
+    });
     $('sort').addEventListener('change', renderRoster);
     document.addEventListener('keydown', e => {
       if (e.key === '/' && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName) && !$('sheet').open) { e.preventDefault(); $('search').focus(); }

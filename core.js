@@ -479,9 +479,27 @@ const Tracker = (() => {
     return { ok: true };
   }
 
+  // Last 5 legends opened (quick lookup chips). Not part of the backup. Corrupt data or unknown names are ignored.
+  const RECENT_KEY = 'bh_recent_v1', RECENT_MAX = 5;
+  function recentLegends() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(RECENT_KEY));
+      if (!Array.isArray(raw)) return [];
+      const out = [];
+      raw.forEach(n => { if (legendNamed(n) && !out.includes(n) && out.length < RECENT_MAX) out.push(n); });
+      return out;
+    } catch (e) { return []; }
+  }
+  function noteRecent(name) {
+    if (!legendNamed(name)) return recentLegends();
+    const next = [name, ...recentLegends().filter(n => n !== name)].slice(0, RECENT_MAX);
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch (e) { /* storage full or blocked: the chips just won't persist */ }
+    return next;
+  }
+
   return {
     KEYS, state, clean, reload, isDataKey, wouldReplace, replaceWarning, portraitSlug, loadPortraits, portraitSrc, portraitHtml, portraitError,
-    fold, getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
+    fold, recentLegends, noteRecent, getLevel, hasPlayed, statusOf, nextTarget, progressToNext, setLevel, setId, sync,
     bestStances, pendingStance, confirmStance, resetStances, fetchGames, playedSince, exportBackup, importBackup
   };
 })();

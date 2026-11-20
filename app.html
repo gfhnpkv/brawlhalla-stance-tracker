@@ -157,6 +157,10 @@
       flex: none; padding: 7px 14px; border-radius: var(--r-s); font-size: 0.85rem; font-weight: 700;
       background: var(--panel); border: 1px solid var(--line); color: var(--muted); transition: transform 120ms ease-out;
     }
+    .recents { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 10px; scrollbar-width: none; }
+    .recents::-webkit-scrollbar { display: none; }
+    .recents[hidden] { display: none; }
+    .recents .chip { min-height: 44px; min-width: 44px; color: var(--text); }
     .chip.active { background: var(--active-bg); border-color: var(--accent); color: var(--text); }
 
     .list { display: flex; flex-direction: column; gap: 8px; }
@@ -371,6 +375,7 @@
         <button class="chip" data-filter="p">… In progress</button>
         <button class="chip" data-filter="x">🔒 Locked</button>
       </div>
+      <div class="recents" id="recents" role="group" aria-label="Recently opened legends" hidden></div>
       <div class="list" id="legendList"></div>
     </section>
 
@@ -684,6 +689,7 @@
     function renderAll() {
       renderHeader();
       renderLegends();
+      renderRecents();
       renderNext();
       renderLog();
       renderMe();
@@ -745,9 +751,16 @@
         <button class="btn secondary" data-close>Close</button>`;
     }
 
+    function renderRecents() {
+      const names = Tracker.recentLegends();
+      $('recents').hidden = !names.length;
+      $('recents').innerHTML = names.map(n => `<button type="button" class="chip" data-order="${LEGENDS_DB.find(l => l.name === n).order}" aria-label="Open ${esc(n)}">${esc(n)}</button>`).join('');
+    }
     function openSheet(order) {
       openLegend = LEGENDS_DB.find(l => l.order === order);
       if (!openLegend) return;
+      Tracker.noteRecent(openLegend.name);
+      renderRecents();
       renderSheet(openLegend);
       $('scrim').classList.add('open');
       $('sheet').classList.add('open');
@@ -994,7 +1007,7 @@
       // Another tab synced or changed levels: pick that up so this tab doesn't save over it
       if (Tracker.isDataKey(e.key)) { Tracker.reload(); takeTrackerState(); renderAll(); }
     });
-    ['legendList', 'nextList', 'pinList'].forEach(id => $(id).addEventListener('click', e => {
+    ['legendList', 'nextList', 'pinList', 'recents'].forEach(id => $(id).addEventListener('click', e => {
       const row = e.target.closest('[data-order]');
       if (row) openSheet(Number(row.dataset.order));
     }));
@@ -1007,6 +1020,13 @@
     });
     let searchTimer = null;
     $('search').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(renderLegends, 120); });
+    $('search').addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      e.preventDefault();
+      clearTimeout(searchTimer); renderLegends(); // make sure the list reflects what was just typed
+      const first = $('legendList').querySelector('[data-order]');
+      if (first) { $('search').blur(); openSheet(Number(first.dataset.order)); }
+    });
     $('sort').addEventListener('change', renderLegends);
 
     $('scrim').addEventListener('click', closeSheet);
