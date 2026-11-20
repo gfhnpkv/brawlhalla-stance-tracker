@@ -29,7 +29,7 @@ dair.gg doesn't reliably allow direct browser requests, so it goes through a rel
 - the Cloudflare Worker in `worker/` (https://brawlhalla-tracker-relay.gfhnpkv.workers.dev). It only relays
   numeric player IDs and only answers requests from the GitHub Pages site and localhost (anything else gets a 403).
 
-Coach keeps daily stat snapshots in your browser's localStorage (`bh_coach_v1`) to show progress; nothing is sent anywhere.
+Coach keeps daily stat snapshots in your browser's localStorage (`bh_coach_v1`) to show progress, including a per-weapon win/loss trend and an optional one-week weapon focus with its own progress counter (7 days, then it clears itself; Reset advice keeps it); nothing is sent anywhere.
 
 To redeploy the Worker after changing it: `cd worker && npx wrangler@4 deploy`
 

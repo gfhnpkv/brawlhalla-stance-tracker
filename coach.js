@@ -9,6 +9,10 @@ const Coach = (() => {
   const TREND_MIN_DAYS = 7;
   const TREND_MIN_GAMES = 10;
   const MAX_ITEMS = 5;
+  const FOCUS_DAYS = 7;        // a weekly focus ends (auto-clears) after this long
+  const FOCUS_TARGET = 10;     // ranked games with the focus weapon that make a solid read
+  const WTREND_MIN_DAYS = 7;   // per-weapon trend compares against a snapshot at least this old
+  const WTREND_MIN_GAMES = 5;  // ...and needs this many new ranked games with the weapon
 
   // Rough rules of thumb from general play experience, NOT official numbers and not from
   // Blue Mammoth. `tol` is how far past the target (as a fraction of it) still counts as "ok".
@@ -67,6 +71,15 @@ const Coach = (() => {
     if (!isObj(s) || typeof s.d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.d)) return null;
     const out = { d: s.d };
     NUM_FIELDS.forEach(k => { out[k] = n(s[k]); });
+    // w = ranked 1v1 [games, wins] per weapon; optional (older snapshots have none), omitted when empty to keep snapshots small
+    if (isObj(s.w)) {
+      const w = {};
+      Object.keys(s.w).forEach(k => {
+        const v = s.w[k];
+        if (Array.isArray(v) && Number.isFinite(v[0]) && Number.isFinite(v[1]) && v[0] > 0 && v[1] >= 0) w[k] = [v[0], v[1]];
+      });
+      if (Object.keys(w).length) out.w = w;
+    }
     return out;
   }
   function cleanMarks(m) {
@@ -78,12 +91,22 @@ const Coach = (() => {
     });
     return out;
   }
-  function load(id) {
+  // focus = {id: 'weapon:X' | 'explore:X', at: ms, baseGames, baseWins}; anything malformed or older than 7 days is dropped
+  function cleanFocus(f, now = Date.now()) {
+    if (!isObj(f) || typeof f.id !== 'string' || !/^(weapon|explore):./.test(f.id)) return null;
+    if (![f.at, f.baseGames, f.baseWins].every(Number.isFinite) || f.baseGames < 0 || f.baseWins < 0) return null;
+    if (now - f.at >= FOCUS_DAYS * DAY) return null;
+    return { id: f.id, at: f.at, baseGames: f.baseGames, baseWins: f.baseWins };
+  }
+  function load(id, now = Date.now()) {
     const e = readAll()[String(id)];
     if (!isObj(e)) return empty();
     const snaps = (Array.isArray(e.snaps) ? e.snaps : []).map(cleanSnap).filter(Boolean)
       .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
-    return { snaps: snaps.slice(-MAX_SNAPS), marks: cleanMarks(e.marks) };
+    const out = { snaps: snaps.slice(-MAX_SNAPS), marks: cleanMarks(e.marks) };
+    const focus = cleanFocus(e.focus, now);
+    if (focus) out.focus = focus; // key absent when there is no live focus
+    return out;
   }
   function save(id, entry) {
     try {
@@ -105,14 +128,24 @@ const Coach = (() => {
     const cur = load(id);
     if (!data || data.partial || !data.stats) return cur.snaps;
     const st = data.stats, solo = data.ranked && data.ranked.solo;
+    const w = {};
+    (Array.isArray(data.legends) ? data.legends : []).forEach(l => {
+      if (!l || !l.rk || !(l.rk.games > 0)) return;
+      (Array.isArray(l.weapons) ? l.weapons : []).forEach(wn => {
+        if (!wn) return;
+        const e = w[wn] = w[wn] || [0, 0];
+        e[0] += n(l.rk.games); e[1] += n(l.rk.wins);
+      });
+    });
     const snap = {
       d: dayKey(now), rating: n(solo && solo.rating), peak: n(solo && solo.peak), games: n(st.games), wins: n(st.wins),
       kos: n(st.kos), falls: n(st.falls), damage: n(st.damage), taken: n(st.taken), time: n(st.time),
       rkGames: n(solo && solo.games), rkWins: n(solo && solo.wins)
     };
+    if (Object.keys(w).length) snap.w = w;
     const snaps = cur.snaps.filter(s => s.d !== snap.d).concat(snap)
       .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0)).slice(-MAX_SNAPS);
-    save(id, { snaps, marks: cur.marks });
+    save(id, { snaps, marks: cur.marks, focus: cur.focus });
     return snaps;
   }
 
@@ -126,10 +159,44 @@ const Coach = (() => {
   }
 
   // Clears every Done/Dismissed mark for one player; snapshots (trend history) are kept. Returns the new marks.
+  // The weekly focus is deliberately KEPT: "Reset advice" only brings hidden items back, while a focus is a commitment
+  // the player made on purpose and it already ends by itself after 7 days (or with its own Clear button).
   function resetMarks(id) {
     const cur = load(id);
-    save(id, { snaps: cur.snaps, marks: {} });
+    save(id, { snaps: cur.snaps, marks: {}, focus: cur.focus });
     return {};
+  }
+
+  // Weekly focus: one weapon item (itemId 'weapon:X' or 'explore:X') at a time; setting a new one replaces the old.
+  // Remembers the weapon's ranked games/wins now, so progress is "now minus base". Returns the focus, or null when
+  // the item is not a weapon item or the weapon is not in the analysis. `analysis` is the result of analyze().
+  function setFocus(id, analysis, itemId, now = Date.now()) {
+    const m = /^(weapon|explore):(.+)$/.exec(String(itemId));
+    const w = m && analysis && Array.isArray(analysis.weaponPool) ? analysis.weaponPool.find(x => x.name === m[2]) : null;
+    if (!w) return null;
+    const cur = load(id, now);
+    const focus = { id: String(itemId), at: now, baseGames: n(w.games), baseWins: n(w.wins) };
+    save(id, { snaps: cur.snaps, marks: cur.marks, focus });
+    return focus;
+  }
+  function clearFocus(id) {
+    const cur = load(id);
+    save(id, { snaps: cur.snaps, marks: cur.marks, focus: null });
+    return null;
+  }
+  // Progress on a focus from the current analysis; null when there is no (live) focus or the weapon is gone.
+  // If the weapon's games dropped below the base (a season reset), everything now counts as since the focus began.
+  function focusProgress(analysis, focus, now = Date.now()) {
+    const f = cleanFocus(focus, now);
+    const w = f && analysis && Array.isArray(analysis.weaponPool) ? analysis.weaponPool.find(x => `weapon:${x.name}` === f.id || `explore:${x.name}` === f.id) : null;
+    if (!f || !w) return null;
+    const reset = w.games < f.baseGames;
+    const games = reset ? w.games : w.games - f.baseGames;
+    const wins = Math.min(games, Math.max(0, reset ? w.wins : w.wins - f.baseWins));
+    return {
+      id: f.id, weapon: w.name, at: f.at, games, wins, losses: games - wins, target: FOCUS_TARGET,
+      early: games < FOCUS_TARGET, daysLeft: Math.max(0, Math.ceil((f.at + FOCUS_DAYS * DAY - now) / DAY)), practice: w.practice
+    };
   }
 
   // ---------- analysis ----------
@@ -260,6 +327,22 @@ const Coach = (() => {
     return out;
   }
 
+  // Ranked results with one weapon since the nearest snapshot at least 7 days old that has weapon data; null when there is
+  // none, the weapon is missing from it, games went down (season reset) or under 5 new ranked games. Old snapshots without `w` are ignored.
+  function weaponTrend(name, snaps, cur, now = Date.now()) {
+    if (!Array.isArray(snaps) || !cur) return null;
+    const today = dayNum(dayKey(now));
+    for (let i = snaps.length - 1; i >= 0; i--) {
+      const s = snaps[i], e = s && isObj(s.w) ? s.w[name] : null;
+      if (!Array.isArray(e) || today - dayNum(s.d) < WTREND_MIN_DAYS) continue;
+      if (!(cur.games >= e[0])) continue;
+      const games = cur.games - e[0], wins = Math.min(games, Math.max(0, cur.wins - e[1]));
+      if (games < WTREND_MIN_GAMES) return null;
+      return { d: s.d, days: Math.round(today - dayNum(s.d)), games, wins, losses: games - wins };
+    }
+    return null;
+  }
+
   // 'done' | 'dismissed' while a mark still applies, else null (expired marks are ignored)
   function activeMark(m, now) {
     if (!m) return null;
@@ -295,7 +378,7 @@ const Coach = (() => {
         if (gap < WEAPON_GAP) return;
         const early = w.games < WEAPON_EARLY_GAMES;
         wItems.push({
-          id: `weapon:${w.name}`, key: 'weapon', title: `Work on ${w.name}`, current: round(w.wr, 4), target: round(overall, 4), trend: null,
+          id: `weapon:${w.name}`, key: 'weapon', title: `Work on ${w.name}`, current: round(w.wr, 4), target: round(overall, 4), trend: null, wtrend: weaponTrend(w.name, snaps, w, now),
           curText: `${pct(w.wr)} win rate with ${w.name} → ${pct(overall)} overall ranked`,
           why: `${w.name} wins ${pct(w.wr)} of your ranked games (${w.wins}W ${w.games - w.wins}L over ${w.games} games${early ? ', early read' : ''}), against ${pct(overall)} overall.`,
           drill: `Play your next ranked games as usual and, when random gives you a ${w.name} legend, play it on purpose instead of drifting. In the training room practice its core combos: one string, one finisher and one recovery.`,
@@ -340,5 +423,5 @@ const Coach = (() => {
     return plan(analysis, snaps, {}, now).some(it => !!activeMark(mk[it.id], now));
   }
 
-  return { RULES, analyze, plan, since, hiding, load, record, mark, resetMarks };
+  return { RULES, analyze, plan, since, hiding, load, record, mark, resetMarks, setFocus, clearFocus, focusProgress };
 })();

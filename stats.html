@@ -196,6 +196,8 @@
     .trend { font-size: var(--fs-s); color: var(--muted); }
     .trend.up { color: var(--win); }
     .trend.down { color: var(--loss); }
+    .coach-focus { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--raised); border: 1px solid var(--line-strong); border-radius: var(--r); padding: 16px; font-size: var(--fs-s); }
+    .coach-focus h3 { font-size: var(--fs-0); }
     .coach-pool { margin-top: 16px; font-size: var(--fs-s); color: var(--muted); }
     .coach-pool h3 { font-size: var(--fs-0); color: var(--text); margin-bottom: 4px; }
     .coach-pool div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-top: 1px solid var(--line); }
@@ -748,11 +750,12 @@
       if (typeof Coach === 'undefined' || !data) { ids.forEach(id => { $(id).innerHTML = ''; }); $('coachH').closest('section').hidden = true; return; }
       $('coachH').closest('section').hidden = false;
       $('coachReset').hidden = true;
-      let a, saved, plan = [];
+      let a, saved, plan = [], fp = null;
       try {
         a = Coach.analyze(data, weaponCatalog());
         saved = Coach.load(data.id) || {};
         if (a && a.ok) plan = Coach.plan(a, saved.snaps || [], saved.marks || {}) || [];
+        if (a && a.ok) fp = Coach.focusProgress(a, saved.focus);
       } catch (err) { a = null; }
       const placing = !!(a && a.solo && a.solo.placement);
       // Only offer the reset while a live Done/Dismissed mark is actually changing the plan
@@ -789,18 +792,25 @@
           <div class="s">target ${Number.isFinite(m.target) ? (m.better === 'lower' ? '≤ ' : '≥ ') + numK(m.key, m.target) : '–'}${low ? ' <span class="chip low">low sample</span>' : ''}</div></div>`;
       }).join('') || '<div class="empty">No coach numbers yet.</div>';
       const num = v => numK('', v);
-      $('coachPlan').innerHTML = (placing ? '' : plan.map(p => {
+      const dateOf = v => new Date(v).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const focusBox = fp && !placing && !noRanked ? `<div class="coach-focus"><div><h3>Focus this week: ${esc(fp.weapon)}</h3>
+          <div>${fmt(fp.games)} of ${fmt(fp.target)} ranked games with ${esc(fp.weapon)} since ${esc(dateOf(fp.at))}, ${fmt(fp.wins)}W ${fmt(fp.losses)}L${fp.early ? ' (early read)' : ''}. ${fmt(fp.daysLeft)} day${fp.daysLeft === 1 ? '' : 's'} left.</div></div>
+          <button class="btn" type="button" data-item="${esc(fp.id)}" data-act="unfocus" style="min-height:44px">Clear focus</button></div>` : '';
+      $('coachPlan').innerHTML = focusBox + (placing ? '' : plan.map(p => {
         const m = metrics.find(x => x.key === p.key);
         const t = p.trend && Number.isFinite(p.trend.from) && Number.isFinite(p.trend.to) ? p.trend : null;
         const improving = t && m && (m.better === 'lower' ? t.to < t.from : t.to > t.from);
         const trend = t ? `<div class="trend ${t.to === t.from ? '' : improving ? 'up' : 'down'}">${esc(m ? m.label : p.title)} ${numK(p.key, t.from)} → ${numK(p.key, t.to)} over ${fmt(t.days)} days</div>` : '';
+        const wt = p.wtrend ? `<div class="trend">Since ${esc(dateOf(p.wtrend.d + 'T00:00:00'))}: ${fmt(p.wtrend.wins)}W ${fmt(p.wtrend.losses)}L with ${esc(p.title.replace(/^Work on /, ''))}</div>` : '';
+        const canFocus = /^(weapon|explore):/.test(p.id) && !(fp && fp.id === p.id);
         const done = p.state === 'done';
         return `<div class="plan-item${done ? ' done' : ''}"><div>
             <h3>${esc(p.title)}</h3>
-            <div class="cur">${p.curText ? esc(p.curText) : `${numK(p.key, p.current)} → target ${numK(p.key, p.target)}`}</div>${trend}
+            <div class="cur">${p.curText ? esc(p.curText) : `${numK(p.key, p.current)} → target ${numK(p.key, p.target)}`}</div>${trend}${wt}
             <p>${esc(p.why)}</p>${p.practice && p.practice.length ? `<p>${p.unplayed ? 'Try' : 'Practice it with'}: ${esc(p.practice.join(', '))}.</p>` : ''}<p>${esc(p.drill)}</p></div>
           <div class="plan-actions">
             <button class="btn" type="button" data-item="${esc(p.id)}" data-act="${done ? 'reopen' : 'done'}">${done ? 'Undo' : 'Done'}</button>
+            ${canFocus ? `<button class="btn" type="button" data-item="${esc(p.id)}" data-act="focus">Focus this week</button>` : ''}
             <button class="btn" type="button" data-item="${esc(p.id)}" data-act="dismissed">Dismiss</button>
           </div></div>`;
       }).join('')) || (placing || noRanked || partial ? '' : '<div class="empty">No open coaching items. Nice work.</div>');
@@ -862,7 +872,12 @@
     $('coachPlan').addEventListener('click', e => {
       const b = e.target.closest('[data-item]');
       if (!b || !data || typeof Coach === 'undefined') return;
-      try { Coach.mark(data.id, b.dataset.item, b.dataset.act === 'reopen' ? null : b.dataset.act); } catch (err) { /* storage unavailable */ }
+      const act = b.dataset.act;
+      try {
+        if (act === 'focus') { const fa = Coach.analyze(data, weaponCatalog()); Coach.setFocus(data.id, fa, b.dataset.item); }
+        else if (act === 'unfocus') Coach.clearFocus(data.id);
+        else Coach.mark(data.id, b.dataset.item, act === 'reopen' ? null : act);
+      } catch (err) { /* storage unavailable */ }
       const item = b.dataset.item;
       renderCoach();
       const box = $('coachPlan');

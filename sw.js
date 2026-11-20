@@ -4,7 +4,7 @@
 // they rarely change, so repeat visits show them with no network at all. Bump IMG_CACHE after
 // replacing a picture under the same name.
 // API calls to other sites are not touched, and saved data stays in localStorage.
-const CACHE = 'stance-tracker-v32';
+const CACHE = 'stance-tracker-v33';
 const IMG_CACHE = 'stance-tracker-img-v1';
 const WEAPONS = ['Axe', 'Boots', 'Bow', 'Cannon', 'Chakram', 'Fists', 'Greatsword', 'Hammer', 'Katar', 'Orb', 'Pistol', 'RocketLance', 'Scythe', 'Spear', 'Sword'].map(w => `weapons/${w}.svg`);
 const isPicture = url => /\/(portraits|weapons)\/.+\.(avif|png|jpe?g|webp|svg)$/i.test(url.pathname);
