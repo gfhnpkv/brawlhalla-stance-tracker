@@ -256,6 +256,7 @@
       </nav>
     </div>
     <div class="sync-status" id="status" role="status"></div>
+    <div class="sync-status" id="updated"></div>
   </header>
 
   <main id="main">
@@ -436,9 +437,28 @@
       $('status').textContent = text;
       $('status').classList.toggle('error', !!error);
     }
-    async function load(id) {
-      $('loadBtn').disabled = true; $('loadBtn').classList.add('loading');
-      setStatus('Loading stats…');
+    // Auto refresh: stats are fetched on open and when the tab comes back, but only when the copy is older than this
+    const STALE_MS = 15 * 60 * 1000;
+    let loading = false;
+    function ago(ts) {
+      const m = Math.floor((Date.now() - ts) / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return `${m} min ago`;
+      const h = Math.floor(m / 60);
+      return h < 48 ? `${h} h ago` : `${Math.floor(h / 24)} days ago`;
+    }
+    function renderUpdated() {
+      const el = $('updated');
+      if (loading) { el.textContent = 'Refreshing…'; return; }
+      el.textContent = data && !data.partial && data.fetchedAt ? `Updated ${ago(data.fetchedAt)}` : '';
+    }
+    const isStale = () => !data || data.partial || !data.fetchedAt || Date.now() - data.fetchedAt > STALE_MS;
+    async function load(id, silent) {
+      if (loading) return;
+      loading = true;
+      $('loadBtn').classList.add('loading');
+      if (!silent) { $('loadBtn').disabled = true; setStatus('Loading stats…'); }
+      renderUpdated();
       try {
         const base = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? '/api' : 'https://brawlhalla-tracker-relay.gfhnpkv.workers.dev';
         const res = await fetch(`${base}/dair/${id}`, { cache: 'no-store' });
@@ -448,15 +468,18 @@
         data = shaped;
         try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (err) { /* storage full or unavailable */ }
         try { if (typeof Coach !== 'undefined') Coach.record(id, data); } catch (err) { /* coach history is optional */ }
-        setStatus(`Loaded ${data.name} (#${id}). dair.gg updates a few minutes after each match.`);
+        setStatus(silent ? '' : `Loaded ${data.name} (#${id}). dair.gg updates a few minutes after each match.`);
       } catch (err) {
         const cached = readCache(id);
         data = cached || (Tracker.state.id === id ? fromSaved() : null);
-        setStatus(`Couldn't load fresh stats: ${err.message || 'network error'}` +
+        if (silent && cached) setStatus('');
+        else setStatus(`Couldn't load fresh stats: ${err.message || 'network error'}` +
           (cached ? ` Showing the copy from ${new Date(cached.fetchedAt).toLocaleString()}.` : data ? ' Showing your last synced legend stats.' : ''), !data);
       }
+      loading = false;
       $('loadBtn').disabled = false; $('loadBtn').classList.remove('loading');
       render();
+      renderUpdated();
     }
     function readCache(id) {
       try {
@@ -862,8 +885,17 @@
     $('idInput').value = startId;
     data = startId ? readCache(startId) : null;
     render();
-    if (startId) load(startId);
+    renderUpdated();
+    if (startId) { if (isStale()) load(startId, !!data); }
     else setStatus('Enter your Brawlhalla ID (the number on your in-game profile) and press Load.');
+    // Keep "Updated X ago" accurate (one cheap tick a minute) and refresh when the tab returns to view
+    setInterval(() => { if (!document.hidden) renderUpdated(); }, 60000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      renderUpdated();
+      const id = data && data.id;
+      if (id && /^\d+$/.test(id) && isStale()) load(id, true);
+    });
     Tracker.loadPortraits().then(p => { portraits = p; if (data) renderLegends(); });
   </script>
   <script>
