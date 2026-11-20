@@ -940,7 +940,7 @@
     function renderRoster() {
       const q = Tracker.fold($('search').value.trim());
       const sort = $('sort').value;
-      const remaining = l => { const lvl = Tracker.getLevel(l.name); return lvl >= l.vLvl ? 999 : lvl >= l.bangLvl ? l.vLvl - lvl : l.bangLvl - lvl; };
+      const remaining = l => { const lvl = Tracker.getLevel(l.name); if (l.vLvl == null || l.bangLvl == null) return Infinity; return lvl >= l.vLvl ? 999 : lvl >= l.bangLvl ? l.vLvl - lvl : l.bangLvl - lvl; };
       const list = LEGENDS_DB.filter(l => {
         if (filter !== 'ALL' && statusOf(l) !== filter) return false;
         if (!q) return true;
@@ -967,6 +967,7 @@
 
     // ---------- legend details (side sheet) ----------
     function nextText(l, lvl, st) {
+      if (l.vLvl == null || l.bangLvl == null) return 'Best stance not decided yet';
       if (st === 'x' || st === 'p') return `${st === 'x' ? 'Not played yet · ' : ''}Standard stance at Lv ${l.bangLvl} (${l.bangLvl - lvl} to go) · best stance at Lv ${l.vLvl}`;
       if (st === '!') return `Best stance at Lv ${l.vLvl} (${l.vLvl - lvl} to go)`;
       return 'Best stance unlocked';
@@ -1002,8 +1003,8 @@
         </div>
         <div class="next-text">${esc(nextText(l, lvl, st))}</div>
         <div class="stance-pair">
-          <div><div class="k"><span><i class="dot v"></i>Best stance</span><span>Unlocks at Lv ${l.vLvl}</span></div><div class="nm">${esc(l.target)}</div></div>
-          <div><div class="k"><span><i class="dot b"></i>Standard stance</span><span>Unlocks at Lv ${l.bangLvl}</span></div><div class="nm">${esc(l.alt)}</div></div>
+          <div><div class="k"><span><i class="dot v"></i>Best stance</span><span>${l.vLvl != null ? `Unlocks at Lv ${l.vLvl}` : 'Not decided yet'}</span></div><div class="nm">${l.target != null ? esc(l.target) : '—'}</div></div>
+          <div><div class="k"><span><i class="dot b"></i>Standard stance</span><span>${l.bangLvl != null ? `Unlocks at Lv ${l.bangLvl}` : 'Not decided yet'}</span></div><div class="nm">${l.alt != null ? esc(l.alt) : '—'}</div></div>
         </div>
         ${weaponsOf(l.name).length ? `<h3>Weapons</h3><ul class="weapons">${weaponsOf(l.name).map(w => `<li>${weaponIcon(w)}${esc(w.label)}</li>`).join('')}</ul>` : ''}
         <h3>Stance order</h3>

@@ -1,10 +1,12 @@
 # Brawlhalla Stance Tracker
 
-Tracks your level on all 70 legends and shows which stance you've unlocked:
+Tracks your level on all 71 legends and shows which stance you've unlocked:
 - **v**: target (best) stance unlocked
 - **!**: standard alternative stance unlocked
 - **…**: played, but no stance unlocked yet
 - **🔒**: locked: you haven't played this legend or don't own it (the API can't tell those apart)
+
+In the data (`legends.js`), `vLvl` is the level the target ("best") stance unlocks at and `bangLvl` the level the standard alternative unlocks at; both are null for a legend whose picks are not decided yet (a brand-new legend), and the site then shows no stance target for it.
 
 ## Use it
 - **Online:** https://gfhnpkv.github.io/brawlhalla-stance-tracker/ (`index.html`: Live status, stance reminders, game history and the legend roster; responsive on phones too — add it to your home screen)

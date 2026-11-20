@@ -120,13 +120,15 @@ const Tracker = (() => {
   }
   // 'v' best stance, '!' standard stance, 'p' played but no stance yet, 'x' locked (not played / not owned)
   function statusOf(legend, lvl) {
-    if (lvl >= legend.vLvl) return 'v';
-    if (lvl >= legend.bangLvl) return '!';
+    // vLvl/bangLvl are null until a legend's best/standard stance picks are decided (e.g.
+    // a brand-new legend): then it has no stance target yet, only played/locked.
+    if (legend.vLvl != null && lvl >= legend.vLvl) return 'v';
+    if (legend.bangLvl != null && lvl >= legend.bangLvl) return '!';
     return hasPlayed(legend.name, lvl) ? 'p' : 'x';
   }
   function nextTarget(legend, lvl) {
-    if (lvl < legend.bangLvl) return { lvl: legend.bangLvl, status: '!', what: legend.alt };
-    if (lvl < legend.vLvl) return { lvl: legend.vLvl, status: 'v', what: legend.target };
+    if (legend.bangLvl != null && lvl < legend.bangLvl) return { lvl: legend.bangLvl, status: '!', what: legend.alt };
+    if (legend.vLvl != null && lvl < legend.vLvl) return { lvl: legend.vLvl, status: 'v', what: legend.target };
     return null;
   }
   function progressToNext(legend, lvl) {

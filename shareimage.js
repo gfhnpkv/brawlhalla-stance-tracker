@@ -17,13 +17,13 @@ const ShareImage = (() => {
     const lvl = name => levels[name] || 1;
     // Same rule as Tracker.statusOf: played = a level above 1 or synced games
     const played = name => lvl(name) > 1 || !!(stats && stats[name] && stats[name].games > 0);
-    const status = l => (lvl(l.name) >= l.vLvl ? 'v' : lvl(l.name) >= l.bangLvl ? '!' : played(l.name) ? 'p' : 'x');
+    const status = l => ((l.vLvl != null && lvl(l.name) >= l.vLvl) ? 'v' : (l.bangLvl != null && lvl(l.name) >= l.bangLvl) ? '!' : played(l.name) ? 'p' : 'x');
     const counts = { v: 0, '!': 0, p: 0, x: 0 };
     LEGENDS_DB.forEach(l => counts[status(l)]++);
     const top = LEGENDS_DB.map(l => ({ name: l.name, level: lvl(l.name) }))
       .sort((a, b) => b.level - a.level || a.name.localeCompare(b.name)).slice(0, 5);
     const goalRows = (Array.isArray(goals) ? goals : []).map(name => LEGENDS_DB.find(l => l.name === name)).filter(Boolean).slice(0, 3)
-      .map(l => ({ name: l.name, level: lvl(l.name), target: lvl(l.name) >= l.vLvl ? null : l.vLvl }));
+      .map(l => ({ name: l.name, level: lvl(l.name), target: (l.vLvl == null || lvl(l.name) >= l.vLvl) ? null : l.vLvl }));
     return {
       name: profile ? profile.name : 'My collection',
       id: profile ? profile.id : null,
